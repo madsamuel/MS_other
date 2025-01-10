@@ -1,7 +1,2 @@
-Button 7:yes,Button 6:yes,Button 5:yes,Button 4:no,Button 3:no,Button 2:no,Button 1:no
-Popup 1:no,Popup 2:no,Popup 3:no,Popup 4:no,Popup 5:no,Popup 6:no,Popup 7:no
-Popup 7:no,Popup 6:no,Popup 5:no,Popup 4:no,Popup 3:no,Popup 2:no,Popup 1:no
-Popup 7:no,Popup 6:no,Popup 5:no,Popup 4:no,Popup 3:no,Popup 2:no,Popup 1:no
-Popup 4:no,Popup 7:no,Popup 6:no,Popup 5:no,Popup 3:no,Popup 2:no,Popup 1:no
-Popup 4:yes,Popup 7:no,Popup 6:no,Popup 5:no,Popup 3:no,Popup 2:no,Popup 1:no
-Popup 1:no,Popup 2:no,Popup 3:no,Popup 4:no,Popup 5:no,Popup 6:no,Popup 7:no
+Popup 7:no,Popup 6:no,Popup 5:no,Popup 4:no,Popup 3:no,Popup 2:yes,Popup 1:yes
+Button 1:no,Button 2:no,Button 3:no,Button 4:yes,Button 5:yes,Button 6:yes,Button 7:yes
