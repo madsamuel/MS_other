@@ -29,7 +29,7 @@ def handle_input(entry, delay, index):
 
     # Save results to a file in the desired format
     if len(results) == len(delays):  # Only write to file once all boxes are completed
-        with open("typing_latency_test_results.txt", "w") as file:
+        with open("typing_latency_test_results.txt", "a") as file:
             file.write(",".join(results))
 
 # Create the main window
@@ -41,7 +41,7 @@ for i, delay in enumerate(delays):
     frame = tk.Frame(root)
     frame.pack(pady=10)
 
-    label = tk.Label(frame, text=f"Text Box {i + 1} (Delay: {delay} ms):")
+    label = tk.Label(frame, text=f"Text Box {i + 1}:")
     label.pack(side=tk.LEFT)
 
     entry = tk.Entry(frame, font=("Helvetica", 14))
