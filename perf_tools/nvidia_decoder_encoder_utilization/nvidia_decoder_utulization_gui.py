@@ -79,21 +79,8 @@ def show_counter():
 def hide_counter():
     global counter_window
     if counter_window is not None:
-        counter_window.destroy()
+        counter_window.withdraw()
         counter_window = None
-
-# Function to dynamically update the tray menu
-def update_menu(icon):
-    if counter_window is None:
-        return Menu(
-            MenuItem("Show Counter", lambda: threading.Thread(target=show_counter).start()),
-            MenuItem("Exit", exit_app)
-        )
-    else:
-        return Menu(
-            MenuItem("Hide Counter", hide_counter),
-            MenuItem("Exit", exit_app)
-        )
 
 # Function to handle exiting the app
 def exit_app(icon=None, item=None):
@@ -117,6 +104,7 @@ def create_icon():
     # Create a right-click menu for the tray icon
     menu = Menu(
         MenuItem("Show Counter", lambda: threading.Thread(target=show_counter).start()),
+        MenuItem("Hide Counter", lambda: threading.Thread(target=hide_counter).start()),
         MenuItem("Exit", exit_app)
     )
 
