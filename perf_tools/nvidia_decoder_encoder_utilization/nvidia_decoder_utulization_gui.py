@@ -47,7 +47,6 @@ def show_counter():
 
     counter_window = tk.Tk()
     counter_window.title("Decoder Utilization")
-    counter_window.geometry("300x50+1000+50")
     counter_window.overrideredirect(True)  # Remove window decorations
     counter_window.attributes("-topmost", True)  # Keep on top
     counter_window.attributes("-transparentcolor", "black")  # Set transparency color
@@ -56,16 +55,21 @@ def show_counter():
     label = tk.Label(
         counter_window,
         text="",
-        font=("Arial", 24),
+        font=("Arial", 14),
         fg="yellow",
         bg="black",  # This will be transparent
         padx=10,
-        pady=5
+        pady=5,
+        anchor="w"  # Left-justify the text
     )
     label.pack(fill="both", expand=True)
 
     def update_label():
-        label.config(text=f"Decoder: {decoder_utilization}%")
+        label_text = f"Decoder: {decoder_utilization}%"
+        label.config(text=label_text)
+        # Dynamically adjust window size based on text length
+        text_width = (len(label_text) + 10) * 12  # Adjust to account for D and % and padding
+        counter_window.geometry(f"{text_width}x80+0+0")
         counter_window.after(1000, update_label)
 
     update_label()
