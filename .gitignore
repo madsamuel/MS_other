@@ -1,2 +1,3 @@
 
 *.log
+perf_tools/nvidia_decoder_encoder_utilization/compare.py

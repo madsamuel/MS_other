@@ -8,9 +8,10 @@ from PIL import Image, ImageDraw
 # Global variable to track decoder utilization
 decoder_utilization = 0
 running = True
+counter_window = None
 
 # Function to safely initialize NVML
-def initialize_nvml():    
+def initialize_nvml():
     try:
         pynvml.nvmlInit()
         return pynvml.nvmlDeviceGetHandleByIndex(0)
@@ -40,21 +41,55 @@ def monitor_decoder():
 
 # Function to display the decoder utilization on screen
 def show_counter():
-    root = tk.Tk()
-    root.title("Decoder Utilization")
-    root.geometry("300x50+1000+50")
-    root.overrideredirect(True)  # Remove window decorations
-    root.attributes("-topmost", True)  # Keep on top
+    global counter_window
+    if counter_window is not None:
+        return  # Counter is already visible
 
-    label = tk.Label(root, text="", font=("Arial", 24), fg="yellow", bg="black")
+    counter_window = tk.Tk()
+    counter_window.title("Decoder Utilization")
+    counter_window.geometry("300x50+1000+50")
+    counter_window.overrideredirect(True)  # Remove window decorations
+    counter_window.attributes("-topmost", True)  # Keep on top
+    counter_window.attributes("-transparentcolor", "black")  # Set transparency color
+
+    # Create a label with a transparent background
+    label = tk.Label(
+        counter_window,
+        text="",
+        font=("Arial", 24),
+        fg="yellow",
+        bg="black",  # This will be transparent
+        padx=10,
+        pady=5
+    )
     label.pack(fill="both", expand=True)
 
     def update_label():
-        label.config(text=f"Decoder Utilization: {decoder_utilization}%")
-        root.after(1000, update_label)
+        label.config(text=f"Decoder: {decoder_utilization}%")
+        counter_window.after(1000, update_label)
 
     update_label()
-    root.mainloop()
+    counter_window.mainloop()
+
+# Function to hide the counter window
+def hide_counter():
+    global counter_window
+    if counter_window is not None:
+        counter_window.destroy()
+        counter_window = None
+
+# Function to dynamically update the tray menu
+def update_menu(icon):
+    if counter_window is None:
+        return Menu(
+            MenuItem("Show Counter", lambda: threading.Thread(target=show_counter).start()),
+            MenuItem("Exit", exit_app)
+        )
+    else:
+        return Menu(
+            MenuItem("Hide Counter", hide_counter),
+            MenuItem("Exit", exit_app)
+        )
 
 # Function to handle exiting the app
 def exit_app(icon=None, item=None):
