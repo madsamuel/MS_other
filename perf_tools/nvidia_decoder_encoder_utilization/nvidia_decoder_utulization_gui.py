@@ -9,6 +9,8 @@ from PIL import Image, ImageDraw
 decoder_utilization = 0
 running = True
 counter_window = None
+last_logged_utilization = None  # To track the last logged value
+log_file = "decoder_log.txt"  # Log file name
 
 # Function to safely initialize NVML
 def initialize_nvml():
@@ -28,16 +30,27 @@ def initialize_nvml():
 # Initialize NVML and get the GPU handle
 handle = initialize_nvml()
 
-# Function to monitor GPU decoder utilization
+# Function to monitor GPU decoder utilization and log changes
 def monitor_decoder():
-    global decoder_utilization, running
-    while running:
-        try:
-            util, _ = pynvml.nvmlDeviceGetDecoderUtilization(handle)
-            decoder_utilization = util
-        except pynvml.NVMLError as e:
-            print(f"Error retrieving decoder utilization: {str(e)}")
-        time.sleep(1)
+    global decoder_utilization, running, last_logged_utilization
+    with open(log_file, "a") as log:
+        while running:
+            try:
+                util, _ = pynvml.nvmlDeviceGetDecoderUtilization(handle)
+                decoder_utilization = util
+
+                # Get the current timestamp
+                timestamp = time.strftime("%H:%M:%S")
+
+                # Log only if the utilization changes
+                if decoder_utilization != last_logged_utilization:
+                    log.write(f"{timestamp} - {decoder_utilization}%\n")
+                    log.flush()  # Ensure the log is written to file immediately
+                    last_logged_utilization = decoder_utilization
+
+            except pynvml.NVMLError as e:
+                print(f"Error retrieving decoder utilization: {str(e)}")
+            time.sleep(1)
 
 # Function to display the decoder utilization on screen
 def show_counter():
