@@ -1,5 +1,5 @@
 
 *.log
 perf_tools/nvidia_decoder_encoder_utilization/compare.py
-perf_tools/decoder_log.txt
-perf_tools/decoder_log.txt
+perf_tools/*.txt
+perf_tools/*.log
