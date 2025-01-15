@@ -31,10 +31,10 @@ def button_click(button_name, latency_ms):
         
         # If all buttons have been clicked, save responses to the log file
         if len(responses) == len(latencies):
-            with open("results.log", "a") as file:
+            with open("click_latency.log", "a") as file:
                 log_entry = ",".join([f"{button}:{response}" for button, response in responses.items()])
                 file.write(log_entry + "\n")
-            print("Responses saved to results.log")
+            print("Responses saved to click_latency.lg")
     
     # Schedule the popup after the specified latency using after()
     root.after(latency_ms, show_popup)

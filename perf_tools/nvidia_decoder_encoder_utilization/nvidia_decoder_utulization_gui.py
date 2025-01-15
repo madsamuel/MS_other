@@ -3,7 +3,7 @@ import time
 import threading
 import tkinter as tk
 from pystray import Icon, MenuItem, Menu
-from PIL import Image, ImageDraw
+from PIL import Image
 
 # Global variable to track decoder utilization
 decoder_utilization = 0
@@ -109,10 +109,8 @@ def exit_app(icon=None, item=None):
 
 # Function to create the tray icon
 def create_icon():
-    # Create a blank icon image
-    image = Image.new("RGB", (64, 64), color=(0, 0, 0))
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, 64, 64), fill=(255, 255, 0))
+    # Use an external .ico file for the tray icon
+    icon_image = Image.open("icon.ico")
 
     # Create a right-click menu for the tray icon
     menu = Menu(
@@ -122,7 +120,7 @@ def create_icon():
     )
 
     # Create the system tray icon
-    icon = Icon("GPU Decoder Monitor", image, menu=menu)
+    icon = Icon("GPU Decoder Monitor", icon_image, menu=menu)
     icon.run()
 
 # Start the background monitoring thread
