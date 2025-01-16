@@ -4,13 +4,17 @@ import threading
 import tkinter as tk
 from pystray import Icon, MenuItem, Menu
 from PIL import Image
+import os
 
 # Global variable to track encoder utilization
 encoder_utilization = 0
 running = True
 counter_window = None
 last_logged_encoder_utilization = None  # To track the last logged value
-log_file = "encoder_log.txt"  # Log file name
+
+# Generate log file name with current date
+date_str = time.strftime("%Y-%m-%d")
+log_file = f"encoder_log_{date_str}.txt"  # Log file name
 
 # Function to safely initialize NVML
 def initialize_nvml():
