@@ -31,7 +31,7 @@ def handle_input(entry, delay, index):
 
     # Save results to a file in the desired format
     if len(results) == len(delays):  # Only write to file once all boxes are completed
-        with open("typing_latency_test_results.txt", "a") as file:
+        with open("typing_latency_results.txt", "a") as file:
             file.write(",".join(results) + "\n")
 
 # Create the main window

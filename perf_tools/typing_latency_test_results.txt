@@ -1,3 +1,0 @@
-Text Box 1-400ms:Yes,Text Box 2-300ms:No,Text Box 3-100ms:No,Text Box 4-500ms:Yes,Text Box 5-0ms:No,Text Box 6-600ms:Yes,Text Box 7-200ms:No
-Text Box 1-300ms:No,Text Box 2-400ms:Yes,Text Box 3-100ms:No,Text Box 4-200ms:No,Text Box 5-500ms:Yes,Text Box 6-600ms:Yes,Text Box 7-0ms:Yes
-Text Box 1-500ms:Yes,Text Box 2-200ms:No,Text Box 3-0ms:No,Text Box 4-600ms:Yes,Text Box 5-300ms:No,Text Box 6-400ms:Yes,Text Box 7-100ms:Yes
