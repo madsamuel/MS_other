@@ -1,59 +1,92 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, scrolledtext
+import time
 import random
 
-# Define delays for each text box in milliseconds
-delays = [0, 100, 200, 300, 400, 500, 600]
-# Shuffle the delays randomly
-random.shuffle(delays)
-results = []
+# Define latency values for each text box in milliseconds
+latencies = [0, 100, 200, 300, 400, 500, 600]
 
-# Function to handle delayed typing
-def delayed_typing(entry, char, delay):
-    # Append the character with the specified delay
-    def update_text():
-        entry.insert(tk.END, char)
+# Shuffle the latency array to randomize assignments
+random.shuffle(latencies)
 
-    # Only process printable characters and prevent immediate display
-    if char.isprintable():
-        root.after(delay, update_text)
-        return "break"
+# Initialize an empty response dictionary
+responses = {}
 
-# Function to handle when Enter is pressed
-def handle_input(entry, delay, index):
-    user_input = entry.get()
-    entry.delete(0, tk.END)
+# Load lorem ipsum text from file
+with open("lorem_ipsum.txt", "r") as file:
+    lorem_text = file.read()
 
-    # Ask the user if they noticed the delay
-    response = messagebox.askyesno("Typing Latency Test", f"Did you notice a delay in Text Box {index + 1}?")
-    result = f"Text Box {index + 1}-{delay}ms:{'Yes' if response else 'No'}"
-    results.append(result)
+# Function to handle the scrolling event with latency
+def handle_scroll(event, textbox, latency_ms):
+    # Prevent immediate scrolling
+    event.widget.update_idletasks()
 
-    # Save results to a file in the desired format
-    if len(results) == len(delays):  # Only write to file once all boxes are completed
-        with open("typing_latency_results.txt", "a") as file:
-            file.write(",".join(results) + "\n")
+    # Scroll step by step with delay
+    steps = int(-1 * (event.delta / 120))
+    for step in range(abs(steps)):
+        delay = latency_ms // abs(steps) if steps != 0 else latency_ms
+
+        def scroll_action():
+            textbox.yview_scroll(1 if steps > 0 else -1, "units")
+
+        root.after(delay * (step + 1), scroll_action)
+    return "break"
+
+# Function to handle the report button click
+def handle_report(latency_ms, box_name):
+    response = messagebox.askyesno(
+        "Scrolling Latency Test", f"Did you notice a delay in {box_name}?"
+    )
+    response_text = "Yes" if response else "No"
+    responses[box_name] = (latency_ms, response_text)
+
+    # Print the response
+    print(f"{box_name}: {response_text} (Assigned Latency: {latency_ms} ms)")
+
+    # Save responses when all reports are done
+    if len(responses) == len(latencies):
+        with open("scroll_latency.log", "a") as file:
+            log_entry = ",".join(
+                [f"{box}-{latency}ms:{response}" for box, (latency, response) in responses.items()]
+            )
+            file.write(log_entry + "\n")
+        print("Responses saved to scroll_latency.log")
 
 # Create the main window
 root = tk.Tk()
-root.title("Typing Latency Test")
+root.title("Scrolling Latency Test")
 
-# Create text boxes with different delays
-for i, delay in enumerate(delays):
+# Create a grid layout for text areas and buttons
+rows = 2
+cols = (len(latencies) + 1) // 2  # Split into two rows
+
+for i, latency in enumerate(latencies):
+    row = i // cols
+    col = i % cols
+
+    # Create a frame for each text box and button
     frame = tk.Frame(root)
-    frame.pack(pady=10)
+    frame.grid(row=row, column=col, padx=10, pady=10)
 
-    label = tk.Label(frame, text=f"Text Box {i + 1}:")
-    label.pack(side=tk.LEFT)
+    # Add a scrolled text box
+    textbox = scrolledtext.ScrolledText(frame, wrap=tk.WORD, width=40, height=10, font=("Helvetica", 10))
+    textbox.insert(tk.END, lorem_text)
+    textbox.config(state=tk.DISABLED)  # Disable editing
+    textbox.pack()
 
-    entry = tk.Entry(frame, font=("Helvetica", 14))
-    entry.pack(side=tk.LEFT, padx=10)
+    # Bind the scrolling event to introduce latency
+    textbox.bind(
+        "<MouseWheel>",
+        lambda event, tb=textbox, l=latency: handle_scroll(event, tb, l),
+    )
 
-    # Bind key press events for delayed typing
-    entry.bind("<KeyPress>", lambda event, e=entry, d=delay: delayed_typing(e, event.char, d))
-
-    # Bind Enter key to handle input and show popup
-    entry.bind("<Return>", lambda event, e=entry, d=delay, i=i: handle_input(e, d, i))
+    # Add a report button below each text box
+    button = tk.Button(
+        frame,
+        text="Report",
+        command=lambda l=latency, bn=f"Text Box {i + 1}": handle_report(l, bn),
+    )
+    button.pack(pady=5)
 
 # Run the GUI event loop
 root.mainloop()
