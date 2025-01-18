@@ -4,7 +4,7 @@ import time
 import random
 
 # Define latency values for each text box in milliseconds
-latencies = [0, 100, 200, 300, 400, 5000, 6000]
+latencies = [0, 100, 200, 300, 400, 500, 600]
 
 # Shuffle the latency array to randomize assignments
 random.shuffle(latencies)
@@ -16,20 +16,25 @@ responses = {}
 with open("lorem_ipsum.txt", "r") as file:
     lorem_text = file.read()
 
-def handle_scroll(event, textbox, latency_ms):
-    # Calculate the scroll steps based on the event delta
-    steps = int(-1 * (event.delta / 120))
-    delay_per_step = latency_ms // abs(steps) if steps != 0 else latency_ms
+def handle_scroll(event, textbox, total_latency_ms):
+    steps = int(-1 * (event.delta / 120))  # Calculate scroll steps
+    if steps == 0:
+        return 
 
-    # Perform the scrolling gradually with delays
-    def gradual_scroll(step_count):
-        if step_count == 0:
-            return
+    # Calculate latency per step
+    latency_per_step = total_latency_ms / abs(steps) if abs(steps) > 0 else total_latency_ms
+
+    for _ in range(abs(steps)):
+        # Perform one scroll step
         textbox.yview_scroll(1 if steps > 0 else -1, "units")
-        textbox.after(delay_per_step, lambda: gradual_scroll(step_count - 1))
 
-    gradual_scroll(abs(steps))  # Start gradual scrolling
-    return "break"  # Prevent immediate scrolling
+        # Simulate latency for this step
+        start_time = time.perf_counter()
+        while (time.perf_counter() - start_time) < (latency_per_step / 1000.0):
+            pass
+
+    return 
+
 
 # Function to handle the report button click
 def handle_report(latency_ms, box_name):
