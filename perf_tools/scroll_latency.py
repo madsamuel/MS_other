@@ -16,25 +16,14 @@ responses = {}
 with open("lorem_ipsum.txt", "r") as file:
     lorem_text = file.read()
 
-def handle_scroll(event, textbox, total_latency_ms):
-    steps = int(-1 * (event.delta / 120))  # Calculate scroll steps
-    if steps == 0:
-        return 
-
-    # Calculate latency per step
-    latency_per_step = total_latency_ms / abs(steps) if abs(steps) > 0 else total_latency_ms
-
-    for _ in range(abs(steps)):
-        # Perform one scroll step
-        textbox.yview_scroll(1 if steps > 0 else -1, "units")
-
-        # Simulate latency for this step
-        start_time = time.perf_counter()
-        while (time.perf_counter() - start_time) < (latency_per_step / 1000.0):
-            pass
-
-    return 
-
+def handle_scroll(event, textbox, total_latency_ms):    
+    current_time = time.time()
+    if not hasattr(textbox, 'last_scroll_time'):
+        textbox.last_scroll_time = 0
+    if current_time - textbox.last_scroll_time > total_latency_ms / 1000:
+        textbox.yview_scroll(-1 * (event.delta // 120), "units")
+        textbox.last_scroll_time = current_time
+    return "break"
 
 # Function to handle the report button click
 def handle_report(latency_ms, box_name):
@@ -78,11 +67,8 @@ for i, latency in enumerate(latencies):
     textbox.config(state=tk.DISABLED)  # Disable editing
     textbox.pack()
 
-    # Bind the scrolling event to introduce latency
-    textbox.bind(
-        "<MouseWheel>",
-        lambda event, tb=textbox, l=latency: handle_scroll(event, tb, l),
-    )
+    # Bind mouse scroll event with delay logic
+    textbox.bind("<MouseWheel>", lambda e, tb=textbox, lat=latency: handle_scroll(e, tb, lat))
 
     # Add a report button below each text box
     button = tk.Button(
