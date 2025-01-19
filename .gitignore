@@ -3,3 +3,4 @@
 perf_tools/nvidia_decoder_encoder_utilization/compare.py
 perf_tools/*.txt
 perf_tools/*.log
+perf_tools/temp/test.py
