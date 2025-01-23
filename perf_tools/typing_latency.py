@@ -67,6 +67,16 @@ def finish_test():
 root = tk.Tk()
 root.title("Typing Latency Test")
 
+# Set the window icon
+icon_path = "icon.ico"  
+try:
+    root.iconbitmap(icon_path)  # For Windows (.ico)
+except tk.TclError:
+    # For cross-platform support using .png
+    from PIL import Image, ImageTk
+    icon_image = ImageTk.PhotoImage(Image.open("icon.png"))
+    root.wm_iconphoto(True, icon_image)
+
 # Create and configure the menu bar
 menu_bar = tk.Menu(root)
 

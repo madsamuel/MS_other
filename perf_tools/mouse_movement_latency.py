@@ -38,13 +38,13 @@ root = tk.Tk()
 root.title("Mouse Latency Drawing Test")
 
 # Set the window icon
-icon_path = "my_icon.ico"  # Change to your icon file's path
+icon_path = "icon.ico"  
 try:
     root.iconbitmap(icon_path)  # For Windows (.ico)
 except tk.TclError:
     # For cross-platform support using .png
     from PIL import Image, ImageTk
-    icon_image = ImageTk.PhotoImage(Image.open("my_icon.png"))
+    icon_image = ImageTk.PhotoImage(Image.open("icon.png"))
     root.wm_iconphoto(True, icon_image)
 
 # Create a frame for the canvases

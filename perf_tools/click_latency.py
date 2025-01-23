@@ -43,6 +43,16 @@ def button_click(button_name, latency_ms):
 root = tk.Tk()
 root.title("Latency Perception Test")
 
+# Set the window icon
+icon_path = "icon.ico"  
+try:
+    root.iconbitmap(icon_path)  # For Windows (.ico)
+except tk.TclError:
+    # For cross-platform support using .png
+    from PIL import Image, ImageTk
+    icon_image = ImageTk.PhotoImage(Image.open("icon.png"))
+    root.wm_iconphoto(True, icon_image)
+
 # Create buttons in a row
 for i, latency in enumerate(latencies):
     button_name = f"Button {i + 1}"

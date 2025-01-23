@@ -49,6 +49,16 @@ def handle_report(latency_ms, box_name):
 root = tk.Tk()
 root.title("Scrolling Latency Test")
 
+# Set the window icon
+icon_path = "icon.ico"  
+try:
+    root.iconbitmap(icon_path)  # For Windows (.ico)
+except tk.TclError:
+    # For cross-platform support using .png
+    from PIL import Image, ImageTk
+    icon_image = ImageTk.PhotoImage(Image.open("icon.png"))
+    root.wm_iconphoto(True, icon_image)
+
 # Create a grid layout for text areas and buttons
 rows = 2
 cols = (len(latencies) + 1) // 2  # Split into two rows
