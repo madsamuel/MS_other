@@ -28,7 +28,7 @@ def handle_scroll(event, textbox, total_latency_ms):
 # Function to handle the report button click
 def handle_report(latency_ms, box_name):
     response = messagebox.askyesno(
-        "Scrolling Latency Test", f"Did you notice a delay in {box_name}?"
+        "Scrolling Latency Test", f"Did you notice a delay in {box_name} between scrolling with the mouse and responsivness?"
     )
     response_text = "Yes" if response else "No"
     responses[box_name] = (latency_ms, response_text)

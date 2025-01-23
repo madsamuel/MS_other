@@ -1,61 +1,123 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import messagebox
+import random
 
-class TextLoaderApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Text Loader")
+# Define delays for text boxes in milliseconds and shuffle them for random assignment
+# This ensures a varied user experience across text boxes
+delays = [0, 100, 200, 300, 400, 500, 600]
+random.shuffle(delays)
+results = []
 
-        # Create text frame
-        self.text_frame = tk.Frame(root)
-        self.text_frame.pack(pady=10)
+# List to store text box widgets for reference and manipulation
+text_boxes = []
 
-        # Create text box with scrollbar
-        self.text_box = tk.Text(self.text_frame, wrap="word", height=20, width=60)
-        self.scrollbar = tk.Scrollbar(self.text_frame, orient="vertical", command=self.text_box.yview)
-        self.text_box.config(yscrollcommand=self.scrollbar.set)
-        self.text_box.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
+# Function to handle delayed typing in text boxes
+def delayed_typing(entry, char, delay):
+    """
+    Inserts the typed character into the text box after the specified delay.
+    This simulates typing latency for user experience evaluation.
+    """
+    def update_text():
+        entry.insert(tk.END, char)
 
-        # Bind mouse scroll event with delay logic
-        self.last_scroll_time = 0
-        self.text_box.bind("<MouseWheel>", self.delayed_scroll)
-
-        # Load button
-        self.load_button = tk.Button(root, text="Load Text File", command=self.load_text)
-        self.load_button.pack(pady=5)
-
-        # Automatically load lorem_ipsum.txt
-        self.load_default_text()
-
-    def load_text(self):
-        file_path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
-        if file_path:
-            self._load_from_file(file_path)
-
-    def load_default_text(self):
-        default_file = "lorem_ipsum.txt"
-        try:
-            self._load_from_file(default_file)
-        except FileNotFoundError:
-            self.text_box.insert(tk.END, "Error: lorem_ipsum.txt not found.")
-
-    def _load_from_file(self, file_path):
-        with open(file_path, 'r', encoding='utf-8') as file:
-            text_content = file.read()
-            self.text_box.delete("1.0", tk.END)
-            self.text_box.insert(tk.END, text_content)
-
-    def delayed_scroll(self, event):
-        import time
-        current_time = time.time()
-        if current_time - self.last_scroll_time > 0.1:
-            self.text_box.yview_scroll(-1 * (event.delta // 120), "units")
-            self.last_scroll_time = current_time
+    if char.isprintable():
+        root.after(delay, update_text)
         return "break"
 
-# Run the Tkinter app
-root = tk.Tk()
-app = TextLoaderApp(root)
-root.mainloop()
+# Function to handle input submission on pressing Enter
+def handle_input(entry, delay, index):
+    """
+    Handles user input by capturing the text, clearing the text box,
+    and prompting the user to confirm whether they noticed a delay.
+    """
+    user_input = entry.get()
+    entry.delete(0, tk.END)
+    response = messagebox.askyesno(
+        "Typing Latency Test",
+        f"Did you notice a delay in Text Box {index + 1}?"
+    )
+    result = f"Text Box {index + 1}-{delay}ms:{'Yes' if response else 'No'}"
+    results.append(result)
 
+# Function to reset all text boxes and reshuffle delay values
+def reset_all_text_boxes():
+    """
+    Resets all text boxes to an empty state, reshuffles delay assignments,
+    and clears previously recorded results.
+    """
+    global delays, results
+    random.shuffle(delays)
+    results.clear()
+    for text_box in text_boxes:
+        text_box.delete(0, tk.END)
+    messagebox.showinfo("Typing Latency Test", "Text boxes reset and delays reshuffled!")
+
+# Function to finalize the test and save results to a file
+def finish_test():
+    """
+    Checks if all text boxes have been used, saves results to a file,
+    and resets the test environment.
+    """
+    if len(results) == len(delays):
+        with open("typing_latency_test_results.txt", "a") as file:
+            file.write(",".join(results) + "\n")
+        reset_all_text_boxes()
+
+# Create the main application window
+root = tk.Tk()
+root.title("Typing Latency Test")
+
+# Set the window icon
+icon_path = "icon.ico"  
+try:
+    root.iconbitmap(icon_path)  # For Windows (.ico)
+except tk.TclError:
+    # For cross-platform support using .png
+    from PIL import Image, ImageTk
+    icon_image = ImageTk.PhotoImage(Image.open("icon.png"))
+    root.wm_iconphoto(True, icon_image)
+
+# Create and configure the menu bar
+menu_bar = tk.Menu(root)
+
+# Add "File" menu with an exit option
+file_menu = tk.Menu(menu_bar, tearoff=0)
+file_menu.add_command(label="Exit", command=root.quit)
+menu_bar.add_cascade(label="File", menu=file_menu)
+
+# Add "Edit" menu with an option to reseed the delays
+edit_menu = tk.Menu(menu_bar, tearoff=0)
+edit_menu.add_command(label="Reseed", command=reset_all_text_boxes)
+menu_bar.add_cascade(label="Edit", menu=edit_menu)
+
+# Apply the menu bar to the main window
+root.config(menu=menu_bar)
+
+# Create text boxes with assigned delays and corresponding labels
+for i, delay in enumerate(delays):
+    frame = tk.Frame(root)
+    frame.pack(pady=10)
+
+    label = tk.Label(frame, text=f"Text Box {i + 1}:")
+    label.pack(side=tk.LEFT)
+
+    entry = tk.Entry(frame, font=("Helvetica", 14))
+    entry.pack(side=tk.LEFT, padx=10)
+
+    # Store the text box for reference
+    text_boxes.append(entry)
+
+    # Bind keypress and Enter events to their respective handlers
+    entry.bind("<KeyPress>", lambda event, e=entry, d=delay: delayed_typing(e, event.char, d))
+    entry.bind("<Return>", lambda event, e=entry, d=delay, i=i: handle_input(e, d, i))
+
+# Add instructional text above the Finish Test button
+instruction_label = tk.Label(root, text="Type in each box. Once you are done press Enter. Provide a yes or no response to indicate if you experienced delay in typing.")
+instruction_label.pack(pady=10)
+
+# Add a button to complete the test and save results
+finish_button = tk.Button(root, text="Finish Test", command=finish_test)
+finish_button.pack(pady=20)
+
+# Start the Tkinter event loop
+root.mainloop()

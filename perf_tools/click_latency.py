@@ -18,7 +18,7 @@ def button_click(button_name, latency_ms):
         actual_latency = round((end_time - start_time) * 1000, 2)  # Calculate actual latency in ms
         
         # Show the popup asking for user feedback
-        response = messagebox.askyesno("Latency Test", "Did you notice any delay?")
+        response = messagebox.askyesno("Latency Test", "Did you notice any delay between clicking the button and the popup showing up?")
         
         # Convert response to 'yes' or 'no'
         response_text = "yes" if response else "no"

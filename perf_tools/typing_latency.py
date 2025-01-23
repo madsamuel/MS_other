@@ -111,6 +111,10 @@ for i, delay in enumerate(delays):
     entry.bind("<KeyPress>", lambda event, e=entry, d=delay: delayed_typing(e, event.char, d))
     entry.bind("<Return>", lambda event, e=entry, d=delay, i=i: handle_input(e, d, i))
 
+# Add instructional text above the Finish Test button
+instruction_label = tk.Label(root, text="Type in each box. Once you are done press Enter. Provide a yes or no response to indicate if you experienced delay in typing.", wraplength=400, justify="center", padx=10)
+instruction_label.pack(pady=10)
+
 # Add a button to complete the test and save results
 finish_button = tk.Button(root, text="Finish Test", command=finish_test)
 finish_button.pack(pady=20)
