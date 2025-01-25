@@ -94,7 +94,7 @@ def main():
     global root, upload_label, download_label, interval_var, interface_var, threshold_var, csv_output_var
     
     root = tk.Tk()
-    root.title("Network Bandwidth Monitor")
+    root.title("Speed Test Tool")
     root.resizable(False, False)
 
     tk.Label(root, text="Network Bandwidth Usage", font=("Arial", 14)).pack(pady=10)
