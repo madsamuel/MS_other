@@ -8,8 +8,9 @@ Graceful exit - Proper termination when the user interrupts with Ctrl+C.
 
 | Command | Explanation |
 |---------|-------------|
-| `python network_bandwidth_monitor.py` | Runs the script with the default interval of `1.0` second, monitoring all network interfaces. No CSV logging or threshold alerts, output is displayed on the console. |
-| `python network_bandwidth_monitor.py -i 2.0 -n eth0` | Sets the monitoring interval to `2.0` seconds and monitors the `eth0` network interface only. Useful for focusing on a particular network adapter. |
-| `python network_bandwidth_monitor.py -t 50` | Runs with the default `1.0` second interval, monitoring all interfaces. If upload or download bandwidth exceeds `50 MB/s`, a warning will be displayed. Useful for detecting heavy network usage. |
-| `python network_bandwidth_monitor.py -o bandwidth_log.csv` | Monitors all interfaces at the default `1.0` second interval and logs the timestamp, upload speed, and download speed to `bandwidth_log.csv`. Useful for long-term monitoring and analysis. |
-| `python network_bandwidth_monitor.py -i 5.0 -n wlan0 -t 100 -o network_report.csv` | Monitors the `wlan0` interface every `5.0` seconds, logs data to `network_report.csv`, and displays a warning if bandwidth usage exceeds `100 MB/s`. Suitable for detailed tracking of Wi-Fi bandwidth usage. |
+| `python speed_test_tool.py` | Runs the script with the default interval of `1.0` second, monitoring all network interfaces. No CSV logging or threshold alerts; output is displayed on the console. |
+| `python speed_test_tool.py -i 2.0 -n eth0` | Sets the monitoring interval to `2.0` seconds and monitors the `eth0` network interface only. Useful for focusing on a particular network adapter. |
+| `python speed_test_tool.py -t 50` | Runs with the default `1.0` second interval, monitoring all interfaces. If upload or download bandwidth exceeds `50 MB/s`, a warning will be displayed. Useful for detecting heavy network usage. |
+| `python speed_test_tool.py -o bandwidth_log.csv` | Monitors all interfaces at the default `1.0` second interval and logs the timestamp, upload speed, and download speed to `bandwidth_log.csv`. Useful for long-term monitoring and analysis. |
+| `python speed_test_tool.py -i 5.0 -n wlan0 -t 100 -o network_report.csv` | Monitors the `wlan0` interface every `5.0` seconds, logs data to `network_report.csv`, and displays a warning if bandwidth usage exceeds `100 MB/s`. Suitable for detailed tracking of Wi-Fi bandwidth usage. |
+
