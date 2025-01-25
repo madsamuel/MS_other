@@ -4,7 +4,8 @@ import argparse
 import csv
 import sys
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
+from datetime import datetime
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
@@ -67,6 +68,15 @@ def log_to_csv(csv_path, upload_speed, download_speed):
         writer = csv.writer(file)
         writer.writerow([time.strftime('%Y-%m-%d %H:%M:%S'), upload_speed, download_speed])
 
+def select_output_file():
+    file_path = filedialog.asksaveasfilename(
+        defaultextension=".csv",
+        filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        initialfile=f"speed-test-{datetime.now().strftime('%d-%m-%y')}.csv"
+    )
+    if file_path:
+        csv_output_var.set(file_path)
+
 def update_ui():
     upload_speed, download_speed = get_bandwidth_usage(float(interval_var.get()), interface_var.get())
     upload_label.config(text=f"Upload Speed: {upload_speed:.2f} KB/s")
@@ -84,7 +94,7 @@ def main():
     global root, upload_label, download_label, interval_var, interface_var, threshold_var, csv_output_var
     
     root = tk.Tk()
-    root.title("Speed Test")
+    root.title("Network Bandwidth Monitor")
     root.resizable(False, False)
 
     tk.Label(root, text="Network Bandwidth Usage", font=("Arial", 14)).pack(pady=10)
@@ -107,8 +117,9 @@ def main():
     tk.Entry(root, textvariable=threshold_var).pack()
 
     tk.Label(root, text="CSV Output Path:").pack()
-    csv_output_var = tk.StringVar(value="")
-    tk.Entry(root, textvariable=csv_output_var).pack()
+    csv_output_var = tk.StringVar(value=f"speed-test-{datetime.now().strftime('%d-%m-%y')}.csv")
+    tk.Button(root, text="Select File", command=select_output_file).pack()
+    tk.Entry(root, textvariable=csv_output_var, state='readonly').pack()
 
     tk.Button(root, text="Start Monitoring", command=update_ui).pack(pady=10)
     tk.Button(root, text="Exit", command=root.quit).pack(pady=10)
