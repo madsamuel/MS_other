@@ -84,7 +84,7 @@ def main():
     global root, upload_label, download_label, interval_var, interface_var, threshold_var, csv_output_var
     
     root = tk.Tk()
-    root.title("Network Bandwidth Monitor")
+    root.title("Speed Test")
     root.resizable(False, False)
 
     tk.Label(root, text="Network Bandwidth Usage", font=("Arial", 14)).pack(pady=10)
@@ -98,8 +98,9 @@ def main():
     tk.Entry(root, textvariable=interval_var).pack()
 
     tk.Label(root, text="Network Interface:").pack()
-    interface_var = tk.StringVar(value="")
-    tk.Entry(root, textvariable=interface_var).pack()
+    interface_var = tk.StringVar(value=psutil.net_if_addrs().keys().__iter__().__next__())
+    interface_dropdown = tk.OptionMenu(root, interface_var, *psutil.net_if_addrs().keys())
+    interface_dropdown.pack()
 
     tk.Label(root, text="Threshold (MB):").pack()
     threshold_var = tk.StringVar(value="")
