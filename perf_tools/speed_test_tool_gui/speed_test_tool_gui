@@ -1,0 +1,118 @@
+import psutil
+import time
+import argparse
+import csv
+import sys
+import tkinter as tk
+from tkinter import messagebox
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(
+        description="Monitor network bandwidth usage."
+    )
+    parser.add_argument(
+        "-i", "--interval",
+        type=float,
+        default=1.0,
+        help="Time interval in seconds between usage checks (default: 1.0)"
+    )
+    parser.add_argument(
+        "-n", "--interface",
+        type=str,
+        default=None,
+        help="Name of the network interface to monitor (e.g., eth0). "
+             "If not provided, monitors total usage across all interfaces."
+    )
+    parser.add_argument(
+        "-t", "--threshold",
+        type=float,
+        default=None,
+        help="Threshold in MB above which usage during an interval triggers a warning."
+    )
+    parser.add_argument(
+        "-o", "--csv-output",
+        type=str,
+        default=None,
+        help="Path to a CSV file where usage data will be logged."
+    )
+    return parser.parse_args()
+
+def get_bandwidth_usage(interval, interface=None):
+    if interface:
+        net_io_before = psutil.net_io_counters(pernic=True).get(interface)
+    else:
+        net_io_before = psutil.net_io_counters()
+    
+    time.sleep(interval)
+
+    if interface:
+        net_io_after = psutil.net_io_counters(pernic=True).get(interface)
+    else:
+        net_io_after = psutil.net_io_counters()
+    
+    if not net_io_before or not net_io_after:
+        print(f"Error: Interface '{interface}' not found.")
+        sys.exit(1)
+    
+    sent_bytes = net_io_after.bytes_sent - net_io_before.bytes_sent
+    received_bytes = net_io_after.bytes_recv - net_io_before.bytes_recv
+    
+    sent_speed = sent_bytes / interval / 1024
+    received_speed = received_bytes / interval / 1024
+
+    return sent_speed, received_speed
+
+def log_to_csv(csv_path, upload_speed, download_speed):
+    with open(csv_path, mode='a', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow([time.strftime('%Y-%m-%d %H:%M:%S'), upload_speed, download_speed])
+
+def update_ui():
+    upload_speed, download_speed = get_bandwidth_usage(float(interval_var.get()), interface_var.get())
+    upload_label.config(text=f"Upload Speed: {upload_speed:.2f} KB/s")
+    download_label.config(text=f"Download Speed: {download_speed:.2f} KB/s")
+    
+    if threshold_var.get() and (upload_speed / 1024 > float(threshold_var.get()) or download_speed / 1024 > float(threshold_var.get())):
+        messagebox.showwarning("Threshold Exceeded", "Bandwidth usage exceeded threshold!")
+    
+    if csv_output_var.get():
+        log_to_csv(csv_output_var.get(), upload_speed, download_speed)
+    
+    root.after(int(float(interval_var.get()) * 1000), update_ui)
+
+def main():
+    global root, upload_label, download_label, interval_var, interface_var, threshold_var, csv_output_var
+    
+    root = tk.Tk()
+    root.title("Network Bandwidth Monitor")
+    root.resizable(False, False)
+
+    tk.Label(root, text="Network Bandwidth Usage", font=("Arial", 14)).pack(pady=10)
+    upload_label = tk.Label(root, text="Upload Speed: 0.00 KB/s", font=("Arial", 12), width=30)
+    upload_label.pack()
+    download_label = tk.Label(root, text="Download Speed: 0.00 KB/s", font=("Arial", 12), width=30)
+    download_label.pack()
+    
+    tk.Label(root, text="Interval (seconds):").pack()
+    interval_var = tk.StringVar(value="1.0")
+    tk.Entry(root, textvariable=interval_var).pack()
+
+    tk.Label(root, text="Network Interface:").pack()
+    interface_var = tk.StringVar(value="")
+    tk.Entry(root, textvariable=interface_var).pack()
+
+    tk.Label(root, text="Threshold (MB):").pack()
+    threshold_var = tk.StringVar(value="")
+    tk.Entry(root, textvariable=threshold_var).pack()
+
+    tk.Label(root, text="CSV Output Path:").pack()
+    csv_output_var = tk.StringVar(value="")
+    tk.Entry(root, textvariable=csv_output_var).pack()
+
+    tk.Button(root, text="Start Monitoring", command=update_ui).pack(pady=10)
+    tk.Button(root, text="Exit", command=root.quit).pack(pady=10)
+    
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
