@@ -8,7 +8,6 @@ pygame.init()
 # -------------------
 # 1. BASIC SETTINGS
 # -------------------
-# Get the absolute path to the folder containing this script
 BASE_PATH = os.path.dirname(__file__)
 
 SCREEN_WIDTH, SCREEN_HEIGHT = 480, 640
@@ -33,7 +32,84 @@ PLAYER_START_X     = SCREEN_WIDTH // 2
 PLAYER_START_Y     = SCREEN_HEIGHT - 60
 
 # -------------------
-# 2. SPRITE CLASSES
+# 2. SPLASH SCREEN
+# -------------------
+def splash_screen():
+    """
+    Displays the initial splash screen with a logo and two buttons:
+    'Start Game' and 'Settings'.
+    Returns one of: "start", "settings", or "quit".
+    """
+    # Load the logo image
+    logo_path = os.path.join(BASE_PATH, "logo.png")
+    logo_image = pygame.image.load(logo_path).convert_alpha()
+    logo_rect = logo_image.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 80))
+
+    # Fonts
+    font_title = pygame.font.SysFont(None, 60)
+    font_button = pygame.font.SysFont(None, 30)
+
+    # Buttons
+    start_btn = pygame.Rect(0, 0, 140, 40)
+    start_btn.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 50)
+
+    settings_btn = pygame.Rect(0, 0, 140, 40)
+    settings_btn.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 110)
+
+    # Main loop for splash screen
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "quit"
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = event.pos
+                if start_btn.collidepoint(mouse_pos):
+                    return "start"
+                if settings_btn.collidepoint(mouse_pos):
+                    return "settings"
+
+        # Draw background
+        SCREEN.fill(BLACK)
+
+        # Draw the logo
+        SCREEN.blit(logo_image, logo_rect)
+
+        # Draw the buttons
+        pygame.draw.rect(SCREEN, GRAY, start_btn)
+        pygame.draw.rect(SCREEN, GRAY, settings_btn)
+
+        start_text = font_button.render("Start Game", True, BLACK)
+        settings_text = font_button.render("Settings", True, BLACK)
+
+        SCREEN.blit(start_text, start_text.get_rect(center=start_btn.center))
+        SCREEN.blit(settings_text, settings_text.get_rect(center=settings_btn.center))
+
+        pygame.display.flip()
+
+def settings_screen():
+    """
+    A simple placeholder for a Settings screen.
+    Press any key or click to return to the splash screen.
+    """
+    font_big = pygame.font.SysFont(None, 50)
+    text = font_big.render("Settings Screen", True, WHITE)
+    text_rect = text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
+
+    while True:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return  # Return to main => eventually leads to quit
+            if event.type == pygame.KEYDOWN or event.type == pygame.MOUSEBUTTONDOWN:
+                return  # Go back to splash
+
+        SCREEN.fill(BLACK)
+        SCREEN.blit(text, text_rect)
+        pygame.display.flip()
+
+# -------------------
+# 3. SPRITE CLASSES
 # -------------------
 class Player(pygame.sprite.Sprite):
     def __init__(self):
@@ -86,7 +162,7 @@ class Enemy(pygame.sprite.Sprite):
             self.kill()
 
 # -------------------
-# 3. HELPER FUNCTIONS
+# 4. HELPER FUNCTIONS
 # -------------------
 def pause_screen():
     """
@@ -153,10 +229,8 @@ def game_over_screen(score):
         restart_text = font_small.render("Restart", True, BLACK)
         quit_text = font_small.render("Quit", True, BLACK)
 
-        SCREEN.blit(restart_text, 
-                    restart_text.get_rect(center=restart_btn.center))
-        SCREEN.blit(quit_text, 
-                    quit_text.get_rect(center=quit_btn.center))
+        SCREEN.blit(restart_text, restart_text.get_rect(center=restart_btn.center))
+        SCREEN.blit(quit_text, quit_text.get_rect(center=quit_btn.center))
 
         pygame.display.flip()
 
@@ -174,6 +248,9 @@ def game_over_screen(score):
                     if quit_btn.collidepoint(mouse_pos):
                         return False  # Quit
 
+# -------------------
+# 5. MAIN GAME LOOP
+# -------------------
 def run_game():
     """
     Run the main game loop once, returning the final score when game ends.
@@ -243,15 +320,34 @@ def run_game():
 
     return score
 
+# -------------------
+# 6. MAIN ENTRY POINT
+# -------------------
 def main():
     """
-    The main entry point. Loops forever, restarting the game or quitting based on user choice.
+    The main entry point. 
+    1) Show splash screen first.
+    2) If Start => run the game loop, then show game over screen.
+    3) If Settings => show settings screen, then return to splash.
+    4) If Quit => exit.
     """
     while True:
-        final_score = run_game()
-        wants_restart = game_over_screen(final_score)
-        if not wants_restart:
+        choice = splash_screen()
+        if choice == "quit":
             break
+        elif choice == "settings":
+            settings_screen()
+            # After returning from settings, go back to splash_screen again
+            continue
+        elif choice == "start":
+            final_score = run_game()
+            wants_restart = game_over_screen(final_score)
+            if wants_restart:
+                # If user clicked "Restart" at game over, jump directly into another game
+                continue
+            else:
+                # If user clicked "Quit" at game over, exit to OS
+                break
 
     pygame.quit()
     sys.exit()
