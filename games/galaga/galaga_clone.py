@@ -1,7 +1,12 @@
 import pygame
 import random
 import sys
+import os
 
+# Get the absolute path to the folder containing this script
+BASE_PATH = os.path.dirname(__file__)
+
+# Initialize pygame
 pygame.init()
 
 # -------------------
@@ -9,31 +14,25 @@ pygame.init()
 # -------------------
 SCREEN_WIDTH, SCREEN_HEIGHT = 480, 640
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Galaga Clone with Restart & High Score")
+pygame.display.set_caption("Galaga Clone")
 
 FPS = 60
 clock = pygame.time.Clock()
 
 # Colors (R, G, B)
 WHITE = (255, 255, 255)
-BLACK = (0,   0,   0)
+BLACK = (  0,   0,   0)
 RED   = (255,   0,   0)
 GREEN = (  0, 255,   0)
 BLUE  = (  0,   0, 255)
-GRAY  = (100, 100, 100)
 
 # Game Settings
-PLAYER_SPEED = 5
-BULLET_SPEED = 7
-ENEMY_SPEED  = 2
+PLAYER_SPEED       = 5
+BULLET_SPEED       = 7
+ENEMY_SPEED        = 2
 ENEMY_DROP_INTERVAL = 30  # frames between enemy spawns
-
-PLAYER_START_X = SCREEN_WIDTH // 2
-PLAYER_START_Y = SCREEN_HEIGHT - 60
-
-# Global High Score
-high_score = 0
-
+PLAYER_START_X     = SCREEN_WIDTH // 2
+PLAYER_START_Y     = SCREEN_HEIGHT - 60
 
 # -------------------
 # 2. SPRITE CLASSES
@@ -41,18 +40,24 @@ high_score = 0
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.image = pygame.Surface((40, 40))
-        self.image.fill(BLUE)
+        # Construct the path to 'player_ship.png' in the same folder as this script
+        player_image_path = os.path.join(BASE_PATH, "player_ship.png")
+        self.image = pygame.image.load(player_image_path).convert_alpha()
+        
         self.rect = self.image.get_rect()
         self.rect.center = (PLAYER_START_X, PLAYER_START_Y)
         
     def update(self, keys_pressed):
+        # Move left
         if keys_pressed[pygame.K_LEFT] and self.rect.left > 0:
             self.rect.x -= PLAYER_SPEED
+        # Move right
         if keys_pressed[pygame.K_RIGHT] and self.rect.right < SCREEN_WIDTH:
             self.rect.x += PLAYER_SPEED
+        # Move up
         if keys_pressed[pygame.K_UP] and self.rect.top > 0:
             self.rect.y -= PLAYER_SPEED
+        # Move down
         if keys_pressed[pygame.K_DOWN] and self.rect.bottom < SCREEN_HEIGHT:
             self.rect.y += PLAYER_SPEED
 
@@ -65,6 +70,7 @@ class Bullet(pygame.sprite.Sprite):
         
     def update(self):
         self.rect.y -= BULLET_SPEED
+        # Remove the bullet if it goes off-screen
         if self.rect.bottom < 0:
             self.kill()
 
@@ -77,77 +83,73 @@ class Enemy(pygame.sprite.Sprite):
         
     def update(self):
         self.rect.y += ENEMY_SPEED
+        # Remove enemy if it goes off-screen
         if self.rect.top > SCREEN_HEIGHT:
             self.kill()
 
+# -------------------
+# 3. GROUPS & OBJECTS
+# -------------------
+player = Player()
+
+# Sprite groups
+player_group = pygame.sprite.Group(player)
+bullet_group = pygame.sprite.Group()
+enemy_group  = pygame.sprite.Group()
+
+score = 0
+font = pygame.font.SysFont(None, 36)
+
+# Spawn timer to control enemy creation
+enemy_spawn_counter = 0
 
 # -------------------
-# 3. HELPER FUNCTIONS
+# 4. MAIN GAME LOOP
 # -------------------
-def init_game():
-    """Initialize or reset game objects and variables."""
-    global player, player_group, bullet_group, enemy_group, score, enemy_spawn_counter
-    
-    player = Player()
-    # Sprite groups
-    player_group = pygame.sprite.Group(player)
-    bullet_group = pygame.sprite.Group()
-    enemy_group  = pygame.sprite.Group()
-
-    score = 0
-    enemy_spawn_counter = 0
-    
-    return (player_group, bullet_group, enemy_group)
-
-def run_game():
-    """One round of the main game loop. Returns the final score."""
+def main():
     global score, enemy_spawn_counter
-    
-    # Use the already initialized groups
     running = True
-    font = pygame.font.SysFont(None, 36)
-
+    
     while running:
-        clock.tick(FPS)
+        clock.tick(FPS)  # Limit the frame rate
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            
+                running = False
+            # Shoot bullet on spacebar
             if event.type == pygame.KEYDOWN:
-                # Shoot bullet on spacebar
                 if event.key == pygame.K_SPACE:
                     bullet = Bullet(player.rect.centerx, player.rect.top)
                     bullet_group.add(bullet)
-
+        
         # Get pressed keys for movement
         keys_pressed = pygame.key.get_pressed()
         
-        # Update player, bullets, enemies
+        # Update player, bullets, and enemies
         player_group.update(keys_pressed)
         bullet_group.update()
         enemy_group.update()
         
-        # Spawn enemies periodically
+        # Spawn a new enemy periodically
         enemy_spawn_counter += 1
         if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
             enemy_spawn_counter = 0
             x = random.randint(0, SCREEN_WIDTH - 30)
-            y = -30  # spawn above screen
+            y = -30  # spawn off top of screen
             enemy = Enemy(x, y)
             enemy_group.add(enemy)
         
-        # Bullet-Enemy collisions
+        # Collision detection:
+        #  1. Bullets vs. Enemies
         hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
         for _ in hits:
             score += 10
         
-        # Player-Enemy collisions
+        #  2. Player vs. Enemies
         if pygame.sprite.spritecollideany(player, enemy_group):
-            # End the game on collision
+            # In Galaga, you'd typically lose a life or end the game
             running = False
         
-        # Drawing
+        # Draw everything
         SCREEN.fill(BLACK)
         player_group.draw(SCREEN)
         bullet_group.draw(SCREEN)
@@ -159,96 +161,24 @@ def run_game():
         
         pygame.display.flip()
     
-    # Return final score from this round
-    return score
+    # Game Over Screen
+    game_over()
 
-def game_over(final_score):
-    """
-    Display a 'Game Over' screen with the final score and a Restart button.
-    Returns True if the player wants to restart, False if the player quits.
-    """
-    global high_score
+def game_over():
+    # Simple "Game Over" loop
+    go_font = pygame.font.SysFont(None, 64)
+    go_text = go_font.render("GAME OVER", True, RED)
+    go_rect = go_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
     
-    # Update high score if needed
-    if final_score > high_score:
-        high_score = final_score
-
-    font_large = pygame.font.SysFont(None, 64)
-    font_small = pygame.font.SysFont(None, 32)
-
-    game_over_text = font_large.render("GAME OVER", True, RED)
-    go_rect = game_over_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
-    
-    score_text = font_small.render(f"Score: {final_score}", True, WHITE)
-    score_rect = score_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 10))
-    
-    high_score_text = font_small.render(f"High Score: {high_score}", True, WHITE)
-    high_score_rect = high_score_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 45))
-
-    # Restart button
-    restart_btn = pygame.Rect(0, 0, 120, 40)
-    restart_btn.center = (SCREEN_WIDTH//2 - 70, SCREEN_HEIGHT//2 + 120)
-
-    # Quit button
-    quit_btn = pygame.Rect(0, 0, 120, 40)
-    quit_btn.center = (SCREEN_WIDTH//2 + 70, SCREEN_HEIGHT//2 + 120)
-
     while True:
         SCREEN.fill(BLACK)
-        
-        # Draw "GAME OVER" and score texts
-        SCREEN.blit(game_over_text, go_rect)
-        SCREEN.blit(score_text, score_rect)
-        SCREEN.blit(high_score_text, high_score_rect)
-
-        # Draw buttons
-        pygame.draw.rect(SCREEN, GRAY, restart_btn)
-        pygame.draw.rect(SCREEN, GRAY, quit_btn)
-
-        restart_text = font_small.render("Restart", True, BLACK)
-        quit_text = font_small.render("Quit", True, BLACK)
-
-        SCREEN.blit(restart_text, 
-                    restart_text.get_rect(center=restart_btn.center))
-        SCREEN.blit(quit_text, 
-                    quit_text.get_rect(center=quit_btn.center))
-
+        SCREEN.blit(go_text, go_rect)
         pygame.display.flip()
-
-        # Event handling for the Game Over screen
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Left click
-                    mouse_pos = event.pos
-                    if restart_btn.collidepoint(mouse_pos):
-                        # Player clicked "Restart"
-                        return True
-                    if quit_btn.collidepoint(mouse_pos):
-                        # Player clicked "Quit"
-                        return False
-
-
-def main():
-    """
-    Continuously run the game. After a game-over, either restart or quit based on user choice.
-    """
-    while True:
-        # Initialize/reset game data
-        init_game()
-        # Run a single playthrough
-        final_score = run_game()
-        # Show Game Over screen
-        wants_restart = game_over(final_score)
-        if not wants_restart:
-            break  # Exit the whole program
-    
-    pygame.quit()
-    sys.exit()
-
 
 if __name__ == "__main__":
     main()
