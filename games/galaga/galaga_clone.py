@@ -32,6 +32,60 @@ PLAYER_START_X     = SCREEN_WIDTH // 2
 PLAYER_START_Y     = SCREEN_HEIGHT - 60
 
 # -------------------
+# STARFIELD SETTINGS
+# -------------------
+STAR_COUNT = 100   # Number of stars
+STAR_SPEED = 1     # Vertical scrolling speed of stars
+
+class Star:
+    """
+    Each Star has a random (x, y) starting position,
+    brightness (for blinking), and a blink speed.
+    """
+    def __init__(self):
+        self.x = random.randint(0, SCREEN_WIDTH)
+        self.y = random.randint(0, SCREEN_HEIGHT)
+        # Brightness (alpha channel from 50 to 255)
+        self.brightness = random.randint(50, 255)
+        # Speed at which brightness changes (blink)
+        self.blink_speed = random.uniform(1, 3)
+        # Direction of blinking: 1 = getting brighter, -1 = getting dimmer
+        self.direction = random.choice([-1, 1])
+
+    def update(self):
+        # Scroll downward
+        self.y += STAR_SPEED
+        # If off bottom of screen, wrap to top
+        if self.y > SCREEN_HEIGHT:
+            self.y = 0
+            self.x = random.randint(0, SCREEN_WIDTH)
+
+        # Blink logic
+        self.brightness += self.direction * self.blink_speed
+        if self.brightness >= 255:
+            self.brightness = 255
+            self.direction = -1
+        elif self.brightness <= 50:
+            self.brightness = 50
+            self.direction = 1
+
+# Create the stars once (global)
+stars = [Star() for _ in range(STAR_COUNT)]
+
+def draw_stars():
+    """
+    Update and draw all stars.
+    Each star is a tiny surface (2x2) with variable alpha.
+    """
+    for star in stars:
+        star.update()
+        star_surf = pygame.Surface((2, 2), pygame.SRCALPHA)
+        # Fill with white, applying 'brightness' as alpha
+        star_surf.fill((255, 255, 255, int(star.brightness)))
+        SCREEN.blit(star_surf, (star.x, star.y))
+
+
+# -------------------
 # 2. SPLASH SCREEN
 # -------------------
 def splash_screen():
@@ -71,6 +125,7 @@ def splash_screen():
 
         # Draw background
         SCREEN.fill(BLACK)
+        draw_stars()  # <--- Draw blinking stars behind the logo
 
         # Draw the logo
         SCREEN.blit(logo_image, logo_rect)
@@ -105,6 +160,7 @@ def settings_screen():
                 return  # Go back to splash
 
         SCREEN.fill(BLACK)
+        draw_stars()  # <--- Draw blinking stars behind the settings text
         SCREEN.blit(text, text_rect)
         pygame.display.flip()
 
@@ -183,12 +239,9 @@ def pause_screen():
                 if event.key == pygame.K_ESCAPE:
                     paused = False
 
-        # Optional: draw a semi-transparent overlay
-        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
-        overlay.set_alpha(160)  # alpha level for semi-transparency
-        overlay.fill(BLACK)
-        SCREEN.blit(overlay, (0, 0))
-        
+        # Optional: you can draw a semi-transparent overlay
+        SCREEN.fill(BLACK)
+        draw_stars()  # <--- Keep the starfield visible during pause
         SCREEN.blit(pause_text, text_rect)
         
         pygame.display.flip()
@@ -218,6 +271,7 @@ def game_over_screen(score):
 
     while True:
         SCREEN.fill(BLACK)
+        draw_stars()  # <--- Starfield in the game over screen, too
         
         SCREEN.blit(game_over_text, go_rect)
         SCREEN.blit(score_text, score_rect)
@@ -309,6 +363,7 @@ def run_game():
 
         # Drawing
         SCREEN.fill(BLACK)
+        draw_stars()  # <--- Starfield during gameplay
         player_group.draw(SCREEN)
         bullet_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
