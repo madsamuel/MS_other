@@ -283,12 +283,12 @@ class Player(pygame.sprite.Sprite):
         original_image = pygame.image.load(player_image_path).convert_alpha()
         
         width, height = original_image.get_size()
-        scaled_width = width // 2
-        scaled_height = height // 2
+        scaled_width = width // 4
+        scaled_height = height // 4
         self.image = pygame.transform.scale(original_image, (scaled_width, scaled_height))
         
         self.rect = self.image.get_rect()
-        self.rect.centerx = screen_w // 2
+        self.rect.centerx = screen_w // 4
         self.rect.centery = screen_h - 60
         
     def update(self, keys_pressed):
@@ -316,8 +316,17 @@ class Bullet(pygame.sprite.Sprite):
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.image = pygame.Surface((30, 30))
-        self.image.fill(RED)
+        # Load the boss.png image
+        enemy_image_path = os.path.join(BASE_PATH, "boss.png")
+        boss_image = pygame.image.load(enemy_image_path).convert_alpha()
+        
+        # OPTIONAL: Scale the boss image if desired, e.g. to 30x30
+        # boss_image = pygame.transform.scale(boss_image, (30, 30))
+
+        # Use the loaded image for the sprite
+        self.image = boss_image
+
+        # Position the enemy at (x, y)
         self.rect = self.image.get_rect(topleft=(x, y))
         
     def update(self):
