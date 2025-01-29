@@ -3,18 +3,17 @@ import random
 import sys
 import os
 
-# Get the absolute path to the folder containing this script
-BASE_PATH = os.path.dirname(__file__)
-
-# Initialize pygame
 pygame.init()
 
 # -------------------
 # 1. BASIC SETTINGS
 # -------------------
+# Get the absolute path to the folder containing this script
+BASE_PATH = os.path.dirname(__file__)
+
 SCREEN_WIDTH, SCREEN_HEIGHT = 480, 640
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Galaga Clone")
+pygame.display.set_caption("Galaga Clone with Pause & Restart")
 
 FPS = 60
 clock = pygame.time.Clock()
@@ -23,8 +22,7 @@ clock = pygame.time.Clock()
 WHITE = (255, 255, 255)
 BLACK = (  0,   0,   0)
 RED   = (255,   0,   0)
-GREEN = (  0, 255,   0)
-BLUE  = (  0,   0, 255)
+GRAY  = (100, 100, 100)
 
 # Game Settings
 PLAYER_SPEED       = 5
@@ -40,24 +38,26 @@ PLAYER_START_Y     = SCREEN_HEIGHT - 60
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        # Construct the path to 'player_ship.png' in the same folder as this script
+        # Load the original player image
         player_image_path = os.path.join(BASE_PATH, "player_ship.png")
-        self.image = pygame.image.load(player_image_path).convert_alpha()
+        original_image = pygame.image.load(player_image_path).convert_alpha()
+        
+        # Scale the player image to 50% of its original width/height
+        width, height = original_image.get_size()
+        scaled_width = width // 2
+        scaled_height = height // 2
+        self.image = pygame.transform.scale(original_image, (scaled_width, scaled_height))
         
         self.rect = self.image.get_rect()
         self.rect.center = (PLAYER_START_X, PLAYER_START_Y)
         
     def update(self, keys_pressed):
-        # Move left
         if keys_pressed[pygame.K_LEFT] and self.rect.left > 0:
             self.rect.x -= PLAYER_SPEED
-        # Move right
         if keys_pressed[pygame.K_RIGHT] and self.rect.right < SCREEN_WIDTH:
             self.rect.x += PLAYER_SPEED
-        # Move up
         if keys_pressed[pygame.K_UP] and self.rect.top > 0:
             self.rect.y -= PLAYER_SPEED
-        # Move down
         if keys_pressed[pygame.K_DOWN] and self.rect.bottom < SCREEN_HEIGHT:
             self.rect.y += PLAYER_SPEED
 
@@ -70,7 +70,6 @@ class Bullet(pygame.sprite.Sprite):
         
     def update(self):
         self.rect.y -= BULLET_SPEED
-        # Remove the bullet if it goes off-screen
         if self.rect.bottom < 0:
             self.kill()
 
@@ -83,102 +82,179 @@ class Enemy(pygame.sprite.Sprite):
         
     def update(self):
         self.rect.y += ENEMY_SPEED
-        # Remove enemy if it goes off-screen
         if self.rect.top > SCREEN_HEIGHT:
             self.kill()
 
 # -------------------
-# 3. GROUPS & OBJECTS
+# 3. HELPER FUNCTIONS
 # -------------------
-player = Player()
-
-# Sprite groups
-player_group = pygame.sprite.Group(player)
-bullet_group = pygame.sprite.Group()
-enemy_group  = pygame.sprite.Group()
-
-score = 0
-font = pygame.font.SysFont(None, 36)
-
-# Spawn timer to control enemy creation
-enemy_spawn_counter = 0
-
-# -------------------
-# 4. MAIN GAME LOOP
-# -------------------
-def main():
-    global score, enemy_spawn_counter
-    running = True
+def pause_screen():
+    """
+    Display a pause message and wait until the user presses ESC again to resume.
+    """
+    paused = True
+    font_big = pygame.font.SysFont(None, 64)
+    pause_text = font_big.render("PAUSED", True, WHITE)
+    text_rect = pause_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
     
-    while running:
-        clock.tick(FPS)  # Limit the frame rate
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            # Shoot bullet on spacebar
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    bullet = Bullet(player.rect.centerx, player.rect.top)
-                    bullet_group.add(bullet)
-        
-        # Get pressed keys for movement
-        keys_pressed = pygame.key.get_pressed()
-        
-        # Update player, bullets, and enemies
-        player_group.update(keys_pressed)
-        bullet_group.update()
-        enemy_group.update()
-        
-        # Spawn a new enemy periodically
-        enemy_spawn_counter += 1
-        if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
-            enemy_spawn_counter = 0
-            x = random.randint(0, SCREEN_WIDTH - 30)
-            y = -30  # spawn off top of screen
-            enemy = Enemy(x, y)
-            enemy_group.add(enemy)
-        
-        # Collision detection:
-        #  1. Bullets vs. Enemies
-        hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
-        for _ in hits:
-            score += 10
-        
-        #  2. Player vs. Enemies
-        if pygame.sprite.spritecollideany(player, enemy_group):
-            # In Galaga, you'd typically lose a life or end the game
-            running = False
-        
-        # Draw everything
-        SCREEN.fill(BLACK)
-        player_group.draw(SCREEN)
-        bullet_group.draw(SCREEN)
-        enemy_group.draw(SCREEN)
-        
-        # Draw the score
-        score_text = font.render(f"Score: {score}", True, WHITE)
-        SCREEN.blit(score_text, (10, 10))
-        
-        pygame.display.flip()
-    
-    # Game Over Screen
-    game_over()
-
-def game_over():
-    # Simple "Game Over" loop
-    go_font = pygame.font.SysFont(None, 64)
-    go_text = go_font.render("GAME OVER", True, RED)
-    go_rect = go_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2))
-    
-    while True:
-        SCREEN.fill(BLACK)
-        SCREEN.blit(go_text, go_rect)
-        pygame.display.flip()
-        
+    while paused:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                # Press ESC again to resume
+                if event.key == pygame.K_ESCAPE:
+                    paused = False
+
+        # Optional: draw a semi-transparent overlay
+        overlay = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+        overlay.set_alpha(160)  # alpha level for semi-transparency
+        overlay.fill(BLACK)
+        SCREEN.blit(overlay, (0, 0))
+        
+        SCREEN.blit(pause_text, text_rect)
+        
+        pygame.display.flip()
+        clock.tick(15)  # limit loop speed during pause
+
+def game_over_screen(score):
+    """
+    Display a 'Game Over' screen with the final score and a Restart button.
+    Returns True if the player wants to restart, False if the player quits.
+    """
+    font_large = pygame.font.SysFont(None, 64)
+    font_small = pygame.font.SysFont(None, 32)
+
+    game_over_text = font_large.render("GAME OVER", True, RED)
+    go_rect = game_over_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
+    
+    score_text = font_small.render(f"Score: {score}", True, WHITE)
+    score_rect = score_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 10))
+
+    # Restart button
+    restart_btn = pygame.Rect(0, 0, 120, 40)
+    restart_btn.center = (SCREEN_WIDTH//2 - 70, SCREEN_HEIGHT//2 + 120)
+
+    # Quit button
+    quit_btn = pygame.Rect(0, 0, 120, 40)
+    quit_btn.center = (SCREEN_WIDTH//2 + 70, SCREEN_HEIGHT//2 + 120)
+
+    while True:
+        SCREEN.fill(BLACK)
+        
+        SCREEN.blit(game_over_text, go_rect)
+        SCREEN.blit(score_text, score_rect)
+
+        # Draw the buttons
+        pygame.draw.rect(SCREEN, GRAY, restart_btn)
+        pygame.draw.rect(SCREEN, GRAY, quit_btn)
+
+        restart_text = font_small.render("Restart", True, BLACK)
+        quit_text = font_small.render("Quit", True, BLACK)
+
+        SCREEN.blit(restart_text, 
+                    restart_text.get_rect(center=restart_btn.center))
+        SCREEN.blit(quit_text, 
+                    quit_text.get_rect(center=quit_btn.center))
+
+        pygame.display.flip()
+
+        # Event handling for the Game Over screen
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left click
+                    mouse_pos = event.pos
+                    if restart_btn.collidepoint(mouse_pos):
+                        return True   # Restart
+                    if quit_btn.collidepoint(mouse_pos):
+                        return False  # Quit
+
+def run_game():
+    """
+    Run the main game loop once, returning the final score when game ends.
+    """
+    # Create sprite groups
+    player = Player()
+    player_group = pygame.sprite.Group(player)
+    bullet_group = pygame.sprite.Group()
+    enemy_group  = pygame.sprite.Group()
+
+    score = 0
+    font = pygame.font.SysFont(None, 36)
+    enemy_spawn_counter = 0
+    running = True
+
+    while running:
+        clock.tick(FPS)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    # Shoot bullet
+                    bullet = Bullet(player.rect.centerx, player.rect.top)
+                    bullet_group.add(bullet)
+                elif event.key == pygame.K_ESCAPE:
+                    # Pause
+                    pause_screen()
+
+        keys_pressed = pygame.key.get_pressed()
+
+        # Update sprites
+        player_group.update(keys_pressed)
+        bullet_group.update()
+        enemy_group.update()
+
+        # Spawn enemies
+        enemy_spawn_counter += 1
+        if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
+            enemy_spawn_counter = 0
+            x = random.randint(0, SCREEN_WIDTH - 30)
+            y = -30
+            enemy = Enemy(x, y)
+            enemy_group.add(enemy)
+
+        # Check collisions: Bullets -> Enemies
+        hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
+        if hits:
+            for _ in hits:
+                score += 10
+
+        # Check collisions: Player -> Enemies
+        if pygame.sprite.spritecollideany(player, enemy_group):
+            running = False
+
+        # Drawing
+        SCREEN.fill(BLACK)
+        player_group.draw(SCREEN)
+        bullet_group.draw(SCREEN)
+        enemy_group.draw(SCREEN)
+
+        score_text = font.render(f"Score: {score}", True, WHITE)
+        SCREEN.blit(score_text, (10, 10))
+
+        pygame.display.flip()
+
+    return score
+
+def main():
+    """
+    The main entry point. Loops forever, restarting the game or quitting based on user choice.
+    """
+    while True:
+        final_score = run_game()
+        wants_restart = game_over_screen(final_score)
+        if not wants_restart:
+            break
+
+    pygame.quit()
+    sys.exit()
 
 if __name__ == "__main__":
     main()
