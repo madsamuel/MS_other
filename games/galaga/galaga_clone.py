@@ -144,9 +144,9 @@ def splash_screen():
 
         pygame.display.flip()
 
-# -------------------
-# SETTINGS SCREEN
-# -------------------
+# ---------------------------------------------------
+# SETTINGS SCREEN - Recalculate positions each loop
+# ---------------------------------------------------
 def settings_screen():
     """
     Settings screen:
@@ -161,74 +161,6 @@ def settings_screen():
     font_title = pygame.font.SysFont(None, 50)
     font_button = pygame.font.SysFont(None, 30)
 
-    title_text = font_title.render("Settings", True, WHITE)
-    title_rect = title_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 280))
-
-    # 1. Resolution Buttons
-    btn_480 = pygame.Rect(0, 0, 160, 40)
-    btn_480.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 180)
-
-    btn_720 = pygame.Rect(0, 0, 160, 40)
-    btn_720.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 120)
-
-    # 2. Difficulty Slider
-    slider_width = 200
-    slider_height = 5
-    slider_x = SCREEN_WIDTH//2 - slider_width//2
-    slider_y = SCREEN_HEIGHT//2 - 40
-
-    stop_positions = [
-        slider_x,
-        slider_x + slider_width//2,
-        slider_x + slider_width
-    ]
-    difficulty_stops = [
-        (stop_positions[0], 1.0),
-        (stop_positions[1], 1.25),
-        (stop_positions[2], 1.5)
-    ]
-    difficulty_labels = ["Easy", "Medium", "Hard"]
-
-    current_stop_index = 0
-    possible_factors = [1.0, 1.25, 1.5]
-    best_diff = 999
-    for i, f in enumerate(possible_factors):
-        diff = abs(f - difficulty_factor)
-        if diff < best_diff:
-            best_diff = diff
-            current_stop_index = i
-
-    knob_size = 10
-    knob_rect = pygame.Rect(0, 0, knob_size, knob_size)
-    knob_rect.center = (stop_positions[current_stop_index], slider_y)
-
-    # 3. Projectile Slider
-    bullet_slider_width = 200
-    bullet_slider_height = 5
-    bullet_slider_x = SCREEN_WIDTH//2 - bullet_slider_width//2
-    bullet_slider_y = SCREEN_HEIGHT//2 + 30
-
-    bullet_stop_positions = [
-        bullet_slider_x,
-        bullet_slider_x + bullet_slider_width//2,
-        bullet_slider_x + bullet_slider_width
-    ]
-    bullet_images = [bullet_image_default, bullet_image_banana, bullet_image_rocket]
-    bullet_labels = ["Default", "Banana", "Rocket"]
-
-    bullet_current_index = 0
-    for i, bi in enumerate(bullet_images):
-        if bi == bullet_image_current:
-            bullet_current_index = i
-            break
-
-    bullet_knob_rect = pygame.Rect(0, 0, knob_size, knob_size)
-    bullet_knob_rect.center = (bullet_stop_positions[bullet_current_index], bullet_slider_y)
-
-    # 4. Back Button
-    btn_back = pygame.Rect(0, 0, 100, 40)
-    btn_back.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 140)
-
     while True:
         clock.tick(FPS)
         for event in pygame.event.get():
@@ -237,7 +169,7 @@ def settings_screen():
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_pos = event.pos
 
-                # 1) Resolution Buttons
+                # Check resolution buttons
                 if btn_480.collidepoint(mouse_pos):
                     SCREEN_WIDTH, SCREEN_HEIGHT = 480, 640
                     SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -247,7 +179,7 @@ def settings_screen():
                     SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                     reinit_stars()
 
-                # 2) Difficulty Slider
+                # Check difficulty slider
                 if (slider_y - 20 <= mouse_pos[1] <= slider_y + 20):
                     closest_i = None
                     closest_dist = 999999
@@ -260,7 +192,7 @@ def settings_screen():
                         knob_rect.centerx = difficulty_stops[closest_i][0]
                         difficulty_factor = difficulty_stops[closest_i][1]
 
-                # 3) Projectile Slider
+                # Check projectile slider
                 if (bullet_slider_y - 20 <= mouse_pos[1] <= bullet_slider_y + 20):
                     closest_i = None
                     closest_dist = 999999
@@ -273,31 +205,112 @@ def settings_screen():
                         bullet_knob_rect.centerx = bullet_stop_positions[closest_i]
                         bullet_image_current = bullet_images[closest_i]
 
-                # 4) Back Button
+                # Back button
                 if btn_back.collidepoint(mouse_pos):
                     return
 
+        # --------------------------------------------
+        # Recalculate the positions each frame
+        # (so if the resolution changed above,
+        #  the new pass will recalc everything)
+        # --------------------------------------------
+        title_text = font_title.render("Settings", True, WHITE)
+        title_rect = title_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 280))
+
+        # Buttons for resolution
+        btn_480 = pygame.Rect(0, 0, 160, 40)
+        btn_480.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 180)
+
+        btn_720 = pygame.Rect(0, 0, 160, 40)
+        btn_720.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 120)
+
+        # Difficulty slider
+        slider_width = 200
+        slider_height = 5
+        slider_x = SCREEN_WIDTH//2 - slider_width//2
+        slider_y = SCREEN_HEIGHT//2 - 40
+
+        stop_positions = [
+            slider_x,
+            slider_x + slider_width//2,
+            slider_x + slider_width
+        ]
+        difficulty_stops = [
+            (stop_positions[0], 1.0),
+            (stop_positions[1], 1.25),
+            (stop_positions[2], 1.5)
+        ]
+        difficulty_labels = ["Easy", "Medium", "Hard"]
+
+        # Find which stop is currently selected
+        possible_factors = [1.0, 1.25, 1.5]
+        # find the closest factor
+        best_diff = 999
+        current_stop_index = 0
+        for i, f in enumerate(possible_factors):
+            diff = abs(f - difficulty_factor)
+            if diff < best_diff:
+                best_diff = diff
+                current_stop_index = i
+
+        knob_size = 10
+        knob_rect = pygame.Rect(0, 0, knob_size, knob_size)
+        knob_rect.center = (stop_positions[current_stop_index], slider_y)
+
+        # Projectile slider
+        bullet_slider_width = 200
+        bullet_slider_height = 5
+        bullet_slider_x = SCREEN_WIDTH//2 - bullet_slider_width//2
+        bullet_slider_y = SCREEN_HEIGHT//2 + 30
+
+        bullet_stop_positions = [
+            bullet_slider_x,
+            bullet_slider_x + bullet_slider_width//2,
+            bullet_slider_x + bullet_slider_width
+        ]
+        bullet_images = [bullet_image_default, bullet_image_banana, bullet_image_rocket]
+        bullet_labels = ["Default", "Banana", "Rocket"]
+
+        # Check which bullet image is selected
+        bullet_current_index = 0
+        for i, bi in enumerate(bullet_images):
+            if bi == bullet_image_current:
+                bullet_current_index = i
+                break
+
+        bullet_knob_rect = pygame.Rect(0, 0, knob_size, knob_size)
+        bullet_knob_rect.center = (bullet_stop_positions[bullet_current_index], bullet_slider_y)
+
+        # Back button
+        btn_back = pygame.Rect(0, 0, 100, 40)
+        btn_back.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 140)
+
+        # --------------------------------------------
+        # Draw everything
+        # --------------------------------------------
         SCREEN.fill(BLACK)
         draw_stars()
 
         SCREEN.blit(title_text, title_rect)
 
+        # Resolution buttons
         pygame.draw.rect(SCREEN, GRAY, btn_480)
         pygame.draw.rect(SCREEN, GRAY, btn_720)
-        font_button = pygame.font.SysFont(None, 30)
         txt_480 = font_button.render("480 x 640", True, BLACK)
         txt_720 = font_button.render("720 x 960", True, BLACK)
         SCREEN.blit(txt_480, txt_480.get_rect(center=btn_480.center))
         SCREEN.blit(txt_720, txt_720.get_rect(center=btn_720.center))
 
+        # Difficulty slider track & knob
         pygame.draw.rect(SCREEN, WHITE, (slider_x, slider_y - slider_height//2, slider_width, slider_height))
         pygame.draw.circle(SCREEN, GREEN, knob_rect.center, knob_size//2)
-        diff_label_font = pygame.font.SysFont(None, 30)
+        # labels
         for i, label in enumerate(difficulty_labels):
-            label_surf = diff_label_font.render(label, True, WHITE)
+            label_surf = font_button.render(label, True, WHITE)
             label_rect = label_surf.get_rect(midtop=(stop_positions[i], slider_y + 10))
             SCREEN.blit(label_surf, label_rect)
 
+        # Projectile slider track & knob
         pygame.draw.rect(SCREEN, WHITE, (bullet_slider_x, bullet_slider_y - bullet_slider_height//2,
                                          bullet_slider_width, bullet_slider_height))
         pygame.draw.circle(SCREEN, GREEN, bullet_knob_rect.center, knob_size//2)
@@ -306,6 +319,7 @@ def settings_screen():
             label_rect = label_surf.get_rect(midtop=(bullet_stop_positions[i], bullet_slider_y + 10))
             SCREEN.blit(label_surf, label_rect)
 
+        # Back button
         pygame.draw.rect(SCREEN, GRAY, btn_back)
         txt_back = font_button.render("Back", True, BLACK)
         SCREEN.blit(txt_back, txt_back.get_rect(center=btn_back.center))
@@ -327,6 +341,7 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(original_image, (scaled_width, scaled_height))
         
         self.rect = self.image.get_rect()
+        # We'll place it near bottom-left per your code
         self.rect.centerx = screen_w // 4
         self.rect.centery = screen_h - 60
         
@@ -367,19 +382,16 @@ class Enemy(pygame.sprite.Sprite):
             self.kill()
 
 # -------------------
-# EXPLOSION LOGIC (from file2)
+# EXPLOSION LOGIC
 # -------------------
 EXPLOSION_COLORS = [
     (255, 225, 100),  # bright yellowish
-    (255, 180, 50),   # warm orange
-    (255, 120, 40),   # deeper orange-red
-    (255, 50, 20),    # red
+    (255, 180, 50),
+    (255, 120, 40),
+    (255, 50, 20),
 ]
 
 class Particle:
-    """
-    A single explosion particle.
-    """
     def __init__(self, x, y, speed_scale=1.0, size_scale=1.0):
         angle = random.uniform(0, 2*math.pi)
         speed = random.uniform(200, 400) * speed_scale
@@ -418,18 +430,13 @@ class Particle:
         return self.age >= self.lifetime
 
 class Explosion(pygame.sprite.Sprite):
-    """
-    An explosion made of multiple Particles.
-    """
     def __init__(self, x, y, enemy_size=30):
         super().__init__()
-        # We won't really use self.image for drawing, but pygame.sprite requires it.
         self.image = pygame.Surface((1,1), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=(x,y))
 
-        # We'll scale the number of particles & speeds based on enemy_size
         base_count = 30
-        scale_factor = enemy_size / 30.0  # e.g. a 30x30 enemy => factor = 1.0
+        scale_factor = enemy_size / 30.0
         num_particles = int(base_count * scale_factor)
 
         self.particles = [
@@ -440,9 +447,7 @@ class Explosion(pygame.sprite.Sprite):
     def update(self, dt):
         for p in self.particles:
             p.update(dt)
-        # remove dead
         self.particles = [p for p in self.particles if not p.is_dead()]
-        # if no particles left, kill the sprite
         if len(self.particles) == 0:
             self.kill()
 
@@ -531,8 +536,6 @@ def run_game():
     player_group = pygame.sprite.Group(player)
     bullet_group = pygame.sprite.Group()
     enemy_group  = pygame.sprite.Group()
-
-    # NEW: Explosions group
     explosions_group = pygame.sprite.Group()
 
     score = 0
@@ -540,9 +543,8 @@ def run_game():
     enemy_spawn_counter = 0
     running = True
 
-    # We'll measure dt for the explosions
     while running:
-        dt = clock.tick(FPS) / 1000.0  # delta time in seconds
+        dt = clock.tick(FPS) / 1000.0
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -556,15 +558,14 @@ def run_game():
                     pause_screen()
 
         keys_pressed = pygame.key.get_pressed()
-
         player_group.update(keys_pressed)
         bullet_group.update()
         enemy_group.update()
 
-        # Update explosions
+        # update explosions
         explosions_group.update(dt)
 
-        # Spawn enemies
+        # spawn enemies
         enemy_spawn_counter += 1
         if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
             enemy_spawn_counter = 0
@@ -573,31 +574,30 @@ def run_game():
             enemy = Enemy(x, y)
             enemy_group.add(enemy)
 
-        # Bullet-Enemy collisions
+        # bullet-enemy collisions
         hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
         if hits:
             for bullet, enemies in hits.items():
                 for dead_enemy in enemies:
                     score += 10
-                    # Create an Explosion scaled to the enemy's size
+                    # spawn explosion at enemy location, scaled by enemy size
                     enemy_w = dead_enemy.rect.width
                     enemy_h = dead_enemy.rect.height
                     avg_size = (enemy_w + enemy_h) // 2
                     ex = Explosion(dead_enemy.rect.centerx, dead_enemy.rect.centery, avg_size)
                     explosions_group.add(ex)
 
-        # Player-Enemy collisions
+        # player-enemy collisions
         if pygame.sprite.spritecollideany(player, enemy_group):
             running = False
 
-        # Drawing
         SCREEN.fill(BLACK)
         draw_stars()
         player_group.draw(SCREEN)
         bullet_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
 
-        # Draw explosions
+        # draw explosions
         for ex in explosions_group:
             ex.draw(SCREEN)
 
