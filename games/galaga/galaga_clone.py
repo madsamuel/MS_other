@@ -55,6 +55,7 @@ if os.path.exists(rocket_path):
 else:
     bullet_image_rocket = bullet_image_default
 
+# Currently selected bullet
 bullet_image_current = bullet_image_default
 
 # -------------------
@@ -144,9 +145,9 @@ def splash_screen():
 
         pygame.display.flip()
 
-# ---------------------------------------------------
-# SETTINGS SCREEN - Recalculate positions each loop
-# ---------------------------------------------------
+# -------------------
+# SETTINGS SCREEN
+# -------------------
 def settings_screen():
     """
     Settings screen:
@@ -192,7 +193,7 @@ def settings_screen():
                         knob_rect.centerx = difficulty_stops[closest_i][0]
                         difficulty_factor = difficulty_stops[closest_i][1]
 
-                # Check projectile slider
+                # Projectile slider
                 if (bullet_slider_y - 20 <= mouse_pos[1] <= bullet_slider_y + 20):
                     closest_i = None
                     closest_dist = 999999
@@ -209,15 +210,11 @@ def settings_screen():
                 if btn_back.collidepoint(mouse_pos):
                     return
 
-        # --------------------------------------------
-        # Recalculate the positions each frame
-        # (so if the resolution changed above,
-        #  the new pass will recalc everything)
-        # --------------------------------------------
+        # Recalculate the UI each frame
         title_text = font_title.render("Settings", True, WHITE)
         title_rect = title_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 280))
 
-        # Buttons for resolution
+        # Resolution buttons
         btn_480 = pygame.Rect(0, 0, 160, 40)
         btn_480.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 180)
 
@@ -241,10 +238,7 @@ def settings_screen():
             (stop_positions[2], 1.5)
         ]
         difficulty_labels = ["Easy", "Medium", "Hard"]
-
-        # Find which stop is currently selected
         possible_factors = [1.0, 1.25, 1.5]
-        # find the closest factor
         best_diff = 999
         current_stop_index = 0
         for i, f in enumerate(possible_factors):
@@ -271,7 +265,6 @@ def settings_screen():
         bullet_images = [bullet_image_default, bullet_image_banana, bullet_image_rocket]
         bullet_labels = ["Default", "Banana", "Rocket"]
 
-        # Check which bullet image is selected
         bullet_current_index = 0
         for i, bi in enumerate(bullet_images):
             if bi == bullet_image_current:
@@ -285,32 +278,26 @@ def settings_screen():
         btn_back = pygame.Rect(0, 0, 100, 40)
         btn_back.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 140)
 
-        # --------------------------------------------
-        # Draw everything
-        # --------------------------------------------
         SCREEN.fill(BLACK)
         draw_stars()
 
         SCREEN.blit(title_text, title_rect)
 
-        # Resolution buttons
         pygame.draw.rect(SCREEN, GRAY, btn_480)
         pygame.draw.rect(SCREEN, GRAY, btn_720)
+        font_button = pygame.font.SysFont(None, 30)
         txt_480 = font_button.render("480 x 640", True, BLACK)
         txt_720 = font_button.render("720 x 960", True, BLACK)
         SCREEN.blit(txt_480, txt_480.get_rect(center=btn_480.center))
         SCREEN.blit(txt_720, txt_720.get_rect(center=btn_720.center))
 
-        # Difficulty slider track & knob
         pygame.draw.rect(SCREEN, WHITE, (slider_x, slider_y - slider_height//2, slider_width, slider_height))
         pygame.draw.circle(SCREEN, GREEN, knob_rect.center, knob_size//2)
-        # labels
         for i, label in enumerate(difficulty_labels):
             label_surf = font_button.render(label, True, WHITE)
             label_rect = label_surf.get_rect(midtop=(stop_positions[i], slider_y + 10))
             SCREEN.blit(label_surf, label_rect)
 
-        # Projectile slider track & knob
         pygame.draw.rect(SCREEN, WHITE, (bullet_slider_x, bullet_slider_y - bullet_slider_height//2,
                                          bullet_slider_width, bullet_slider_height))
         pygame.draw.circle(SCREEN, GREEN, bullet_knob_rect.center, knob_size//2)
@@ -319,7 +306,6 @@ def settings_screen():
             label_rect = label_surf.get_rect(midtop=(bullet_stop_positions[i], bullet_slider_y + 10))
             SCREEN.blit(label_surf, label_rect)
 
-        # Back button
         pygame.draw.rect(SCREEN, GRAY, btn_back)
         txt_back = font_button.render("Back", True, BLACK)
         SCREEN.blit(txt_back, txt_back.get_rect(center=btn_back.center))
@@ -341,7 +327,6 @@ class Player(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(original_image, (scaled_width, scaled_height))
         
         self.rect = self.image.get_rect()
-        # We'll place it near bottom-left per your code
         self.rect.centerx = screen_w // 4
         self.rect.centery = screen_h - 60
         
@@ -385,7 +370,7 @@ class Enemy(pygame.sprite.Sprite):
 # EXPLOSION LOGIC
 # -------------------
 EXPLOSION_COLORS = [
-    (255, 225, 100),  # bright yellowish
+    (255, 225, 100),  
     (255, 180, 50),
     (255, 120, 40),
     (255, 50, 20),
@@ -459,27 +444,55 @@ class Explosion(pygame.sprite.Sprite):
 # HELPER FUNCTIONS
 # -------------------
 def pause_screen():
-    paused = True
+    """
+    Pause menu with two buttons:
+    1) Resume -> unpause
+    2) Main Screen -> exit to splash screen
+    """
     font_big = pygame.font.SysFont(None, 64)
+    font_btn = pygame.font.SysFont(None, 30)
     pause_text = font_big.render("PAUSED", True, WHITE)
-    
-    while paused:
+    text_rect = pause_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))
+
+    # Buttons
+    resume_btn = pygame.Rect(0, 0, 160, 40)
+    resume_btn.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
+
+    main_btn = pygame.Rect(0, 0, 160, 40)
+    main_btn.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 70)
+
+    while True:
+        clock.tick(FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = event.pos
+                if resume_btn.collidepoint(mouse_pos):
+                    return None  # resume
+                if main_btn.collidepoint(mouse_pos):
+                    return "go_main"  # exit to main screen
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    paused = False
+                    return None  # resume
 
         SCREEN.fill(BLACK)
         draw_stars()
         
-        text_rect = pause_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         SCREEN.blit(pause_text, text_rect)
-        
+
+        pygame.draw.rect(SCREEN, GRAY, resume_btn)
+        pygame.draw.rect(SCREEN, GRAY, main_btn)
+
+        resume_txt = font_btn.render("Resume", True, BLACK)
+        main_txt = font_btn.render("Main Screen", True, BLACK)
+
+        SCREEN.blit(resume_txt, resume_txt.get_rect(center=resume_btn.center))
+        SCREEN.blit(main_txt, main_txt.get_rect(center=main_btn.center))
+
         pygame.display.flip()
-        clock.tick(15)
+
 
 def game_over_screen(score):
     font_large = pygame.font.SysFont(None, 64)
@@ -555,14 +568,17 @@ def run_game():
                     bullet = Bullet(player.rect.centerx, player.rect.top)
                     bullet_group.add(bullet)
                 elif event.key == pygame.K_ESCAPE:
-                    pause_screen()
+                    choice = pause_screen()
+                    if choice == "go_main":
+                        # user wants to go back to main screen
+                        # return None => skip game_over
+                        return None
 
         keys_pressed = pygame.key.get_pressed()
         player_group.update(keys_pressed)
         bullet_group.update()
         enemy_group.update()
 
-        # update explosions
         explosions_group.update(dt)
 
         # spawn enemies
@@ -580,11 +596,9 @@ def run_game():
             for bullet, enemies in hits.items():
                 for dead_enemy in enemies:
                     score += 10
-                    # spawn explosion at enemy location, scaled by enemy size
-                    enemy_w = dead_enemy.rect.width
-                    enemy_h = dead_enemy.rect.height
-                    avg_size = (enemy_w + enemy_h) // 2
-                    ex = Explosion(dead_enemy.rect.centerx, dead_enemy.rect.centery, avg_size)
+                    w = dead_enemy.rect.width
+                    h = dead_enemy.rect.height
+                    ex = Explosion(dead_enemy.rect.centerx, dead_enemy.rect.centery, (w+h)//2)
                     explosions_group.add(ex)
 
         # player-enemy collisions
@@ -597,7 +611,6 @@ def run_game():
         bullet_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
 
-        # draw explosions
         for ex in explosions_group:
             ex.draw(SCREEN)
 
@@ -606,6 +619,7 @@ def run_game():
 
         pygame.display.flip()
 
+    # if we get here, user died => return final score
     return score
 
 def main():
@@ -618,11 +632,15 @@ def main():
             continue
         elif choice == "start":
             final_score = run_game()
-            wants_restart = game_over_screen(final_score)
-            if wants_restart:
-                continue
+            # if final_score is None => user exited to main => skip game_over
+            if final_score is None:
+                continue  # go back to splash
             else:
-                break
+                wants_restart = game_over_screen(final_score)
+                if wants_restart:
+                    continue
+                else:
+                    break
 
     pygame.quit()
     sys.exit()
