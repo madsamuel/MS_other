@@ -3,6 +3,7 @@ import random
 import math
 import sys
 import os
+import time
 
 pygame.init()
 
@@ -36,6 +37,8 @@ ENEMY_DROP_INTERVAL = 30  # frames between spawns
 
 # Difficulty factor (1.0 = easy, 1.25 = medium, 1.5 = hard)
 difficulty_factor = 1.0
+
+
 
 # -------------------
 # BULLET IMAGES
@@ -170,7 +173,6 @@ def settings_screen():
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_pos = event.pos
 
-                # Check resolution buttons
                 if btn_480.collidepoint(mouse_pos):
                     SCREEN_WIDTH, SCREEN_HEIGHT = 480, 640
                     SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -180,7 +182,6 @@ def settings_screen():
                     SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                     reinit_stars()
 
-                # Check difficulty slider
                 if (slider_y - 20 <= mouse_pos[1] <= slider_y + 20):
                     closest_i = None
                     closest_dist = 999999
@@ -193,7 +194,6 @@ def settings_screen():
                         knob_rect.centerx = difficulty_stops[closest_i][0]
                         difficulty_factor = difficulty_stops[closest_i][1]
 
-                # Projectile slider
                 if (bullet_slider_y - 20 <= mouse_pos[1] <= bullet_slider_y + 20):
                     closest_i = None
                     closest_dist = 999999
@@ -206,22 +206,18 @@ def settings_screen():
                         bullet_knob_rect.centerx = bullet_stop_positions[closest_i]
                         bullet_image_current = bullet_images[closest_i]
 
-                # Back button
                 if btn_back.collidepoint(mouse_pos):
                     return
 
-        # Recalculate the UI each frame
         title_text = font_title.render("Settings", True, WHITE)
         title_rect = title_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 280))
 
-        # Resolution buttons
         btn_480 = pygame.Rect(0, 0, 160, 40)
         btn_480.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 180)
 
         btn_720 = pygame.Rect(0, 0, 160, 40)
         btn_720.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 120)
 
-        # Difficulty slider
         slider_width = 200
         slider_height = 5
         slider_x = SCREEN_WIDTH//2 - slider_width//2
@@ -251,7 +247,6 @@ def settings_screen():
         knob_rect = pygame.Rect(0, 0, knob_size, knob_size)
         knob_rect.center = (stop_positions[current_stop_index], slider_y)
 
-        # Projectile slider
         bullet_slider_width = 200
         bullet_slider_height = 5
         bullet_slider_x = SCREEN_WIDTH//2 - bullet_slider_width//2
@@ -274,7 +269,6 @@ def settings_screen():
         bullet_knob_rect = pygame.Rect(0, 0, knob_size, knob_size)
         bullet_knob_rect.center = (bullet_stop_positions[bullet_current_index], bullet_slider_y)
 
-        # Back button
         btn_back = pygame.Rect(0, 0, 100, 40)
         btn_back.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 140)
 
@@ -441,6 +435,40 @@ class Explosion(pygame.sprite.Sprite):
             p.draw(surface)
 
 # -------------------
+# LEVEL CLEAR MESSAGE
+# -------------------
+def show_level_clear_message(level):
+    """
+    Displays a "Level X Cleared!" message for ~8 seconds,
+    then returns.
+    """
+    font_big = pygame.font.SysFont(None, 50)
+    msg = f"Level {level} Cleared!"
+    text_surf = font_big.render(msg, True, WHITE)
+    text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+
+    # We'll do a simple 8-second wait loop
+    start_time = pygame.time.get_ticks()
+    while True:
+        dt = clock.tick(FPS)
+        elapsed = pygame.time.get_ticks() - start_time
+        if elapsed >= 8000:  # 8 seconds
+            break
+
+        # We only want to show the message, starfield, etc.
+        # We do NOT update enemies or bullets here, so everything is "frozen"
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        SCREEN.fill(BLACK)
+        draw_stars()
+        SCREEN.blit(text_surf, text_rect)
+        pygame.display.flip()
+
+# -------------------
 # HELPER FUNCTIONS
 # -------------------
 def pause_screen():
@@ -454,7 +482,6 @@ def pause_screen():
     pause_text = font_big.render("PAUSED", True, WHITE)
     text_rect = pause_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100))
 
-    # Buttons
     resume_btn = pygame.Rect(0, 0, 160, 40)
     resume_btn.center = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2)
 
@@ -553,6 +580,11 @@ def run_game():
 
     score = 0
     font = pygame.font.SysFont(None, 36)
+
+    # We add level logic
+    current_level = 1
+    next_threshold = current_level * 2000  # 2000 points for each level
+
     enemy_spawn_counter = 0
     running = True
 
@@ -571,14 +603,12 @@ def run_game():
                     choice = pause_screen()
                     if choice == "go_main":
                         # user wants to go back to main screen
-                        # return None => skip game_over
                         return None
 
         keys_pressed = pygame.key.get_pressed()
         player_group.update(keys_pressed)
         bullet_group.update()
         enemy_group.update()
-
         explosions_group.update(dt)
 
         # spawn enemies
@@ -601,10 +631,23 @@ def run_game():
                     ex = Explosion(dead_enemy.rect.centerx, dead_enemy.rect.centery, (w+h)//2)
                     explosions_group.add(ex)
 
+                    # Check if we reached next level
+                    if score >= next_threshold:
+                        # level up
+                        current_level += 1
+                        next_threshold = current_level * 2000
+
+                        # Show "Level Cleared!" for 8 seconds
+                        show_level_clear_message(current_level - 1)  # we cleared the old level
+
+                        # Optionally, we could do something to enemies (like increase difficulty factor)
+                        # For now, we just keep the same logic but next level means next threshold.
+
         # player-enemy collisions
         if pygame.sprite.spritecollideany(player, enemy_group):
             running = False
 
+        # Drawing
         SCREEN.fill(BLACK)
         draw_stars()
         player_group.draw(SCREEN)
@@ -614,8 +657,13 @@ def run_game():
         for ex in explosions_group:
             ex.draw(SCREEN)
 
+        # Score in top-left
         score_text = font.render(f"Score: {score}", True, WHITE)
         SCREEN.blit(score_text, (10, 10))
+
+        # Current level top-right
+        level_text = font.render(f"Level: {current_level}", True, WHITE)
+        SCREEN.blit(level_text, (SCREEN_WIDTH - 120, 10))
 
         pygame.display.flip()
 
@@ -634,7 +682,7 @@ def main():
             final_score = run_game()
             # if final_score is None => user exited to main => skip game_over
             if final_score is None:
-                continue  # go back to splash
+                continue
             else:
                 wants_restart = game_over_screen(final_score)
                 if wants_restart:
