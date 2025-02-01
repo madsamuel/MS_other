@@ -38,7 +38,8 @@ ENEMY_DROP_INTERVAL = 30  # frames between spawns
 # Difficulty factor (1.0 = easy, 1.25 = medium, 1.5 = hard)
 difficulty_factor = 1.0
 
-
+# Each new level is reached every 2000 points
+POINTS_PER_LEVEL = 20
 
 # -------------------
 # BULLET IMAGES
@@ -583,7 +584,7 @@ def run_game():
 
     # We add level logic
     current_level = 1
-    next_threshold = current_level * 2000  # 2000 points for each level
+    next_threshold = current_level * POINTS_PER_LEVEL  
 
     enemy_spawn_counter = 0
     running = True
@@ -635,7 +636,7 @@ def run_game():
                     if score >= next_threshold:
                         # level up
                         current_level += 1
-                        next_threshold = current_level * 2000
+                        next_threshold = current_level * POINTS_PER_LEVEL 
 
                         # Show "Level Cleared!" for 8 seconds
                         show_level_clear_message(current_level - 1)  # we cleared the old level
