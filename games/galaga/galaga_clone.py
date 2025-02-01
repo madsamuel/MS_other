@@ -39,7 +39,7 @@ ENEMY_DROP_INTERVAL = 30  # frames between spawns
 difficulty_factor = 1.0
 
 # Each new level is reached every 2000 points
-POINTS_PER_LEVEL = 20
+POINTS_PER_LEVEL = 1000
 
 # -------------------
 # BULLET IMAGES
