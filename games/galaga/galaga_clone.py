@@ -12,7 +12,6 @@ pygame.init()
 # -------------------
 BASE_PATH = os.path.dirname(__file__)
 
-# Default resolution
 SCREEN_WIDTH, SCREEN_HEIGHT = 480, 640
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Galaga Clone with Pause & Restart")
@@ -20,7 +19,6 @@ pygame.display.set_caption("Galaga Clone with Pause & Restart")
 FPS = 60
 clock = pygame.time.Clock()
 
-# Colors
 WHITE = (255, 255, 255)
 BLACK = (  0,   0,   0)
 RED   = (255,   0,   0)
@@ -33,13 +31,9 @@ GREEN = (  0, 255,   0)
 PLAYER_SPEED        = 5
 BULLET_SPEED        = 7
 ENEMY_BASE_SPEED    = 2   # We'll multiply this by a difficulty factor
-ENEMY_DROP_INTERVAL = 30  # frames between spawns
-
-# Difficulty factor (1.0 = easy, 1.25 = medium, 1.5 = hard)
-difficulty_factor = 1.0
-
-# Each new level is reached every 2000 points
-POINTS_PER_LEVEL = 1000
+ENEMY_DROP_INTERVAL = 30
+difficulty_factor   = 1.0
+POINTS_PER_LEVEL    = 1000  # we changed from 2000 to 1000
 
 # -------------------
 # BULLET IMAGES
@@ -59,11 +53,10 @@ if os.path.exists(rocket_path):
 else:
     bullet_image_rocket = bullet_image_default
 
-# Currently selected bullet
 bullet_image_current = bullet_image_default
 
 # -------------------
-# STARFIELD SETTINGS
+# STARFIELD
 # -------------------
 STAR_COUNT = 100
 STAR_SPEED = 1
@@ -95,9 +88,9 @@ stars = [Star() for _ in range(STAR_COUNT)]
 def draw_stars():
     for star in stars:
         star.update()
-        star_surf = pygame.Surface((2, 2), pygame.SRCALPHA)
-        star_surf.fill((255, 255, 255, int(star.brightness)))
-        SCREEN.blit(star_surf, (star.x, star.y))
+        s = pygame.Surface((2, 2), pygame.SRCALPHA)
+        s.fill((255, 255, 255, int(star.brightness)))
+        SCREEN.blit(s, (star.x, star.y))
 
 def reinit_stars():
     global stars
@@ -153,13 +146,6 @@ def splash_screen():
 # SETTINGS SCREEN
 # -------------------
 def settings_screen():
-    """
-    Settings screen:
-      - Resolution buttons
-      - Difficulty slider (Easy/Medium/Hard)
-      - Projectile slider (Default / Banana / Rocket)
-      - Back
-    """
     global SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN
     global difficulty_factor, bullet_image_current
 
@@ -310,6 +296,39 @@ def settings_screen():
 # -------------------
 # SPRITE CLASSES
 # -------------------
+
+### Original "boss.png" Enemy
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        enemy_image_path = os.path.join(BASE_PATH, "boss.png")
+        boss_image = pygame.image.load(enemy_image_path).convert_alpha()
+        self.image = boss_image
+        self.rect = self.image.get_rect(topleft=(x, y))
+        
+    def update(self):
+        actual_speed = ENEMY_BASE_SPEED * difficulty_factor
+        self.rect.y += actual_speed
+        if self.rect.top > SCREEN.get_height():
+            self.kill()
+
+### NEW: "agile_enemy.png"
+class AgileEnemy(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+        agile_image_path = os.path.join(BASE_PATH, "agile_enemy.png")
+        agile_image = pygame.image.load(agile_image_path).convert_alpha()
+        self.image = agile_image
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+    def update(self):
+        # Slightly faster movement
+        actual_speed = (ENEMY_BASE_SPEED * 1.5) * difficulty_factor
+        self.rect.y += actual_speed
+        if self.rect.top > SCREEN.get_height():
+            self.kill()
+
+### Player
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h):
         super().__init__()
@@ -335,6 +354,7 @@ class Player(pygame.sprite.Sprite):
         if keys_pressed[pygame.K_DOWN] and self.rect.bottom < SCREEN.get_height():
             self.rect.y += PLAYER_SPEED
 
+### Bullet
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -347,22 +367,8 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
-class Enemy(pygame.sprite.Sprite):
-    def __init__(self, x, y):
-        super().__init__()
-        enemy_image_path = os.path.join(BASE_PATH, "boss.png")
-        boss_image = pygame.image.load(enemy_image_path).convert_alpha()
-        self.image = boss_image
-        self.rect = self.image.get_rect(topleft=(x, y))
-        
-    def update(self):
-        actual_speed = ENEMY_BASE_SPEED * difficulty_factor
-        self.rect.y += actual_speed
-        if self.rect.top > SCREEN.get_height():
-            self.kill()
-
 # -------------------
-# EXPLOSION LOGIC
+# EXPLOSION
 # -------------------
 EXPLOSION_COLORS = [
     (255, 225, 100),  
@@ -436,28 +442,20 @@ class Explosion(pygame.sprite.Sprite):
             p.draw(surface)
 
 # -------------------
-# LEVEL CLEAR MESSAGE
+# LEVEL CLEAR
 # -------------------
 def show_level_clear_message(level):
-    """
-    Displays a "Level X Cleared!" message for ~8 seconds,
-    then returns.
-    """
     font_big = pygame.font.SysFont(None, 50)
     msg = f"Level {level} Cleared!"
     text_surf = font_big.render(msg, True, WHITE)
     text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
 
-    # We'll do a simple 8-second wait loop
     start_time = pygame.time.get_ticks()
     while True:
         dt = clock.tick(FPS)
         elapsed = pygame.time.get_ticks() - start_time
-        if elapsed >= 8000:  # 8 seconds
+        if elapsed >= 8000:
             break
-
-        # We only want to show the message, starfield, etc.
-        # We do NOT update enemies or bullets here, so everything is "frozen"
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -470,14 +468,9 @@ def show_level_clear_message(level):
         pygame.display.flip()
 
 # -------------------
-# HELPER FUNCTIONS
+# PAUSE
 # -------------------
 def pause_screen():
-    """
-    Pause menu with two buttons:
-    1) Resume -> unpause
-    2) Main Screen -> exit to splash screen
-    """
     font_big = pygame.font.SysFont(None, 64)
     font_btn = pygame.font.SysFont(None, 30)
     pause_text = font_big.render("PAUSED", True, WHITE)
@@ -498,12 +491,12 @@ def pause_screen():
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_pos = event.pos
                 if resume_btn.collidepoint(mouse_pos):
-                    return None  # resume
+                    return None
                 if main_btn.collidepoint(mouse_pos):
-                    return "go_main"  # exit to main screen
+                    return "go_main"
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return None  # resume
+                    return None
 
         SCREEN.fill(BLACK)
         draw_stars()
@@ -582,12 +575,14 @@ def run_game():
     score = 0
     font = pygame.font.SysFont(None, 36)
 
-    # We add level logic
     current_level = 1
-    next_threshold = current_level * POINTS_PER_LEVEL  
+    next_threshold = current_level * POINTS_PER_LEVEL
 
     enemy_spawn_counter = 0
     running = True
+
+    # We'll keep a spawn_count to alternate between normal Enemy and AgileEnemy
+    spawn_count = 0  # every time we spawn, increment. if spawn_count % 5 == 4 => agile
 
     while running:
         dt = clock.tick(FPS) / 1000.0
@@ -603,7 +598,6 @@ def run_game():
                 elif event.key == pygame.K_ESCAPE:
                     choice = pause_screen()
                     if choice == "go_main":
-                        # user wants to go back to main screen
                         return None
 
         keys_pressed = pygame.key.get_pressed()
@@ -616,10 +610,19 @@ def run_game():
         enemy_spawn_counter += 1
         if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
             enemy_spawn_counter = 0
+            spawn_count += 1
             x = random.randint(0, SCREEN_WIDTH - 30)
             y = -30
-            enemy = Enemy(x, y)
-            enemy_group.add(enemy)
+
+            # 4:1 ratio => if spawn_count % 5 == 4 => agile
+            if spawn_count % 5 == 4:
+                # spawn agile
+                e = AgileEnemy(x, y)
+            else:
+                # spawn normal
+                e = Enemy(x, y)
+
+            enemy_group.add(e)
 
         # bullet-enemy collisions
         hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
@@ -632,43 +635,35 @@ def run_game():
                     ex = Explosion(dead_enemy.rect.centerx, dead_enemy.rect.centery, (w+h)//2)
                     explosions_group.add(ex)
 
-                    # Check if we reached next level
+                    # Check next level
                     if score >= next_threshold:
-                        # level up
                         current_level += 1
-                        next_threshold = current_level * POINTS_PER_LEVEL 
-
-                        # Show "Level Cleared!" for 8 seconds
-                        show_level_clear_message(current_level - 1)  # we cleared the old level
-
-                        # Optionally, we could do something to enemies (like increase difficulty factor)
-                        # For now, we just keep the same logic but next level means next threshold.
+                        next_threshold = current_level * POINTS_PER_LEVEL
+                        show_level_clear_message(current_level - 1)
 
         # player-enemy collisions
         if pygame.sprite.spritecollideany(player, enemy_group):
             running = False
 
-        # Drawing
         SCREEN.fill(BLACK)
         draw_stars()
+
         player_group.draw(SCREEN)
         bullet_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
-
         for ex in explosions_group:
             ex.draw(SCREEN)
 
-        # Score in top-left
+        # Score
         score_text = font.render(f"Score: {score}", True, WHITE)
         SCREEN.blit(score_text, (10, 10))
 
-        # Current level top-right
+        # Level
         level_text = font.render(f"Level: {current_level}", True, WHITE)
         SCREEN.blit(level_text, (SCREEN_WIDTH - 120, 10))
 
         pygame.display.flip()
 
-    # if we get here, user died => return final score
     return score
 
 def main():
@@ -681,8 +676,8 @@ def main():
             continue
         elif choice == "start":
             final_score = run_game()
-            # if final_score is None => user exited to main => skip game_over
             if final_score is None:
+                # user went to main menu
                 continue
             else:
                 wants_restart = game_over_screen(final_score)
