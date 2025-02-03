@@ -30,10 +30,12 @@ GREEN = (  0, 255,   0)
 # -------------------
 PLAYER_SPEED        = 5
 BULLET_SPEED        = 7
-ENEMY_BASE_SPEED    = 2   # We'll multiply this by a difficulty factor
+ENEMY_BASE_SPEED    = 2
 ENEMY_DROP_INTERVAL = 30
 difficulty_factor   = 1.0
-POINTS_PER_LEVEL    = 1000  # we changed from 2000 to 1000
+POINTS_PER_LEVEL    = 1000
+
+SPAWN_MAX_TRIES     = 20  # max tries to find non-overlapping spawn
 
 # -------------------
 # BULLET IMAGES
@@ -293,11 +295,7 @@ def settings_screen():
 
         pygame.display.flip()
 
-# -------------------
-# SPRITE CLASSES
-# -------------------
 
-### Original "boss.png" Enemy
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -312,7 +310,6 @@ class Enemy(pygame.sprite.Sprite):
         if self.rect.top > SCREEN.get_height():
             self.kill()
 
-### NEW: "agile_enemy.png"
 class AgileEnemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -322,13 +319,12 @@ class AgileEnemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(x, y))
 
     def update(self):
-        # Slightly faster movement
+        # slightly faster
         actual_speed = (ENEMY_BASE_SPEED * 1.5) * difficulty_factor
         self.rect.y += actual_speed
         if self.rect.top > SCREEN.get_height():
             self.kill()
 
-### Player
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h):
         super().__init__()
@@ -354,7 +350,6 @@ class Player(pygame.sprite.Sprite):
         if keys_pressed[pygame.K_DOWN] and self.rect.bottom < SCREEN.get_height():
             self.rect.y += PLAYER_SPEED
 
-### Bullet
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -367,9 +362,6 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
-# -------------------
-# EXPLOSION
-# -------------------
 EXPLOSION_COLORS = [
     (255, 225, 100),  
     (255, 180, 50),
@@ -441,9 +433,6 @@ class Explosion(pygame.sprite.Sprite):
         for p in self.particles:
             p.draw(surface)
 
-# -------------------
-# LEVEL CLEAR
-# -------------------
 def show_level_clear_message(level):
     font_big = pygame.font.SysFont(None, 50)
     msg = f"Level {level} Cleared!"
@@ -467,9 +456,6 @@ def show_level_clear_message(level):
         SCREEN.blit(text_surf, text_rect)
         pygame.display.flip()
 
-# -------------------
-# PAUSE
-# -------------------
 def pause_screen():
     font_big = pygame.font.SysFont(None, 64)
     font_btn = pygame.font.SysFont(None, 30)
@@ -513,7 +499,6 @@ def pause_screen():
         SCREEN.blit(main_txt, main_txt.get_rect(center=main_btn.center))
 
         pygame.display.flip()
-
 
 def game_over_screen(score):
     font_large = pygame.font.SysFont(None, 64)
@@ -562,9 +547,19 @@ def game_over_screen(score):
                     if quit_btn.collidepoint(mouse_pos):
                         return False
 
-# -------------------
-# MAIN GAME LOOP
-# -------------------
+# no_overlap_spawn
+def no_overlap_spawn(enemy_group, spawn_func):
+    for _ in range(SPAWN_MAX_TRIES):
+        e = spawn_func()
+        overlap_found = False
+        for en in enemy_group:
+            if e.rect.colliderect(en.rect):
+                overlap_found = True
+                break
+        if not overlap_found:
+            return e
+    return None
+
 def run_game():
     player = Player(SCREEN_WIDTH, SCREEN_HEIGHT)
     player_group = pygame.sprite.Group(player)
@@ -581,8 +576,7 @@ def run_game():
     enemy_spawn_counter = 0
     running = True
 
-    # We'll keep a spawn_count to alternate between normal Enemy and AgileEnemy
-    spawn_count = 0  # every time we spawn, increment. if spawn_count % 5 == 4 => agile
+    spawn_count = 0
 
     while running:
         dt = clock.tick(FPS) / 1000.0
@@ -611,31 +605,35 @@ def run_game():
         if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
             enemy_spawn_counter = 0
             spawn_count += 1
-            x = random.randint(0, SCREEN_WIDTH - 30)
-            y = -30
 
-            # 4:1 ratio => if spawn_count % 5 == 4 => agile
-            if spawn_count % 5 == 4:
-                # spawn agile
-                e = AgileEnemy(x, y)
-            else:
-                # spawn normal
-                e = Enemy(x, y)
+            def spawn_func():
+                x = random.randint(0, SCREEN_WIDTH - 30)
+                y = -30
+                if spawn_count % 5 == 4:
+                    return AgileEnemy(x, y)  # new agile enemy
+                else:
+                    return Enemy(x, y)       # normal enemy
 
-            enemy_group.add(e)
+            e = no_overlap_spawn(enemy_group, spawn_func)
+            if e is not None:
+                enemy_group.add(e)
 
         # bullet-enemy collisions
         hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
         if hits:
             for bullet, enemies in hits.items():
                 for dead_enemy in enemies:
-                    score += 10
+                    # Check type => normal 10 points, agile 20 points
+                    if isinstance(dead_enemy, AgileEnemy):
+                        score += 20
+                    else:
+                        score += 10
+
                     w = dead_enemy.rect.width
                     h = dead_enemy.rect.height
                     ex = Explosion(dead_enemy.rect.centerx, dead_enemy.rect.centery, (w+h)//2)
                     explosions_group.add(ex)
 
-                    # Check next level
                     if score >= next_threshold:
                         current_level += 1
                         next_threshold = current_level * POINTS_PER_LEVEL
@@ -654,11 +652,9 @@ def run_game():
         for ex in explosions_group:
             ex.draw(SCREEN)
 
-        # Score
         score_text = font.render(f"Score: {score}", True, WHITE)
         SCREEN.blit(score_text, (10, 10))
 
-        # Level
         level_text = font.render(f"Level: {current_level}", True, WHITE)
         SCREEN.blit(level_text, (SCREEN_WIDTH - 120, 10))
 
@@ -677,7 +673,6 @@ def main():
         elif choice == "start":
             final_score = run_game()
             if final_score is None:
-                # user went to main menu
                 continue
             else:
                 wants_restart = game_over_screen(final_score)
