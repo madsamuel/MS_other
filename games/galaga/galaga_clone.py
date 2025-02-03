@@ -41,6 +41,10 @@ SPAWN_MAX_TRIES     = 20  # max tries for no-overlap spawn
 POINTS_NORMAL_ENEMY = 10
 POINTS_AGILE_ENEMY  = 20
 
+# Turn time range (seconds)
+TURN_TIME_MIN       = 1.0
+TURN_TIME_MAX       = 2.0
+
 # -------------------
 # BULLET IMAGES
 # -------------------
@@ -300,7 +304,7 @@ def settings_screen():
         pygame.display.flip()
 
 # -------------------
-# ENEMY WITH ONE RANDOM TURN
+# ENEMY WITH ONE RANDOM TURN of Random Duration
 # -------------------
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -310,37 +314,51 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.original_image
         self.rect = self.image.get_rect(topleft=(x, y))
 
-        # Movement:
         self.vx = 0
         self.vy = ENEMY_BASE_SPEED * difficulty_factor
-        # We'll do a single turn at random Y
         self.turn_y = random.randint(50, SCREEN_HEIGHT // 2)
         self.did_turn = False
 
+        # We'll store how long the turn lasts, in seconds
+        self.turn_duration = 0.0
+        self.turn_timer = 0.0
+
     def update(self):
-        # If we haven't turned yet, and we've crossed turn_y, do random turn
+        dt = clock.get_time() / 1000.0  # ms -> s
+
+        # If we haven't turned yet, and we've crossed turn_y
         if (not self.did_turn) and (self.rect.y >= self.turn_y):
             self.did_turn = True
-            # random left or right
+            # random left/right
             direction = random.choice(["left", "right"])
-            # rotate ± 30 degrees, velocity in X
             if direction == "left":
                 angle = 30
-                self.vx = -1.5  # tweak as desired
+                self.vx = -1.5
             else:
                 angle = -30
                 self.vx = 1.5
-            # rotate the image
             self.image = pygame.transform.rotate(self.original_image, angle)
 
-        # Move
+            # random turn duration
+            self.turn_duration = random.uniform(TURN_TIME_MIN, TURN_TIME_MAX)
+            self.turn_timer = self.turn_duration
+
+        # If we are in the middle of turning
+        if self.did_turn and self.turn_timer > 0:
+            self.turn_timer -= dt
+            if self.turn_timer <= 0:
+                # turn done => go straight again
+                self.vx = 0
+                self.image = self.original_image  # revert orientation
+                # (once done, we won't turn again)
+
         self.rect.x += self.vx
         self.rect.y += self.vy
-        # Kill if off screen
-        if self.rect.top > SCREEN_HEIGHT or self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
+        if (self.rect.top > SCREEN_HEIGHT or 
+            self.rect.right < 0 or 
+            self.rect.left > SCREEN_WIDTH):
             self.kill()
 
-# Agile version
 class AgileEnemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
@@ -354,26 +372,41 @@ class AgileEnemy(pygame.sprite.Sprite):
         self.turn_y = random.randint(50, SCREEN_HEIGHT // 2)
         self.did_turn = False
 
+        self.turn_duration = 0.0
+        self.turn_timer = 0.0
+
     def update(self):
+        dt = clock.get_time() / 1000.0
+
         if (not self.did_turn) and (self.rect.y >= self.turn_y):
             self.did_turn = True
             direction = random.choice(["left", "right"])
             if direction == "left":
                 angle = 30
-                self.vx = -2.0  # agile is faster
+                self.vx = -2.0  # agile is a bit faster horizontally
             else:
                 angle = -30
                 self.vx = 2.0
             self.image = pygame.transform.rotate(self.original_image, angle)
 
+            self.turn_duration = random.uniform(TURN_TIME_MIN, TURN_TIME_MAX)
+            self.turn_timer = self.turn_duration
+
+        # If turning
+        if self.did_turn and self.turn_timer > 0:
+            self.turn_timer -= dt
+            if self.turn_timer <= 0:
+                # done turning => revert
+                self.vx = 0
+                self.image = self.original_image
+
         self.rect.x += self.vx
         self.rect.y += self.vy
-        if self.rect.top > SCREEN_HEIGHT or self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
+        if (self.rect.top > SCREEN_HEIGHT or 
+            self.rect.right < 0 or 
+            self.rect.left > SCREEN_WIDTH):
             self.kill()
 
-# -------------------
-# PLAYER, BULLET, EXPLOSIONS REMAIN
-# -------------------
 class Player(pygame.sprite.Sprite):
     def __init__(self, screen_w, screen_h):
         super().__init__()
@@ -597,6 +630,7 @@ def game_over_screen(score):
                         return False
 
 def no_overlap_spawn(enemy_group, spawn_func):
+    SPAWN_MAX_TRIES = 20
     for _ in range(SPAWN_MAX_TRIES):
         e = spawn_func()
         overlap_found = False
@@ -609,8 +643,8 @@ def no_overlap_spawn(enemy_group, spawn_func):
     return None
 
 def run_game():
-    from_user_player = Player(SCREEN_WIDTH, SCREEN_HEIGHT)
-    player_group = pygame.sprite.Group(from_user_player)
+    player = Player(SCREEN_WIDTH, SCREEN_HEIGHT)
+    player_group = pygame.sprite.Group(player)
     bullet_group = pygame.sprite.Group()
     enemy_group  = pygame.sprite.Group()
     explosions_group = pygame.sprite.Group()
@@ -635,7 +669,7 @@ def run_game():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    bullet = Bullet(from_user_player.rect.centerx, from_user_player.rect.top)
+                    bullet = Bullet(player.rect.centerx, player.rect.top)
                     bullet_group.add(bullet)
                 elif event.key == pygame.K_ESCAPE:
                     choice = pause_screen()
@@ -648,7 +682,6 @@ def run_game():
         enemy_group.update()
         explosions_group.update(dt)
 
-        # spawn enemies
         enemy_spawn_counter += 1
         if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
             enemy_spawn_counter = 0
@@ -658,23 +691,22 @@ def run_game():
                 x = random.randint(0, SCREEN_WIDTH - 30)
                 y = -30
                 if spawn_count % 5 == 4:
-                    return AgileEnemy(x, y)  # new agile enemy
+                    return AgileEnemy(x, y)
                 else:
-                    return Enemy(x, y)       # normal enemy
+                    return Enemy(x, y)
 
             e = no_overlap_spawn(enemy_group, spawn_func)
             if e is not None:
                 enemy_group.add(e)
 
-        # bullet-enemy collisions
         hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
         if hits:
             for bullet, enemies in hits.items():
                 for dead_enemy in enemies:
                     if isinstance(dead_enemy, AgileEnemy):
-                        score += 20
+                        score += POINTS_AGILE_ENEMY
                     else:
-                        score += 10
+                        score += POINTS_NORMAL_ENEMY
 
                     w = dead_enemy.rect.width
                     h = dead_enemy.rect.height
@@ -686,8 +718,7 @@ def run_game():
                         next_threshold = current_level * POINTS_PER_LEVEL
                         show_level_clear_message(current_level - 1)
 
-        # player-enemy collisions
-        if pygame.sprite.spritecollideany(from_user_player, enemy_group):
+        if pygame.sprite.spritecollideany(player, enemy_group):
             running = False
 
         SCREEN.fill(BLACK)
@@ -696,6 +727,7 @@ def run_game():
         player_group.draw(SCREEN)
         bullet_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
+
         for ex in explosions_group:
             ex.draw(SCREEN)
 
