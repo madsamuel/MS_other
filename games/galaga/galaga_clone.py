@@ -41,7 +41,7 @@ SPAWN_MAX_TRIES     = 20  # max tries for no-overlap spawn
 POINTS_NORMAL_ENEMY = 10
 POINTS_AGILE_ENEMY  = 20
 
-# Turn time range (seconds)
+# Random turn times
 TURN_TIME_MIN       = 1.0
 TURN_TIME_MAX       = 2.0
 
@@ -304,7 +304,25 @@ def settings_screen():
         pygame.display.flip()
 
 # -------------------
-# ENEMY WITH ONE RANDOM TURN of Random Duration
+# ENEMY ROCKET
+# -------------------
+class EnemyRocket(pygame.sprite.Sprite):
+    """
+    A downward-traveling rocket from an enemy.
+    """
+    def __init__(self, x, y):
+        super().__init__()
+        self.image = bullet_image_rocket  # use rocket.png
+        self.rect = self.image.get_rect(center=(x, y))
+        self.speed = 4  # how fast the rocket falls
+
+    def update(self):
+        self.rect.y += self.speed
+        if self.rect.top > SCREEN_HEIGHT:
+            self.kill()
+
+# -------------------
+# ENEMY W/ RAND TURN + SHOOT
 # -------------------
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -319,16 +337,30 @@ class Enemy(pygame.sprite.Sprite):
         self.turn_y = random.randint(50, SCREEN_HEIGHT // 2)
         self.did_turn = False
 
-        # We'll store how long the turn lasts, in seconds
         self.turn_duration = 0.0
         self.turn_timer = 0.0
 
-    def update(self):
-        dt = clock.get_time() / 1000.0  # ms -> s
+        self.has_fired = False  # track if we fired rocket yet
 
-        # If we haven't turned yet, and we've crossed turn_y
+    def update(self):
+        dt = clock.get_time() / 1000.0
+
+        # Check for turn trigger
         if (not self.did_turn) and (self.rect.y >= self.turn_y):
             self.did_turn = True
+
+            # => Fire rocket now
+            if not self.has_fired:
+                self.has_fired = True
+                rocket = EnemyRocket(self.rect.centerx, self.rect.bottom)
+                # We'll add it to the global enemy_rocket_group,
+                # but we can't do that from inside the sprite. We'll handle that in run_game's update
+                # Instead, store it somewhere. We'll do it via an event or return it. 
+                # We'll handle that in run_game. So we just store "self.new_rocket = rocket"
+                self.new_rocket = rocket
+            else:
+                self.new_rocket = None
+
             # random left/right
             direction = random.choice(["left", "right"])
             if direction == "left":
@@ -339,23 +371,19 @@ class Enemy(pygame.sprite.Sprite):
                 self.vx = 1.5
             self.image = pygame.transform.rotate(self.original_image, angle)
 
-            # random turn duration
             self.turn_duration = random.uniform(TURN_TIME_MIN, TURN_TIME_MAX)
             self.turn_timer = self.turn_duration
 
-        # If we are in the middle of turning
         if self.did_turn and self.turn_timer > 0:
             self.turn_timer -= dt
             if self.turn_timer <= 0:
-                # turn done => go straight again
                 self.vx = 0
-                self.image = self.original_image  # revert orientation
-                # (once done, we won't turn again)
+                self.image = self.original_image
 
         self.rect.x += self.vx
         self.rect.y += self.vy
-        if (self.rect.top > SCREEN_HEIGHT or 
-            self.rect.right < 0 or 
+        if (self.rect.top > SCREEN_HEIGHT or
+            self.rect.right < 0 or
             self.rect.left > SCREEN_WIDTH):
             self.kill()
 
@@ -375,15 +403,24 @@ class AgileEnemy(pygame.sprite.Sprite):
         self.turn_duration = 0.0
         self.turn_timer = 0.0
 
+        self.has_fired = False
+
     def update(self):
         dt = clock.get_time() / 1000.0
 
         if (not self.did_turn) and (self.rect.y >= self.turn_y):
             self.did_turn = True
+
+            if not self.has_fired:
+                self.has_fired = True
+                self.new_rocket = EnemyRocket(self.rect.centerx, self.rect.bottom)
+            else:
+                self.new_rocket = None
+
             direction = random.choice(["left", "right"])
             if direction == "left":
                 angle = 30
-                self.vx = -2.0  # agile is a bit faster horizontally
+                self.vx = -2.0
             else:
                 angle = -30
                 self.vx = 2.0
@@ -392,18 +429,16 @@ class AgileEnemy(pygame.sprite.Sprite):
             self.turn_duration = random.uniform(TURN_TIME_MIN, TURN_TIME_MAX)
             self.turn_timer = self.turn_duration
 
-        # If turning
         if self.did_turn and self.turn_timer > 0:
             self.turn_timer -= dt
             if self.turn_timer <= 0:
-                # done turning => revert
                 self.vx = 0
                 self.image = self.original_image
 
         self.rect.x += self.vx
         self.rect.y += self.vy
-        if (self.rect.top > SCREEN_HEIGHT or 
-            self.rect.right < 0 or 
+        if (self.rect.top > SCREEN_HEIGHT or
+            self.rect.right < 0 or
             self.rect.left > SCREEN_WIDTH):
             self.kill()
 
@@ -444,13 +479,6 @@ class Bullet(pygame.sprite.Sprite):
         if self.rect.bottom < 0:
             self.kill()
 
-EXPLOSION_COLORS = [
-    (255, 225, 100),  
-    (255, 180, 50),
-    (255, 120, 40),
-    (255, 50, 20),
-]
-
 class Particle:
     def __init__(self, x, y, speed_scale=1.0, size_scale=1.0):
         angle = random.uniform(0, 2*math.pi)
@@ -461,7 +489,7 @@ class Particle:
         base_size = random.randint(4, 8)
         self.size = int(base_size * size_scale)
 
-        self.color = random.choice(EXPLOSION_COLORS)
+        self.color = (255,180,50)
         self.lifetime = random.uniform(1.0, 1.5)
         self.age = 0.0
 
@@ -476,15 +504,9 @@ class Particle:
     def draw(self, surface):
         alpha_factor = 1.0 - (self.age / self.lifetime)
         alpha = max(0, int(255 * alpha_factor))
-
-        particle_surface = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
-        pygame.draw.circle(
-            particle_surface,
-            (*self.color, alpha),
-            (self.size // 2, self.size // 2),
-            self.size // 2
-        )
-        surface.blit(particle_surface, (self.x - self.size/2, self.y - self.size/2))
+        s = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
+        pygame.draw.circle(s, (*self.color, alpha), (self.size//2, self.size//2), self.size//2)
+        surface.blit(s, (self.x - self.size/2, self.y - self.size/2))
 
     def is_dead(self):
         return self.age >= self.lifetime
@@ -630,7 +652,6 @@ def game_over_screen(score):
                         return False
 
 def no_overlap_spawn(enemy_group, spawn_func):
-    SPAWN_MAX_TRIES = 20
     for _ in range(SPAWN_MAX_TRIES):
         e = spawn_func()
         overlap_found = False
@@ -647,6 +668,8 @@ def run_game():
     player_group = pygame.sprite.Group(player)
     bullet_group = pygame.sprite.Group()
     enemy_group  = pygame.sprite.Group()
+    # NEW: group for enemy rockets
+    enemy_rocket_group = pygame.sprite.Group()
     explosions_group = pygame.sprite.Group()
 
     score = 0
@@ -680,8 +703,18 @@ def run_game():
         player_group.update(keys_pressed)
         bullet_group.update()
         enemy_group.update()
+        enemy_rocket_group.update()  # update the rockets
         explosions_group.update(dt)
 
+        # **Collect any new rockets** from enemies
+        # We'll loop all enemies, see if they just created new_rocket
+        for e in enemy_group:
+            # If 'new_rocket' attribute is set
+            if hasattr(e, 'new_rocket') and (e.new_rocket is not None):
+                enemy_rocket_group.add(e.new_rocket)
+                e.new_rocket = None
+
+        # spawn enemies
         enemy_spawn_counter += 1
         if enemy_spawn_counter >= ENEMY_DROP_INTERVAL:
             enemy_spawn_counter = 0
@@ -699,6 +732,7 @@ def run_game():
             if e is not None:
                 enemy_group.add(e)
 
+        # bullet-enemy collisions
         hits = pygame.sprite.groupcollide(bullet_group, enemy_group, True, True)
         if hits:
             for bullet, enemies in hits.items():
@@ -718,7 +752,13 @@ def run_game():
                         next_threshold = current_level * POINTS_PER_LEVEL
                         show_level_clear_message(current_level - 1)
 
+        # Player-Enemy collisions
         if pygame.sprite.spritecollideany(player, enemy_group):
+            running = False
+
+        # Player-EnemyRocket collisions
+        if pygame.sprite.spritecollideany(player, enemy_rocket_group):
+            # if rocket hits the player => game over
             running = False
 
         SCREEN.fill(BLACK)
@@ -727,7 +767,7 @@ def run_game():
         player_group.draw(SCREEN)
         bullet_group.draw(SCREEN)
         enemy_group.draw(SCREEN)
-
+        enemy_rocket_group.draw(SCREEN)
         for ex in explosions_group:
             ex.draw(SCREEN)
 
