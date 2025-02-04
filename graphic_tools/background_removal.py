@@ -4,8 +4,23 @@ from tkinter import filedialog
 from rembg import remove
 from PIL import Image, ImageTk
 from tkinter import ttk
+import onnxruntime as ort
 
 def remove_background():
+    from tkinter import ttk
+    
+    # Check available execution providers
+    available_providers = ort.get_available_providers()
+    if 'CUDAExecutionProvider' in available_providers:
+        os.environ["ORT_DISABLE_TENSORRT"] = "1"
+        os.environ["ORT_DISABLE_CPU"] = "0"
+        os.environ["ORT_DISABLE_CUDA"] = "0"
+        status_label.config(text="Using CUDA + CPU")
+    else:
+        os.environ["ORT_DISABLE_TENSORRT"] = "1"
+        os.environ["ORT_DISABLE_CPU"] = "0"
+        os.environ["ORT_DISABLE_CUDA"] = "1"
+        status_label.config(text="Using CPU Only")
     from tkinter import ttk
     
     file_path = filedialog.askopenfilename(initialdir=os.getcwd(), filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp;*.webp")])
