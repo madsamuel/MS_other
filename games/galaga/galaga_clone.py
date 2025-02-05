@@ -33,7 +33,7 @@ BULLET_SPEED        = 7
 ENEMY_BASE_SPEED    = 2
 ENEMY_DROP_INTERVAL = 30
 difficulty_factor   = 1.0
-POINTS_PER_LEVEL    = 1000
+POINTS_PER_LEVEL    = 500
 
 SPAWN_MAX_TRIES     = 20  # max tries for no-overlap spawn
 
