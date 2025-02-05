@@ -96,4 +96,22 @@ def remove_background() -> None:
 btn_select = tk.Button(frame, text="Select Image", command=remove_background)
 btn_select.pack()
 
+# Get the current directory where the script is running
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Define the icon paths using the script directory
+icon_path_ico = os.path.join(script_dir, "background_removal_icon.ico")
+icon_path_png = os.path.join(script_dir, "background_removal_icon.png")
+
+
+icon_path = "background_removal_icon.ico"  
+try:
+    root.iconbitmap(icon_path_ico)  # For Windows (.ico)
+except tk.TclError:
+    # For cross-platform support using .png
+    from PIL import Image, ImageTk
+    icon_image = ImageTk.PhotoImage(Image.open(icon_path_png))
+    root.wm_iconphoto(True, icon_image)
+
+
 root.mainloop()
