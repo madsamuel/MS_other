@@ -8,9 +8,11 @@ def run_speed_test():
     st.get_servers()
     
     # Select the best server based on latency
+    print(f"Finding the best server...")
     best = st.get_best_server()
     print(f"Connected to {best['host']} located in {best['name']}, {best['country']}")
 
+    print(f"Getting stats...")
     # Measure download speed
     download_speed = st.download()
     # Measure upload speed
