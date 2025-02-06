@@ -61,7 +61,7 @@ class BandwidthMonitorApp(QWidget):
 
     def init_ui(self):
         self.setWindowTitle("Speed Test Tool")
-        self.setWindowIcon(QIcon("speed_test_icon.png"))
+        self.setWindowIcon(QIcon("bandwidth_tool_icon.png"))
         self.setFixedSize(600, 400)
         layout = QVBoxLayout()
 
@@ -107,8 +107,8 @@ class BandwidthMonitorApp(QWidget):
             self.csv_output_input.setText(file_path)
 
     def start_monitoring(self):
-        interval = float(self.interval_input.text()) * 1000
-        self.timer.start(interval)
+        interval_in_ms = int(float(self.interval_input.text()) * 1000)
+        self.timer.start(interval_in_ms)
 
     def update_ui(self):
         upload_speed, download_speed = get_bandwidth_usage(float(self.interval_input.text()), self.interface_dropdown.currentText())
