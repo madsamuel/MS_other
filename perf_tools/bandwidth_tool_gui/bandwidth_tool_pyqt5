@@ -80,7 +80,7 @@ class BandwidthMonitorApp(QWidget):
         layout.addWidget(self.interface_dropdown)
 
         self.threshold_input = QLineEdit()
-        layout.addWidget(QLabel("Threshold (MB):"))
+        layout.addWidget(QLabel("Threshold alert (MB):"))
         layout.addWidget(self.threshold_input)
 
         self.csv_output_input = QLineEdit(f"speed-test-{datetime.now().strftime('%d-%m-%y')}.csv")
