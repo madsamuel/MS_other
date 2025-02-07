@@ -1,28 +1,37 @@
+import time
 import pydivert
 
+MAX_BYTES_PER_SECOND = 10 * 1024  # 100 KB/s
+filter_str = "inbound and tcp and (tcp.SrcPort == 80 or tcp.SrcPort == 443)"
+
 def main():
-    """
-    This script blocks (drops) all inbound packets from remote TCP ports 80 or 443.
-    That effectively disables most HTTP/HTTPS downloads.
-    """
-
-    # WinDivert filter for inbound traffic where the *source* port is 80 or 443.
-    # i.e., traffic coming FROM the web server (port 80/443) TO your PC.
-    filter_str = "inbound and tcp and (tcp.SrcPort == 80 or tcp.SrcPort == 443)"
-
-    print(f"Starting WinDivert with filter: {filter_str}")
-    print("All inbound HTTP/HTTPS traffic will be dropped. Press Ctrl+C to stop.")
-
     with pydivert.WinDivert(filter_str) as w:
-        # The 'with' statement automatically opens the WinDivert handle.
+        bytes_this_second = 0
+        second_start = time.time()
+
         while True:
-            packet = w.recv()  
-            # We do NOT re-inject (w.send(packet)). This means the packet is dropped.
-            # If you wanted to allow some packets, you'd add logic here and call w.send() conditionally.
-            # Just dropping them all -> effectively blocking downloads.
-            
-            # Optionally, for debugging:
-            # print(f"Dropped packet from {packet.src_addr}:{packet.src_port}")
+            packet = w.recv()
+            packet_len = len(packet.raw)
+
+            now = time.time()
+            elapsed = now - second_start
+
+            # If a second has passed, reset the bucket
+            if elapsed >= 1.0:
+                bytes_this_second = 0
+                second_start = now
+
+            # If adding this packet would exceed the cap, wait
+            if bytes_this_second + packet_len > MAX_BYTES_PER_SECOND:
+                sleep_time = 1.0 - elapsed
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                # Reset for the new second
+                second_start = time.time()
+                bytes_this_second = 0
+
+            w.send(packet)
+            bytes_this_second += packet_len
 
 if __name__ == "__main__":
     main()
