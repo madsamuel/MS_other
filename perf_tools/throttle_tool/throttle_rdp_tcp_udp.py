@@ -4,7 +4,7 @@ import pydivert
 #---------------------------------------
 # Configure the throttling parameters
 #---------------------------------------
-MAX_BYTES_PER_SECOND = 500 * 1024  # 500 KB/s total throughput
+MAX_BYTES_PER_SECOND = 50 * 1024  # 500 KB/s total throughput
 PRIORITY = 10  # WinDivert priority
 
 # Filter to capture both TCP and UDP traffic on port 3389 (RDP)
