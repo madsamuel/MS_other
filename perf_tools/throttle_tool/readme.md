@@ -9,3 +9,6 @@ throttle_rdp_tcp_udp.py
     To test establish and RDP connection to a VM
     Open a browser and go to https://www.youtube.com/watch?v=ubFq-wV3Eic&ab_channel=ultrarelaxation
     Start the app
+
+To confirm RDP
+    netstat -ano | findstr 3389
