@@ -1,41 +1,59 @@
 import random
 import pydivert
+import argparse
+import signal
+import sys
 
-#---------------------------------------
-# Adjust drop percentage here (0-100)
-#---------------------------------------
-DROP_PERCENTAGE = 2  # e.g., 50 means ~50% of packets are dropped
+# Constants
+DEFAULT_DROP_PERCENTAGE = 2
+DEFAULT_PORT = 3389
 
-# Filter to capture both TCP and UDP traffic on port 3389 (RDP).
-FILTER = (
-    "ip and (tcp or udp) and ("
-    "  (tcp.SrcPort == 3389 or tcp.DstPort == 3389) or "
-    "  (udp.SrcPort == 3389 or udp.DstPort == 3389)"
-    ")"
-)
+def create_filter(port):
+    return (
+        f"ip and (tcp or udp) and ("
+        f"  (tcp.SrcPort == {port} or tcp.DstPort == {port}) or "
+        f"  (udp.SrcPort == {port} or udp.DstPort == {port})"
+        f")"
+    )
+
+def signal_handler(sig, frame):
+    print("\nStopping packet interception. Exiting...")
+    sys.exit(0)
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Randomly drop RDP packets.")
+    parser.add_argument("-p", "--port", type=int, default=DEFAULT_PORT,
+                        help=f"Port to intercept (default: {DEFAULT_PORT})")
+    parser.add_argument("-d", "--drop", type=float, default=DEFAULT_DROP_PERCENTAGE,
+                        help=f"Drop percentage (0-100, default: {DEFAULT_DROP_PERCENTAGE})")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Enable verbose output")
+    return parser.parse_args()
 
 def main():
-    """
-    Randomly drops a percentage of all RDP packets on port 3389, covering both TCP and UDP.
-    """
+    args = parse_arguments()
+    filter_string = create_filter(args.port)
 
-    print(f"Starting WinDivert with filter: {FILTER}")
-    print(f"Randomly dropping ~{DROP_PERCENTAGE}% of RDP packets on port 3389.")
+    print(f"Starting WinDivert with filter: {filter_string}")
+    print(f"Randomly dropping ~{args.drop}% of packets on port {args.port}.")
     print("Press Ctrl+C to stop.\n")
 
-    with pydivert.WinDivert(FILTER, priority=10) as w:
-        while True:
-            packet = w.recv()
-            # Generate a random float in [0.0, 1.0). If it's < (DROP_PERCENTAGE / 100), we drop.
-            if random.random() < (DROP_PERCENTAGE / 100.0):
-                # Drop the packet (do not re-inject).
-                # If you want debug output, uncomment below:
-                # print(f"Dropped packet: {packet.src_addr}:{packet.src_port} -> "
-                #       f"{packet.dst_addr}:{packet.dst_port} (len={len(packet.raw)})")
-                pass
-            else:
-                # Otherwise, allow the packet by re-injecting it.
-                w.send(packet)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        with pydivert.WinDivert(filter_string, priority=10) as w:
+            while True:
+                packet = w.recv()
+                if random.random() < (args.drop / 100.0):
+                    if args.verbose:
+                        print(f"Dropped packet: {packet.src_addr}:{packet.src_port} -> "
+                              f"{packet.dst_addr}:{packet.dst_port} (len={len(packet.raw)})")
+                else:
+                    w.send(packet)
+    except pydivert.WinDivertException as e:
+        print(f"Error: {e}")
+        print("Make sure you're running this script with administrator privileges.")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
