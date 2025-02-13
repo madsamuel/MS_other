@@ -20,10 +20,10 @@ FPS = 60
 clock = pygame.time.Clock()
 
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED   = (255, 0, 0)
+BLACK = (  0,   0,   0)
+RED   = (255,   0,   0)
 GRAY  = (100, 100, 100)
-GREEN = (0, 255, 0)
+GREEN = (  0, 255,   0)
 
 # -------------------
 # GAME SETTINGS
@@ -111,7 +111,6 @@ def load_mini_player_image():
     path = os.path.join(BASE_PATH, "player_ship.png")
     original = pygame.image.load(path).convert_alpha()
     w, h = original.get_size()
-    # Scale down to one-eighth the size
     mini_image = pygame.transform.scale(original, (w//8, h//8))
     return mini_image
 
@@ -252,13 +251,13 @@ def settings_screen():
         SCREEN.blit(txt_720, txt_720.get_rect(center=btn_720.center))
         pygame.draw.rect(SCREEN, WHITE, (slider_x, slider_y - slider_height//2, slider_width, slider_height))
         pygame.draw.circle(SCREEN, GREEN, knob_rect.center, knob_size//2)
-        for i, label in enumerate(difficulty_labels):
+        for i, label in enumerate(["Easy", "Medium", "Hard"]):
             label_surf = font_button.render(label, True, WHITE)
             label_rect = label_surf.get_rect(midtop=(stop_positions[i], slider_y + 10))
             SCREEN.blit(label_surf, label_rect)
         pygame.draw.rect(SCREEN, WHITE, (bullet_slider_x, bullet_slider_y - bullet_slider_height//2, bullet_slider_width, bullet_slider_height))
         pygame.draw.circle(SCREEN, GREEN, bullet_knob_rect.center, knob_size//2)
-        for i, label in enumerate(bullet_labels):
+        for i, label in enumerate(["Default", "Banana", "Rocket"]):
             label_surf = font_button.render(label, True, WHITE)
             label_rect = label_surf.get_rect(midtop=(bullet_stop_positions[i], bullet_slider_y + 10))
             SCREEN.blit(label_surf, label_rect)
@@ -394,7 +393,9 @@ class Player(pygame.sprite.Sprite):
             self.rect.x += PLAYER_SPEED
         if keys_pressed[pygame.K_UP] and self.rect.top > 0:
             self.rect.y -= PLAYER_SPEED
-        if keys_pressed[pygame.K_DOWN] and self.rect.bottom < SCREEN.get_height():
+        # Prevent moving down into the life icons area:
+        life_padding = 10 + mini_player_image.get_height()  # virtual padding (margin + icon height)
+        if keys_pressed[pygame.K_DOWN] and self.rect.bottom < SCREEN.get_height() - life_padding:
             self.rect.y += PLAYER_SPEED
 
 class Bullet(pygame.sprite.Sprite):
@@ -690,7 +691,7 @@ def run_game():
         SCREEN.blit(score_text, (10, 10))
         level_text = font.render(f"Level: {current_level}", True, WHITE)
         SCREEN.blit(level_text, (SCREEN_WIDTH - 120, 10))
-        # Draw lives as mini player ship icons in bottom right
+        # Draw lives as mini player icons in bottom-right with a virtual padding
         icon_margin = 10
         icon_spacing = mini_player_image.get_width() + 5
         for i in range(lives):
