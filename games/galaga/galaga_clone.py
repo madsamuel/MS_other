@@ -105,6 +105,19 @@ def reinit_stars():
         stars.append(Star())
 
 # -------------------
+# LIFE ICON (MINI PLAYER SHIP)
+# -------------------
+def load_mini_player_image():
+    path = os.path.join(BASE_PATH, "player_ship.png")
+    original = pygame.image.load(path).convert_alpha()
+    w, h = original.get_size()
+    # Scale down to one-eighth the size
+    mini_image = pygame.transform.scale(original, (w//8, h//8))
+    return mini_image
+
+mini_player_image = load_mini_player_image()
+
+# -------------------
 # SPLASH SCREEN
 # -------------------
 def splash_screen():
@@ -272,7 +285,7 @@ class EnemyRocket(pygame.sprite.Sprite):
             self.kill()
 
 # -------------------
-# ENEMY WITH RAND TURN + SHOOT (and fires rocket before turning)
+# ENEMY WITH RAND TURN + SHOOT (fires a rocket before turning)
 # -------------------
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -462,7 +475,6 @@ def show_level_clear_message(level):
         pygame.display.flip()
 
 def show_ship_lost_message():
-    """Displays 'Ship Lost' message for 3 seconds."""
     font_big = pygame.font.SysFont(None, 50)
     msg = "Ship Lost"
     text_surf = font_big.render(msg, True, RED)
@@ -573,7 +585,7 @@ def run_game():
     explosions_group = pygame.sprite.Group()
 
     score = 0
-    lives = 3  # player starts with 3 lives
+    lives = 3
     font = pygame.font.SysFont(None, 36)
 
     current_level = 1
@@ -641,13 +653,14 @@ def run_game():
                     h = dead_enemy.rect.height
                     ex = Explosion(dead_enemy.rect.centerx, dead_enemy.rect.centery, (w+h)//2)
                     explosions_group.add(ex)
+
         # Level up handling (multiple thresholds)
         while score >= next_threshold:
             show_level_clear_message(current_level)
             current_level += 1
             next_threshold = current_level * POINTS_PER_LEVEL
 
-        # Check for collisions with enemy ships or rockets
+        # Check for collisions with enemies or rockets
         player_hit = False
         if pygame.sprite.spritecollideany(player, enemy_group):
             player_hit = True
@@ -658,7 +671,6 @@ def run_game():
             if lives <= 0:
                 running = False
             else:
-                # Show "Ship Lost" message, clear enemies, wait 3 sec, and reset player
                 show_ship_lost_message()
                 enemy_group.empty()
                 enemy_rocket_group.empty()
@@ -678,68 +690,17 @@ def run_game():
         SCREEN.blit(score_text, (10, 10))
         level_text = font.render(f"Level: {current_level}", True, WHITE)
         SCREEN.blit(level_text, (SCREEN_WIDTH - 120, 10))
-        lives_text = font.render(f"Lives: {lives}", True, WHITE)
-        SCREEN.blit(lives_text, (10, 40))
+        # Draw lives as mini player ship icons in bottom right
+        icon_margin = 10
+        icon_spacing = mini_player_image.get_width() + 5
+        for i in range(lives):
+            x = SCREEN_WIDTH - icon_margin - (i+1) * icon_spacing + 5
+            y = SCREEN_HEIGHT - icon_margin - mini_player_image.get_height()
+            SCREEN.blit(mini_player_image, (x, y))
 
         pygame.display.flip()
 
     return score
-
-def show_ship_lost_message():
-    """Displays 'Ship Lost' for 3 seconds."""
-    font_big = pygame.font.SysFont(None, 50)
-    msg = "Ship Lost"
-    text_surf = font_big.render(msg, True, RED)
-    text_rect = text_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
-    start_time = pygame.time.get_ticks()
-    while True:
-        dt = clock.tick(FPS)
-        elapsed = pygame.time.get_ticks() - start_time
-        if elapsed >= 3000:
-            break
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-        SCREEN.fill(BLACK)
-        draw_stars()
-        SCREEN.blit(text_surf, text_rect)
-        pygame.display.flip()
-
-def game_over_screen(score):
-    font_large = pygame.font.SysFont(None, 64)
-    font_small = pygame.font.SysFont(None, 32)
-    game_over_text = font_large.render("GAME OVER", True, RED)
-    go_rect = game_over_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 50))
-    score_text = font_small.render(f"Score: {score}", True, WHITE)
-    score_rect = score_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 10))
-    restart_btn = pygame.Rect(0, 0, 120, 40)
-    restart_btn.center = (SCREEN_WIDTH//2 - 70, SCREEN_HEIGHT//2 + 120)
-    quit_btn = pygame.Rect(0, 0, 120, 40)
-    quit_btn.center = (SCREEN_WIDTH//2 + 70, SCREEN_HEIGHT//2 + 120)
-    while True:
-        SCREEN.fill(BLACK)
-        draw_stars()
-        SCREEN.blit(game_over_text, go_rect)
-        SCREEN.blit(score_text, score_rect)
-        pygame.draw.rect(SCREEN, GRAY, restart_btn)
-        pygame.draw.rect(SCREEN, GRAY, quit_btn)
-        restart_text = font_small.render("Restart", True, BLACK)
-        quit_text = font_small.render("Quit", True, BLACK)
-        SCREEN.blit(restart_text, restart_text.get_rect(center=restart_btn.center))
-        SCREEN.blit(quit_text, quit_text.get_rect(center=quit_btn.center))
-        pygame.display.flip()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    mouse_pos = event.pos
-                    if restart_btn.collidepoint(mouse_pos):
-                        return True
-                    if quit_btn.collidepoint(mouse_pos):
-                        return False
 
 def main():
     while True:
