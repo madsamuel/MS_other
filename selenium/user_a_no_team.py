@@ -92,3 +92,5 @@ except Exception as e:
 finally:
     driver.quit()
     logging.info("Closed the browser and ended the Selenium session.")
+
+# to do add random mouse movement
