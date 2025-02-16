@@ -1,3 +1,9 @@
+"""A Selenium simulation script that either scrolls a page or simulates keyboard presses
+on Amazon, based on the given command-line mode. Includes basic logging and argument parsing.
+
+# To do: add random mouse movement
+"""
+
 import time
 import logging
 import datetime
