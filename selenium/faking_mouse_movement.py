@@ -6,51 +6,49 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 def main():
-    # 1. Launch Chrome and position/size the window so we can calculate coordinates predictably
+    # 1. Launch Chrome and maximize
     driver = webdriver.Chrome()
-    # driver.set_window_rect(0, 0, 1280, 800)  # x=0, y=0, width=1280, height=800
     driver.maximize_window()
 
+    # 2. Go to YouTube
+    driver.get("https://www.youtube.com/")
 
-    # 2. Navigate to a page with a real element to click.
-    #    'saucedemo.com' is a public test site with an element ID 'user-name'.
-    driver.get("https://www.saucedemo.com/")
-
-    # 3. Wait for the element to be present & clickable
+    # 3. Wait for the search bar to be present & clickable
     wait = WebDriverWait(driver, 10)
-    element = wait.until(EC.element_to_be_clickable((By.ID, "user-name")))
+    # The main YouTube search box has CSS id="search" for the <input>
+    search_bar = driver.find_element(By.ID, "search")
 
-    # 4. Scroll the element into view (just to be sure it's visible)
-    driver.execute_script("arguments[0].scrollIntoView(true);", element)
+    # 4. (Optional) Scroll the element into view, just to ensure it's on-screen
+    driver.execute_script("arguments[0].scrollIntoView(true);", search_bar)
 
-    # 5. Get the element's location and size in the *page* coordinate system
-    element_location = element.location
-    element_size = element.size
+    # 5. Get element's location & size in page coordinates
+    element_location = search_bar.location
+    element_size = search_bar.size
 
-    # Calculate the center of the element (within the page)
-    element_center_x = element_location['x'] + (element_size['width'] / 2)
-    element_center_y = element_location['y'] + (element_size['height'] / 2)
+    # Calculate the center point
+    element_center_x = element_location['x'] + element_size['width'] / 2
+    element_center_y = element_location['y'] + element_size['height'] / 2
 
-    # 6. Because Selenium's (0,0) is at the top-left *inside* the browser content,
-    #    we must account for the browser's title bar & possible navigation bar.
-    #    Adjust this based on your actual OS/browser theme.
-    title_bar_height = 80  # Example offset; tweak to match your environment
+    # 6. Account for title/navigation bar offsets 
+    #    (adjust these values if your click lands incorrectly).
+    title_bar_height = 80  # approximate offset for Windows with Chrome
     x_offset = 0
     y_offset = title_bar_height
 
-    # Final absolute screen coordinates
     final_x = element_center_x + x_offset
     final_y = element_center_y + y_offset
 
-    # 7. Move the real OS mouse pointer via PyAutoGUI (1 second travel)
+    # 7. Move the OS mouse pointer to the search bar, then click
     print(f"Moving mouse to screen coords: ({final_x}, {final_y})")
     pyautogui.moveTo(final_x, final_y, duration=1.0)
-
-    # 8. Perform a real OS-level click
     pyautogui.click()
 
-    # Pause to see the result
-    time.sleep(3)
+    # 8. Type the search text and press ENTER
+    pyautogui.typewrite("banana video", interval=0.05)
+    pyautogui.press("enter")
+
+    # Pause so we can watch the result
+    time.sleep(5)
     driver.quit()
 
 if __name__ == "__main__":
