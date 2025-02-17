@@ -8,7 +8,9 @@ from selenium.webdriver.support import expected_conditions as EC
 def main():
     # 1. Launch Chrome and position/size the window so we can calculate coordinates predictably
     driver = webdriver.Chrome()
-    driver.set_window_rect(0, 0, 1280, 800)  # x=0, y=0, width=1280, height=800
+    # driver.set_window_rect(0, 0, 1280, 800)  # x=0, y=0, width=1280, height=800
+    driver.maximize_window()
+
 
     # 2. Navigate to a page with a real element to click.
     #    'saucedemo.com' is a public test site with an element ID 'user-name'.
