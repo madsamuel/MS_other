@@ -6,6 +6,10 @@ from pystray import Icon, MenuItem, Menu
 from PIL import Image
 import os
 
+# Get the directory where the script is located
+script_dir = os.path.dirname(os.path.abspath(__file__))
+icon_path = os.path.join(script_dir, "icon.ico")
+
 # Global variable to track encoder utilization
 encoder_utilization = 0
 running = True
@@ -14,7 +18,7 @@ last_logged_encoder_utilization = None  # To track the last logged value
 
 # Generate log file name with current date
 date_str = time.strftime("%Y-%m-%d")
-log_file = f"encoder_log_{date_str}.txt"  # Log file name
+log_file = os.path.join(script_dir, f"encoder_log_{date_str}.txt")  # Log file in the script directory
 
 # Function to safely initialize NVML
 def initialize_nvml():
@@ -113,8 +117,12 @@ def exit_app(icon=None, item=None):
 
 # Function to create the tray icon
 def create_icon():
-    # Use an external .ico file for the tray icon
-    icon_image = Image.open("icon.ico")
+    if not os.path.exists(icon_path):
+        print(f"Error: Icon file not found at {icon_path}")
+        exit(1)
+
+    # Load the icon from the script's directory
+    icon_image = Image.open(icon_path)
 
     # Create a right-click menu for the tray icon
     menu = Menu(
