@@ -112,6 +112,6 @@ if __name__ == '__main__':
     setup_board()
 
     # Hide the mouse until someone wins
-    mouse.visible = False
+    mouse.visible = True
 
     app.run()
