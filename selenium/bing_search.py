@@ -35,7 +35,21 @@ search_box.send_keys(search_word)
 search_box.send_keys(Keys.RETURN)
 
 # Wait for results to load
-time.sleep(10)
+time.sleep(3)
+
+# Scroll up and down while waiting for time to expire
+scroll_pause_time = 1  # Delay in seconds between scrolls
+scroll_duration = 10  # Total duration to scroll in seconds
+
+start_time = time.time()
+while time.time() - start_time < scroll_duration:
+    # Scroll down
+    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    time.sleep(scroll_pause_time)
+
+    # Scroll up
+    driver.execute_script("window.scrollTo(0, 0);")
+    time.sleep(scroll_pause_time)
 
 # Close the browser
 driver.quit()
