@@ -11,6 +11,11 @@ app = Application().start(powerpoint_path)
 # Wait for PowerPoint to open
 time.sleep(5)
 
+# Get the PowerPoint window and maximize it
+app_window = app.window(title_re=".*PowerPoint.*")  # Matches any PowerPoint window
+app_window.maximize()
+time.sleep(2)  # Allow some time for maximization
+
 # Create a new presentation
 pyautogui.hotkey('alt', 'f')  # Open the File menu
 time.sleep(1)
