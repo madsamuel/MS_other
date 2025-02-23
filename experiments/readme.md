@@ -8,7 +8,9 @@ Random experiments and tests. Safe to ignore :).
 	Set-ExecutionPolicy -ExecutionPolicy AllSigned -Scope Process
 4. Run the activate script
 	.\myenv\Scripts\activate
+    When prompted press R for Run once 
 5. Install PyInstaller
 	pip install pyinstaller
+    (optional) install all modules your code uses
 6. Create the Executable with PyInstaller
 	pyinstaller --onefile --icon=icon.ico main.py
