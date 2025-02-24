@@ -16,14 +16,6 @@ app_window = app.window(title_re=".*PowerPoint.*")  # Matches any PowerPoint win
 app_window.maximize()
 time.sleep(2)  # Allow some time for maximization
 
-# Create a new presentation
-pyautogui.hotkey('alt', 'f')  # Open the File menu
-time.sleep(1)
-pyautogui.press('n')  # Select New
-time.sleep(1)
-pyautogui.press('enter')  # Confirm to create a new presentation
-time.sleep(2)
-
 # Add slides
 for _ in range(3):  # Add 3 more slides to make a total of 4 slides
     pyautogui.hotkey('ctrl', 'm')  # Shortcut to add a new slide
