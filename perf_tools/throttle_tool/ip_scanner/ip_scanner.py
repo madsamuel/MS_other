@@ -28,15 +28,11 @@ def get_network_interfaces():
     return interfaces_info
 
 
-def parse_ip_range(ip_range_str):
-    """Convert an IP range string (e.g. '192.168.1.1 - 192.168.1.254') into a list of IPs."""
-    ip_range_str = ip_range_str.replace(" ", "")
-    if '-' not in ip_range_str:
-        return []
-
-    start_str, end_str = ip_range_str.split('-')
-    start_parts = start_str.split('.')
-    end_parts = end_str.split('.')
+def parse_ip_range(start_ip, end_ip):
+    """Convert a start and end IP into a list of IPs."""
+    start_parts = start_ip.split('.')
+    end_parts = end_ip.split('.')
+    
     if len(start_parts) != 4 or len(end_parts) != 4:
         return []
 
@@ -101,7 +97,7 @@ class ScanThread(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Network Scanner (Sortable Table)")
+        self.setWindowTitle("Network Scanner")
         self.setGeometry(200, 200, 600, 400)
 
         self.interfaces_info = get_network_interfaces()
@@ -120,13 +116,20 @@ class MainWindow(QMainWindow):
         adapter_layout.addWidget(self.adapter_combo)
         self.layout.addLayout(adapter_layout)
 
-        # IP Range Input
+        # IP Range Input (Two Fields)
         range_layout = QHBoxLayout()
-        range_label = QLabel("IP Range (e.g. 192.168.1.1 - 192.168.1.254):")
-        self.range_edit = QLineEdit()
-        self.range_edit.setPlaceholderText("192.168.1.1 - 192.168.1.254")
-        range_layout.addWidget(range_label)
-        range_layout.addWidget(self.range_edit)
+        range_label_start = QLabel("Start IP:")
+        self.range_edit_start = QLineEdit()
+        self.range_edit_start.setPlaceholderText("192.168.1.1")
+
+        range_label_end = QLabel("End IP:")
+        self.range_edit_end = QLineEdit()
+        self.range_edit_end.setPlaceholderText("192.168.1.254")
+
+        range_layout.addWidget(range_label_start)
+        range_layout.addWidget(self.range_edit_start)
+        range_layout.addWidget(range_label_end)
+        range_layout.addWidget(self.range_edit_end)
         self.layout.addLayout(range_layout)
 
         # Scan Button
@@ -151,14 +154,16 @@ class MainWindow(QMainWindow):
 
     def start_scan(self):
         """Start scanning the specified IP range in a background thread."""
-        ip_range_str = self.range_edit.text().strip()
-        if not ip_range_str:
-            QMessageBox.warning(self, "Error", "Please enter a valid IP range.")
+        start_ip = self.range_edit_start.text().strip()
+        end_ip = self.range_edit_end.text().strip()
+
+        if not start_ip or not end_ip:
+            QMessageBox.warning(self, "Error", "Please enter a valid start and end IP.")
             return
 
-        ip_list = parse_ip_range(ip_range_str)
+        ip_list = parse_ip_range(start_ip, end_ip)
         if not ip_list:
-            QMessageBox.warning(self, "Error", f"Could not parse IP range: {ip_range_str}")
+            QMessageBox.warning(self, "Error", "Invalid IP range.")
             return
 
         # Clear previous scan results
