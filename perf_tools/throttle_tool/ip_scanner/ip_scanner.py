@@ -1,11 +1,13 @@
 import sys
-import os
 import platform
 import netifaces
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
+import subprocess
+import ipaddress
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QMutex
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QTableWidget, QTableWidgetItem, QComboBox, QLineEdit, QMessageBox
+    QPushButton, QTableWidget, QTableWidgetItem, QComboBox, QLineEdit, QMessageBox,
+    QProgressBar
 )
 
 
@@ -30,40 +32,30 @@ def get_network_interfaces():
 
 def parse_ip_range(start_ip, end_ip):
     """Convert a start and end IP into a list of IPs."""
-    start_parts = start_ip.split('.')
-    end_parts = end_ip.split('.')
-    
-    if len(start_parts) != 4 or len(end_parts) != 4:
+    try:
+        start_ip = ipaddress.IPv4Address(start_ip)
+        end_ip = ipaddress.IPv4Address(end_ip)
+
+        if start_ip > end_ip:
+            start_ip, end_ip = end_ip, start_ip  # Swap if reversed
+
+        return [str(ip) for ip in ipaddress.summarize_address_range(start_ip, end_ip)]
+    except ipaddress.AddressValueError:
         return []
-
-    start_octets = list(map(int, start_parts))
-    end_octets = list(map(int, end_parts))
-
-    start_int = (
-        (start_octets[0] << 24) + (start_octets[1] << 16) +
-        (start_octets[2] << 8) + start_octets[3]
-    )
-    end_int = (
-        (end_octets[0] << 24) + (end_octets[1] << 16) +
-        (end_octets[2] << 8) + end_octets[3]
-    )
-
-    if end_int < start_int:
-        start_int, end_int = end_int, start_int  # Swap if reversed
-
-    ip_list = []
-    for ip_int in range(start_int, end_int + 1):
-        ip_list.append(f"{(ip_int >> 24) & 255}.{(ip_int >> 16) & 255}.{(ip_int >> 8) & 255}.{ip_int & 255}")
-
-    return ip_list
 
 
 def ping_host(ip):
     """Ping a single IP once. Returns True if the host is reachable, False otherwise."""
     count_flag = "-c" if platform.system().lower() != 'windows' else "-n"
-    cmd = f"ping {count_flag} 1 {ip}"
-    exit_code = os.system(cmd + " > nul 2>&1" if platform.system().lower() == 'windows' else cmd + " > /dev/null 2>&1")
-    return exit_code == 0
+    try:
+        result = subprocess.run(
+            ["ping", count_flag, "1", ip],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        return result.returncode == 0
+    except Exception:
+        return False
 
 
 ###############################################################################
@@ -72,23 +64,36 @@ def ping_host(ip):
 class ScanThread(QThread):
     result_signal = pyqtSignal(str, str)  # Emitting (IP Address, Status)
     finished_signal = pyqtSignal()  # Emitted when the scan is complete
+    progress_signal = pyqtSignal(int)  # Progress update signal
 
     def __init__(self, ip_list, parent=None):
         super().__init__(parent)
         self.ip_list = ip_list
         self._stop_flag = False
+        self._mutex = QMutex()
 
     def run(self):
-        for ip in self.ip_list:
+        total_ips = len(self.ip_list)
+        for index, ip in enumerate(self.ip_list):
+            self._mutex.lock()
             if self._stop_flag:
+                self._mutex.unlock()
                 break
+            self._mutex.unlock()
+
             status = "Alive" if ping_host(ip) else "Unreachable"
             self.result_signal.emit(ip, status)
+
+            progress = int((index + 1) / total_ips * 100)
+            self.progress_signal.emit(progress)
+
         self.finished_signal.emit()
 
     def stop(self):
         """Request to stop scanning."""
+        self._mutex.lock()
         self._stop_flag = True
+        self._mutex.unlock()
 
 
 ###############################################################################
@@ -97,8 +102,8 @@ class ScanThread(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Network Scanner")
-        self.setGeometry(200, 200, 600, 400)
+        self.setWindowTitle("Network Scanner (Enhanced)")
+        self.setGeometry(200, 200, 650, 450)
 
         self.interfaces_info = get_network_interfaces()
         self.central_widget = QWidget()
@@ -144,6 +149,11 @@ class MainWindow(QMainWindow):
         self.result_table.setSortingEnabled(True)  # Enable sorting
         self.layout.addWidget(self.result_table)
 
+        # Progress Bar
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setValue(0)
+        self.layout.addWidget(self.progress_bar)
+
         # Stop Button
         self.stop_button = QPushButton("Stop")
         self.stop_button.clicked.connect(self.stop_scan)
@@ -168,9 +178,11 @@ class MainWindow(QMainWindow):
 
         # Clear previous scan results
         self.result_table.setRowCount(0)
+        self.progress_bar.setValue(0)
 
         self.scan_thread = ScanThread(ip_list)
         self.scan_thread.result_signal.connect(self.handle_result)
+        self.scan_thread.progress_signal.connect(self.progress_bar.setValue)
         self.scan_thread.finished_signal.connect(self.handle_finished)
 
         self.scan_button.setEnabled(False)
@@ -190,6 +202,7 @@ class MainWindow(QMainWindow):
         """Called when the scan thread finishes."""
         self.scan_button.setEnabled(True)
         self.stop_button.setEnabled(False)
+        self.progress_bar.setValue(100)
         self.scan_thread = None
 
     def stop_scan(self):
