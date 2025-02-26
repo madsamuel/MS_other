@@ -31,30 +31,51 @@ def get_network_interfaces():
 
 
 def parse_ip_range(start_ip, end_ip):
-    """Convert a start and end IP into a list of IPs."""
+    """
+    Return a list of individual IP addresses from 'start_ip' to 'end_ip' inclusive.
+    """
     try:
-        start_ip = ipaddress.IPv4Address(start_ip)
-        end_ip = ipaddress.IPv4Address(end_ip)
+        start_int = int(ipaddress.IPv4Address(start_ip))
+        end_int = int(ipaddress.IPv4Address(end_ip))
 
-        if start_ip > end_ip:
-            start_ip, end_ip = end_ip, start_ip  # Swap if reversed
+        # Swap if reversed
+        if start_int > end_int:
+            start_int, end_int = end_int, start_int
 
-        return [str(ip) for ip in ipaddress.summarize_address_range(start_ip, end_ip)]
+        # Generate every address in [start_int, end_int]
+        return [str(ipaddress.IPv4Address(addr)) for addr in range(start_int, end_int + 1)]
     except ipaddress.AddressValueError:
         return []
 
 
 def ping_host(ip):
-    """Ping a single IP once. Returns True if the host is reachable, False otherwise."""
-    count_flag = "-c" if platform.system().lower() != 'windows' else "-n"
+    """
+    Ping a single IP once. Returns True if the host is reachable, False otherwise.
+
+    Uses OS-specific commands:
+    - Windows:  ping -n 1 -w 1000 <ip>  (1 ping, 1-second timeout)
+    - Linux/macOS: ping -c 1 -W 1 <ip>  (1 ping, 1-second timeout)
+    """
+    if platform.system().lower() == 'windows':
+        cmd = ["ping", "-n", "1", "-w", "1000", ip]
+    else:
+        cmd = ["ping", "-c", "1", "-W", "1", ip]
+
     try:
         result = subprocess.run(
-            ["ping", count_flag, "1", ip],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True
         )
+        print(f"Pinging {ip} with command: {' '.join(cmd)}")
+        print(f"Return code: {result.returncode}")
+        print(f"Output: {result.stdout.strip()}")
+        print(f"Error: {result.stderr.strip()}")
+
         return result.returncode == 0
-    except Exception:
+    except Exception as e:
+        print(f"Error pinging {ip}: {e}")
         return False
 
 
@@ -63,8 +84,8 @@ def ping_host(ip):
 ###############################################################################
 class ScanThread(QThread):
     result_signal = pyqtSignal(str, str)  # Emitting (IP Address, Status)
-    finished_signal = pyqtSignal()  # Emitted when the scan is complete
-    progress_signal = pyqtSignal(int)  # Progress update signal
+    finished_signal = pyqtSignal()        # Emitted when the scan is complete
+    progress_signal = pyqtSignal(int)     # Progress update signal
 
     def __init__(self, ip_list, parent=None):
         super().__init__(parent)
@@ -75,15 +96,18 @@ class ScanThread(QThread):
     def run(self):
         total_ips = len(self.ip_list)
         for index, ip in enumerate(self.ip_list):
+            # Check if stop has been requested
             self._mutex.lock()
             if self._stop_flag:
                 self._mutex.unlock()
                 break
             self._mutex.unlock()
 
+            # Ping the host and emit results
             status = "Alive" if ping_host(ip) else "Unreachable"
             self.result_signal.emit(ip, status)
 
+            # Update progress
             progress = int((index + 1) / total_ips * 100)
             self.progress_signal.emit(progress)
 
