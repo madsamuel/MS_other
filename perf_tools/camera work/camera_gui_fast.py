@@ -95,9 +95,9 @@ class CameraWindow(QMainWindow):
             return
 
         # Optionally set a lower resolution for faster startup
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        self.cap.set(cv2.CAP_PROP_FPS, self.fps)
+        # self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+        # self.cap.set(cv2.CAP_PROP_FPS, self.fps)
 
         # Warm up the camera by reading a few frames quickly
         # for _ in range(5):
