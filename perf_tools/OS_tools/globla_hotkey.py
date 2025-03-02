@@ -5,11 +5,11 @@ import keyboard
 import subprocess
 
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QHBoxLayout, QTableWidget, QTableWidgetItem, QPushButton,
-    QFileDialog, QLabel, QLineEdit, QMessageBox
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QTableWidget, QTableWidgetItem, QPushButton, QFileDialog,
+    QLabel, QMessageBox, QHeaderView
 )
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt
 
 
 CONFIG_FILE = "hotkeys_config.json"
@@ -56,7 +56,13 @@ class HotkeyManager(QMainWindow):
         self.table.setRowCount(len(HOTKEYS))
         main_layout.addWidget(self.table)
 
-        # Populate the table with default hotkey names
+        # Make the second column (Exe Path) expand to fill available space
+        header = self.table.horizontalHeader()
+        # Column 0 = Hotkey; Column 1 = Executable path
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+
+        # Populate the table with hotkeys
         for row, hotkey in enumerate(HOTKEYS):
             # First column: read-only hotkey name
             item_hotkey = QTableWidgetItem(hotkey)
@@ -66,8 +72,6 @@ class HotkeyManager(QMainWindow):
             # Second column: placeholder for the path (editable)
             item_path = QTableWidgetItem("")
             self.table.setItem(row, 1, item_path)
-
-        self.table.resizeColumnsToContents()
 
         # Buttons layout
         buttons_layout = QHBoxLayout()
@@ -123,6 +127,7 @@ class HotkeyManager(QMainWindow):
             path = data.get(hk, "")
             path_item.setText(path)
 
+        # Adjust column sizes (the second column is set to stretch, so this ensures initial display is neat)
         self.table.resizeColumnsToContents()
 
     def save_config(self):
@@ -188,19 +193,22 @@ class HotkeyManager(QMainWindow):
             keyboard.add_hotkey(hotkey, self.create_launcher(path))
 
         self.hotkeys_registered = True
-        QMessageBox.information(self, "Hotkeys Registered", "All configured hotkeys are now active.\n"
-                                                           "Press them from any app to launch the assigned program.")
+        QMessageBox.information(
+            self,
+            "Hotkeys Registered",
+            "All configured hotkeys are now active.\n"
+            "Press them from any app to launch the assigned program."
+        )
 
     def create_launcher(self, exe_path):
         """Return a function that launches the exe_path when invoked."""
         def launcher():
-            # We can use subprocess.Popen or os.startfile
             try:
                 if os.path.exists(exe_path):
-                    # If the path is an .exe or .bat, etc.
+                    # If the path is a valid file path
                     os.startfile(exe_path)
                 else:
-                    # If the user typed e.g. notepad.exe, let system handle it
+                    # If the user typed something else, let system handle it
                     subprocess.Popen(exe_path, shell=True)
             except Exception as e:
                 print(f"Failed to launch {exe_path}: {e}")
