@@ -209,7 +209,7 @@ class MainWindow(QMainWindow):
     """Main application window with tabs for Processes and Services."""
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Python Task Manager")
+        self.setWindowTitle("Banana Task Manager")
         self.resize(900, 500)
 
         tab_widget = QTabWidget(self)
