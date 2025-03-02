@@ -15,8 +15,9 @@ class ProcessTab(QWidget):
 
         self.layout = QVBoxLayout(self)
         self.table = QTableWidget()
-        self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["PID", "Name", "CPU %", "Memory %"])
+        # Updated to 5 columns: PID, Name, CPU %, Memory %, Executable
+        self.table.setColumnCount(5)
+        self.table.setHorizontalHeaderLabels(["PID", "Name", "CPU %", "Memory %", "Executable"])
         self.table.setSortingEnabled(True)
         self.layout.addWidget(self.table)
 
@@ -41,29 +42,33 @@ class ProcessTab(QWidget):
         self.refresh_processes()
 
     def refresh_processes(self):
-        """Refresh the process list table."""
-        self.table.setRowCount(0)  # Clear current table rows
+        """Refresh the process list table, including the executable path."""
+        self.table.setRowCount(0)  # Clear current rows
 
-        # Gather process info
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+        # Gather process info including executable (exe)
+        # Some processes may not have an exe, so we default to an empty string.
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent', 'exe']):
             pid = str(proc.info['pid'])
             name = proc.info['name'] or ""
             cpu = f"{proc.info['cpu_percent']:.1f}"
             mem = f"{proc.info['memory_percent']:.1f}"
+            exe = proc.info['exe'] or ""  # Executable path
 
             row_position = self.table.rowCount()
             self.table.insertRow(row_position)
 
+            # Populate table items
             self.table.setItem(row_position, 0, QTableWidgetItem(pid))
             self.table.setItem(row_position, 1, QTableWidgetItem(name))
             self.table.setItem(row_position, 2, QTableWidgetItem(cpu))
             self.table.setItem(row_position, 3, QTableWidgetItem(mem))
+            self.table.setItem(row_position, 4, QTableWidgetItem(exe))
 
         # Resize columns to contents
         self.table.resizeColumnsToContents()
 
     def kill_selected_process(self):
-        """Kill the process selected in the table."""
+        """Kill the currently selected process."""
         row = self.table.currentRow()
         if row < 0:
             QMessageBox.warning(self, "No Selection", "Please select a process to kill.")
@@ -88,7 +93,7 @@ class ProcessTab(QWidget):
 
 
 class ServicesTab(QWidget):
-    """Tab that lists Windows services and allows starting/stopping them."""
+    """Tab that lists Windows services and allows starting/stopping them (Windows only)."""
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -99,14 +104,11 @@ class ServicesTab(QWidget):
         self.table.setSortingEnabled(True)
         self.layout.addWidget(self.table)
 
-        # Button layout
         button_layout = QHBoxLayout()
         self.refresh_button = QPushButton("Refresh")
         self.refresh_button.clicked.connect(self.refresh_services)
-
         self.start_button = QPushButton("Start Service")
         self.start_button.clicked.connect(self.start_selected_service)
-
         self.stop_button = QPushButton("Stop Service")
         self.stop_button.clicked.connect(self.stop_selected_service)
 
@@ -120,7 +122,7 @@ class ServicesTab(QWidget):
 
     def refresh_services(self):
         """Refresh the list of Windows services."""
-        # This call is Windows-only
+        import psutil
         try:
             services = psutil.win_service_iter()
         except AttributeError:
@@ -139,7 +141,7 @@ class ServicesTab(QWidget):
                 status = svc.status()
             except psutil.AccessDenied:
                 status = "AccessDenied"
-            start_type = svc.start_type()  # e.g. 'manual', 'automatic', etc.
+            start_type = svc.start_type()  # e.g. 'manual', 'automatic'
 
             row_pos = self.table.rowCount()
             self.table.insertRow(row_pos)
@@ -161,13 +163,14 @@ class ServicesTab(QWidget):
             return None
 
         service_name = item.text()
+        import psutil
         try:
             return psutil.win_service_get(service_name)
         except Exception:
             return None
 
     def start_selected_service(self):
-        """Attempt to start the selected Windows service."""
+        """Start the selected Windows service."""
         svc = self.get_selected_service()
         if svc is None:
             QMessageBox.warning(self, "No Selection", "Please select a service to start.")
@@ -181,16 +184,16 @@ class ServicesTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error starting service '{svc.name()}': {e}")
 
-        # Refresh the table
         self.refresh_services()
 
     def stop_selected_service(self):
-        """Attempt to stop the selected Windows service."""
+        """Stop the selected Windows service."""
         svc = self.get_selected_service()
         if svc is None:
             QMessageBox.warning(self, "No Selection", "Please select a service to stop.")
             return
 
+        import psutil
         try:
             svc.stop()
             QMessageBox.information(self, "Success", f"Service '{svc.name()}' stopped.")
@@ -199,7 +202,6 @@ class ServicesTab(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Error stopping service '{svc.name()}': {e}")
 
-        # Refresh the table
         self.refresh_services()
 
 
