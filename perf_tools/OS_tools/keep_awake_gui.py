@@ -1,4 +1,5 @@
 import sys
+import os
 import threading
 import ctypes
 import time
@@ -10,12 +11,14 @@ import win32gui
 # For the tray icon
 import pystray
 from pystray import MenuItem as item, Menu
+from PIL import Image
 
 # Global variables
 AWAKE_MODE_ENABLED = True  # If True, block normal shutdown attempts
 STOP_EVENT = threading.Event()  # Signals the hidden window thread to stop
 
 WNDCLASS_NAME = "PreventShutdownClass"
+
 
 def wndproc(hWnd, message, wParam, lParam):
     """
@@ -38,9 +41,9 @@ def wndproc(hWnd, message, wParam, lParam):
             print("System is ending the session. (Shutdown not blocked)")
         else:
             print("Session end was canceled or not happening.")
-        # Let default proc handle everything else
 
     return win32gui.DefWindowProc(hWnd, message, wParam, lParam)
+
 
 def hidden_window_thread():
     """
@@ -78,8 +81,7 @@ def hidden_window_thread():
         pass
     finally:
         print("Hidden window thread exiting.")
-        # Cleanup if needed
-        # (When we exit, system can shut down normally, or we can re-run if we want.)
+
 
 def toggle_awake_mode(icon):
     """
@@ -91,6 +93,7 @@ def toggle_awake_mode(icon):
 
     # Update the tray icon text to reflect the new state
     update_tray_menu(icon)
+
 
 def update_tray_menu(icon):
     """
@@ -110,6 +113,7 @@ def update_tray_menu(icon):
         )
     )
 
+
 def quit_app(icon):
     """
     Quit the tray app and stop the hidden window thread, allowing normal shutdown.
@@ -118,16 +122,21 @@ def quit_app(icon):
     STOP_EVENT.set()       # Signal the hidden window thread to exit
     icon.stop()            # Stop the pystray icon event loop
 
+
 def setup_tray_icon():
     """
-    Create and return a pystray Icon object with an initial menu.
+    Create and return a pystray Icon object with an initial menu, loading icon.ico
+    from the same folder as this script.
     """
-    # We can load a custom icon or use a blank one
-    # For demonstration, create a 16x16 red image in memory
-    from PIL import Image, ImageDraw
-    icon_img = Image.new('RGB', (16, 16), color=(255, 0, 0))
-    d = ImageDraw.Draw(icon_img)
-    d.rectangle([0, 0, 16, 16], fill=(255, 0, 0))
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    icon_path = os.path.join(script_dir, "icon.ico")
+
+    try:
+        icon_img = Image.open(icon_path)
+    except Exception as e:
+        print(f"Failed to load icon from '{icon_path}': {e}")
+        print("Using a fallback red square icon instead.")
+        icon_img = Image.new('RGB', (16, 16), color=(255, 0, 0))
 
     icon = pystray.Icon(
         name="PreventShutdown",
@@ -137,6 +146,7 @@ def setup_tray_icon():
 
     update_tray_menu(icon)
     return icon
+
 
 def main():
     # 1. Start the hidden window thread
@@ -153,6 +163,7 @@ def main():
     # Wait for hidden window thread to exit
     thread.join()
     print("Main thread exiting. Goodbye!")
+
 
 if __name__ == "__main__":
     main()
