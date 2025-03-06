@@ -1,21 +1,21 @@
 # Sample of an app running locally that pushes notification to windows notification hubimport sys
 import sys
+import os
 from win10toast import ToastNotifier
 
 def main():
     """
-    Simple script that takes a probability (0 <= p <= 1) and shows a Windows notification.
-    If no argument is provided, defaults to 0.5.
+    Displays a toast notification on Windows 10+ with a probability value (0..1).
+    If no argument is supplied, defaults to 0.5.
+    Uses an icon named 'icon.ico' in the same folder.
     """
-    # Default probability
     default_prob = 0.5
 
+    # Check command-line args
     if len(sys.argv) < 2:
-        # No command-line argument provided, so we use our default
         prob = default_prob
         print(f"No argument supplied. Using default probability={default_prob}")
     else:
-        # Parse the argument
         try:
             prob = float(sys.argv[1])
         except ValueError:
@@ -23,19 +23,31 @@ def main():
             sys.exit(1)
 
     # Validate the probability
-    if prob < 0 or prob > 1:
-        print("Error: Probability must be between 0 and 1.")
+    if prob > 0.25 or prob < 0.5:
+        print("Your connection is degradating please take action here.")
+        sys.exit(1)
+    elif prob >= 0.5 or prob < 0.75:
+        print("Your connection is degradating please take action here.")
+        sys.exit(1)
+    elif prob > 0.75:
+        print("Your connection is degrading beyound usability.")
         sys.exit(1)
 
-    # Create the toaster/notification
+    # Locate icon.ico in the same directory as this script
+    
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    icon_path = os.path.join(script_dir, "icon.png")
+
+    # Create and show the toast notification
     toaster = ToastNotifier()
     toaster.show_toast(
-        "Prediction App",
-        f"Prediction Value: {prob}",
-        duration=5  # Notification stays for 5 seconds
+        "Windows App",                  # <-- Notification Title
+        f"Prediction Value: {prob}",    # <-- Notification Body
+        icon_path=icon_path,           # <-- Local icon.ico for the toast
+        duration=5                     # Notification persists for 5 seconds
     )
 
-    # Keep Python running until the notification is closed
+    # Keep the script alive until the notification is closed
     while toaster.notification_active():
         pass
 
