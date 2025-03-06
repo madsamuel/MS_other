@@ -1,7 +1,7 @@
 import sys
 import os
 import cv2
-import psutil  # <-- ADDED to kill processes
+import psutil  # <-- For enumerating and killing processes
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import (
@@ -175,20 +175,30 @@ class CameraWindow(QMainWindow):
     def kill_azure_app(self):
         """
         Kills any process whose exe path contains
-        a defined path .
-        Adjust the substring or method if the exe name/path is different.
+        ''.
+        Adjust the substring if the real path is different.
         """
         target_substring = r""
 
         print("Attempting to kill Azure Virtual Desktop process...")
+        killed_any = False
         for proc in psutil.process_iter(['pid', 'exe']):
             exe_path = proc.info['exe']
             if exe_path and target_substring in exe_path:
                 try:
                     proc.kill()
                     print(f"Killed process PID={proc.pid} exe={exe_path}")
+                    killed_any = True
                 except Exception as e:
                     print(f"Could not kill process PID={proc.pid}: {e}")
+
+        if killed_any:
+            # Show message once if we successfully killed at least one process
+            QMessageBox.information(
+                self,
+                "Policy Enforcement",
+                "Your organization prevents using phone while using logged in your remote environment."
+            )
 
     def update_frame(self):
         """Grab a frame from the camera, detect cell phones, and display."""
@@ -220,7 +230,6 @@ class CameraWindow(QMainWindow):
             if not self.already_killed:
                 self.kill_azure_app()
                 self.already_killed = True
-
         else:
             self.status_label.setText("No Phone Detected")
 
