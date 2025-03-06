@@ -23,28 +23,37 @@ def main():
             sys.exit(1)
 
     # Validate the probability
-    if prob > 0.25 or prob < 0.5:
-        print("Your connection is degradating please take action here.")
-        sys.exit(1)
-    elif prob >= 0.5 or prob < 0.75:
-        print("Your connection is degradating please take action here.")
-        sys.exit(1)
-    elif prob > 0.75:
-        print("Your connection is degrading beyound usability.")
+    if prob < 0 or prob > 1:
+        print("Error: Probability must be between 0 and 1.")
         sys.exit(1)
 
+    # Use range-based logic for clarity
+    if prob < 0.25:
+        # If you want a message for lower range, add it here
+        # e.g. "Everything is stable."
+        print("Connection is stable.")
+    elif 0.25 <= prob < 0.5:
+        print("Your connection is degrading, please take action.")
+    elif 0.5 <= prob < 0.75:
+        print("Your connection is degrading further, please take action soon.")
+    else:  # prob >= 0.75
+        print("Your connection is degrading beyond usability.")
+
     # Locate icon.ico in the same directory as this script
-    
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    icon_path = os.path.join(script_dir, "icon.png")
+    icon_path = os.path.join(script_dir, "icon.ico")  # or "icon.png" if you really prefer .png
+
+    if not os.path.exists(icon_path):
+        print(f"Warning: Icon file not found at {icon_path}. Toast will show without icon.")
+        icon_path = None  # If missing, the toast will still appear, just no icon.
 
     # Create and show the toast notification
     toaster = ToastNotifier()
     toaster.show_toast(
-        "Windows App",                  # <-- Notification Title
-        f"Prediction Value: {prob}",    # <-- Notification Body
-        icon_path=icon_path,           # <-- Local icon.ico for the toast
-        duration=5                     # Notification persists for 5 seconds
+        "Windows App",                # <-- Notification Title
+        f"Prediction Value: {prob}",  # <-- Notification Body
+        icon_path=icon_path,         # <-- Local icon if available
+        duration=5                   # Notification persists for 5 seconds
     )
 
     # Keep the script alive until the notification is closed
