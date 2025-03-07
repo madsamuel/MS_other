@@ -11,5 +11,5 @@ dotnet restore
 dotnet run
 
 dotnet add package CommunityToolkit.WinUI.Notifications 
-# dotnet add package Microsoft.Windows.SDK.Contracts # error NETSDK1130
-dotnet add package Microsoft.Windows.SDK.Contracts
+
+https://learn.microsoft.com/en-us/windows/apps/design/shell/tiles-and-notifications/send-local-toast?tabs=uwp
