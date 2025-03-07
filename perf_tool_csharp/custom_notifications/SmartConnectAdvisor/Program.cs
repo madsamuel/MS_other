@@ -6,8 +6,12 @@ using Windows.UI.Notifications;             // For the actual 'ToastNotification
 // We'll specify an app ID so Windows knows who is sending the toast.
 string appId = "MyCompany.MyToastApp";
 
+// Path to your icon (must be a local file)
+string imagePath = "file:///" + Environment.CurrentDirectory + "\\icon_clean.png";
+
 // Build the toast content (title, message, two buttons, etc.)
 var toastContent = new ToastContentBuilder()
+    .AddAppLogoOverride(new Uri(imagePath), ToastGenericAppLogoCrop.Circle)
     .AddText("Network Alert")
     .AddText("Your connection is degrading, please take action soon.")
     .AddButton(new ToastButton()
