@@ -12,3 +12,4 @@ perf_tools/camera work/camera_gui_phone_detection/yolov3.weights
 perf_tools/ml_samples/.env
 perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
 perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
+perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
