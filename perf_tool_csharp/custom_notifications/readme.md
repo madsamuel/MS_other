@@ -1,3 +1,4 @@
+## Console 
 dotnet --version
 
 Start Visual Studio Code.
@@ -13,3 +14,7 @@ dotnet run
 dotnet add package CommunityToolkit.WinUI.Notifications 
 
 https://learn.microsoft.com/en-us/windows/apps/design/shell/tiles-and-notifications/send-local-toast?tabs=uwp
+
+## UWP
+md SmartConnectAdvisorUWP
+cd MyUwpApp

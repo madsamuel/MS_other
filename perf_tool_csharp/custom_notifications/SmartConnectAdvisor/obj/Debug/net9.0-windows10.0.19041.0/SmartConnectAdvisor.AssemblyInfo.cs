@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SmartConnectAdvisor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+aaf45989fc5290573bd632ba92f7c325620f7a2c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2025648a9fa547d252d90372daae327948d72c9f")]
 [assembly: System.Reflection.AssemblyProductAttribute("SmartConnectAdvisor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SmartConnectAdvisor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
