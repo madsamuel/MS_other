@@ -11,14 +11,14 @@ string imagePath = "file:///" + Environment.CurrentDirectory + "\\icon_clean.png
 
 // Build the toast content (title, message, two buttons, etc.)
 var toastContent = new ToastContentBuilder()
-    .AddAppLogoOverride(new Uri(imagePath), ToastGenericAppLogoCrop.Circle)
+    //.AddAppLogoOverride(new Uri(imagePath), ToastGenericAppLogoCrop.None)
     .AddText("Network Alert")
     .AddText("Your connection is degrading, please take action soon.")
     .AddButton(new ToastButton()
         .SetContent("Fix Now")               // What the button displays
         .AddArgument("action", "fixNow"))    // Argument for activation (if using COM/advanced)
     .AddButton(new ToastButton()
-        .SetContent("Ignore")                // Second button
+        .SetContent("Send to Admin")                // Second button
         .AddArgument("action", "ignore"))
     .GetToastContent();
 
@@ -30,4 +30,4 @@ ToastNotificationManagerCompat.CreateToastNotifier().Show(toast);
 
 // Keep console open so we can observe the result
 Console.WriteLine("Toast with two buttons has been sent. Press any key to exit.");
-Console.ReadKey();
+// Console.ReadKey();
