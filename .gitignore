@@ -13,3 +13,8 @@ perf_tools/ml_samples/.env
 perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
 perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
 perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
+perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+perf_tools/camera work/camera_gui_phone_detection/yolov3.cfg
+perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+perf_tools/camera work/camera_gui_phone_detection/coco.names
