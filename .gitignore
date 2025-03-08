@@ -18,3 +18,7 @@ perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
 perf_tools/camera work/camera_gui_phone_detection/yolov3.cfg
 perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
 perf_tools/camera work/camera_gui_phone_detection/coco.names
+code/perf_tools/camera work/camera_gui_phone_detection/yolov3.weights
+code/perf_tools/camera work/camera_gui_phone_detection/yolov3.cfg
+code/perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+code/ml_samples/.env
