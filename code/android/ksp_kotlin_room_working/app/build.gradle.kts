@@ -4,8 +4,10 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     // KSP for annotation processing (Room, Hilt)
     id("com.google.devtools.ksp")
-
+    id("com.google.dagger.hilt.android")
 }
+
+
 
 android {
     namespace = "com.seattledevcamp.projectmanagementguru"
@@ -43,6 +45,7 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.15"
     }
+
 }
 
 dependencies {
@@ -72,13 +75,21 @@ dependencies {
     // Room (KSP)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    ksp(libs.androidx.room.compiler) // this breaks the build figure it out
+    ksp(libs.androidx.room.compiler)
     // Hilt (KSP)
     implementation(libs.hilt.android.v248)
-    ksp(libs.hilt.android.compiler) // this breaks the build figure it out
+    ksp(libs.hilt.android.compiler)
+    // Dagger
+    implementation(libs.hilt.android.v255)
+
+    ksp(libs.hilt.compiler)
+    ksp(libs.room.compiler)
+
     // Hilt Navigation Compose
     implementation(libs.androidx.hilt.navigation.compose)
 
     // Android Core SplashScreen for Android 12+ splash
     implementation(libs.androidx.core.splashscreen)
+
 }
+
