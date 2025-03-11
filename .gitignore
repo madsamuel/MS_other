@@ -22,3 +22,4 @@ code/perf_tools/camera work/camera_gui_phone_detection/yolov3.weights
 code/perf_tools/camera work/camera_gui_phone_detection/yolov3.cfg
 code/perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
 code/ml_samples/.env
+code/azure/store_to_blob_storage/.env

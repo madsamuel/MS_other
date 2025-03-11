@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj": {}
+    "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj": {}
   },
   "projects": {
-    "c:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj": {
+    "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj",
+        "projectUniqueName": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj",
         "projectName": "SmartConnectAdvisorAI",
-        "projectPath": "c:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj",
+        "projectPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\SmartConnectAdvisorAI.csproj",
         "packagesPath": "C:\\Users\\madsa\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\obj\\",
+        "outputPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisorAI\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\madsa\\AppData\\Roaming\\NuGet\\NuGet.Config"
