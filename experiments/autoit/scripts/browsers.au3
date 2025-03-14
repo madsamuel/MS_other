@@ -12,14 +12,15 @@ WinSetState("[CLASS:Chrome_WidgetWin_1]", "", @SW_MAXIMIZE)  ; Maximize the wind
 
 Sleep(2000)
 
-; Click on the search box and type the search term
-Send("^l")  ; Focus address bar
+; Directly click on the Amazon search box
+; NOTE: Adjust these coordinates (600, 150) as needed for your screen/resolution.
+MouseClick("left", 600, 105, 1, 10)
 Sleep(500)
-Send("{TAB}")  ; Move to search box (may need adjustment)
-Sleep(500)
+
+; Type the search term into the search box and press Enter
 Send($sSearchTerm)
 Sleep(500)
-Send("{ENTER}")  ; Press Enter to search
+Send("{ENTER}")
 Sleep(5000)  ; Wait for results to load
 
 ; Scroll down for 5 seconds
@@ -41,4 +42,9 @@ For $i = 1 To $iScrolls
 Next
 
 Sleep(2000)  ; Final wait before exiting
+
+; Close Edge window and wait for process to end
+WinClose("[CLASS:Chrome_WidgetWin_1]")
+ProcessWaitClose("msedge.exe", 10)
+
 Exit
