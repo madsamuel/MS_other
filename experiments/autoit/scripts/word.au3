@@ -48,62 +48,46 @@ SimulateMouseMove(200, 200)
 ; Move to the end of the document and insert a new paragraph
 Local $iStartTime = TimerInit()
 While TimerDiff($iStartTime) < 20000
-    $oRange = $oDoc.Range($oDoc.Content.End - 1, $oDoc.Content.End - 1)
-    Send(" More text is being continuously added to the document. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
-    SimulateMouseMove(220, 220)
+    $oRange = $oDoc.Range($oDoc.Content.End - 1, $oDoc.Content.End - 1) 
+    Send("More text is being continuously added to the document. Lorem ipsuNice to meet you, where you been? I could show you incredible things Magic, madness, heaven, sin Saw you there and I thought Oh, my God, look at that face You look like my next mistake Love's a game, wanna play? Ay New money, suit and tie I can read you like a magazineAin't it funny? Rumors fly And I know you heard about me So hey, let's be friendsm dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")    
     Sleep(500)
 WEnd
 Sleep(1000)
 
-; ----- Step 4: Insert a 2×2 Table -----
-ConsoleWrite("Step 4: Inserting a 2×2 table." & @CRLF)
-SimulateMouseMove(250, 250)
-$oRange.Collapse(0)
-$oRange.InsertParagraphAfter()
-Local $oTableRange = $oDoc.Range($oDoc.Content.End - 1, $oDoc.Content.End - 1)
-Local $oTable = $oDoc.Tables.Add($oTableRange, 2, 2)
-If IsObj($oTable) Then
-    $oTable.Cell(1, 1).Range.Text = "Cell 1,1"
-    $oTable.Cell(1, 2).Range.Text = "Cell 1,2"
-    $oTable.Cell(2, 1).Range.Text = "Cell 2,1"
-    $oTable.Cell(2, 2).Range.Text = "Cell 2,2"
-Else
-    ConsoleWrite("Error: Could not insert table." & @CRLF)
-EndIf
-Sleep(1000)
+; ----- Step 4: Scroll Through the Document -----
+ConsoleWrite("Step 4: Scrolling through the document." & @CRLF)
 
-; ----- Step 5: Scroll Through the Document -----
-ConsoleWrite("Step 5: Scrolling through the document." & @CRLF)
 SimulateMouseMove(300, 300)
-; Bring Word to the foreground (Word window class is typically "OpusApp")
-WinActivate("[CLASS:OpusApp]")
-Sleep(500)
-Send("{PGDN}")
-Sleep(500)
-Send("{PGDN}")
-Sleep(500)
-Send("{PGUP}")
-Sleep(500)
 
-; ----- Step 6: Save the Document -----
-ConsoleWrite("Step 6: Saving the document." & @CRLF)
-SimulateMouseMove(350, 350)
-$oDoc.Save()
-Sleep(1000)
+Local $startTime = TimerInit()
+; Loop for 10,000 milliseconds (10 seconds)
+While TimerDiff($startTime) < 10000
+    ConsoleWrite("Step 5: Scrolling through the document." & @CRLF)
+    SimulateMouseMove(300, 300)
+    ; Bring Word to the foreground (Word window class is typically "OpusApp")
+    WinActivate("[CLASS:OpusApp]")
+    Sleep(500)
+    Send("{PGDN}")
+    Sleep(500)
+    Send("{PGDN}")
+    Sleep(500)
+    Send("{PGUP}")
+    Sleep(500)
+WEnd
 
 ; ----- Step 7: Open and Close the Print Dialog -----
-ConsoleWrite("Step 7: Opening print dialog." & @CRLF)
+ConsoleWrite("Step 5: Opening print dialog." & @CRLF)
 SimulateMouseMove(400, 400)
 ; Open print dialog using Ctrl+P
 Send("^p")
 Sleep(2000) ; Wait for the print dialog to open
-ConsoleWrite("Step 7: Closing print dialog." & @CRLF)
+ConsoleWrite("Step 6: Closing print dialog." & @CRLF)
 ; Close print dialog by sending ESC key
 Send("{ESC}")
 Sleep(1000)
 
 ; ----- Step 8: Close Word and Discard Any Unsaved Changes -----
-ConsoleWrite("Step 8: Closing Word and discarding any unsaved changes." & @CRLF)
+ConsoleWrite("Step 6: Closing Word and discarding any unsaved changes." & @CRLF)
 SimulateMouseMove(450, 450)
 ; Close the document without saving further changes (we already saved)
 $oDoc.Close(False)
@@ -111,6 +95,5 @@ $oWord.Quit()
 Sleep(1000)
 
 ConsoleWrite("Script completed successfully." & @CRLF)
-Exit
 
 MsgBox(64, "Test completed", "Test completed!")
