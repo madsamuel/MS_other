@@ -46,14 +46,13 @@ Sleep(1000)
 ConsoleWrite("Step 3: Typing and formatting text." & @CRLF)
 SimulateMouseMove(200, 200)
 ; Move to the end of the document and insert a new paragraph
-Local $oRange = $oDoc.Range()
-$oRange.Collapse(0) ; 0 = wdCollapseEnd
-$oRange.InsertParagraphAfter()
-$oRange.InsertAfter("Automated text: This text is bold, italic, and underlined." & @CRLF)
-; Apply formatting
-$oRange.Font.Bold = True
-$oRange.Font.Italic = True
-$oRange.Font.Underline = True
+Local $iStartTime = TimerInit()
+While TimerDiff($iStartTime) < 20000
+    $oRange = $oDoc.Range($oDoc.Content.End - 1, $oDoc.Content.End - 1)
+    Send(" More text is being continuously added to the document. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.")
+    SimulateMouseMove(220, 220)
+    Sleep(500)
+WEnd
 Sleep(1000)
 
 ; ----- Step 4: Insert a 2×2 Table -----
