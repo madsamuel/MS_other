@@ -108,3 +108,5 @@ Sleep(1000)
 
 ConsoleWrite("Script completed successfully." & @CRLF)
 Exit
+
+MsgBox(64, "Test completed", "Test completed!")
