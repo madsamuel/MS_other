@@ -35,6 +35,11 @@ If Not IsObj($oDoc) Then
     $oWord.Quit()
     Exit
 EndIf
+
+; ----- Maximizing Word
+WinActivate("[CLASS:OpusApp]")
+WinSetState("[CLASS:OpusApp]", "", @SW_MAXIMIZE)
+
 Sleep(1000)
 
 ; ----- Step 3: Type and Format Text -----
