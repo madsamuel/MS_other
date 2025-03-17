@@ -16,6 +16,7 @@ import com.seattledevcamp.projectmanagementguru.ui.theme.ProjectManagementGuruTh
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import com.seattledevcamp.projectmanagementguru.data.DatabaseSeeder
+import com.seattledevcamp.projectmanagementguru.ui.navigation.AppNavHost
 import javax.inject.Inject
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -41,9 +42,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             ProjectManagementGuruTheme {
                 // Your UI (for testing, we use a simple Greeting)
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(name = "Android", modifier = Modifier.padding(innerPadding))
-                }
+//                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+//                    Greeting(name = "Android", modifier = Modifier.padding(innerPadding))
+//                }
+                AppNavHost()
             }
         }
 
