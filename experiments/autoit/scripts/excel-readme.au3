@@ -1,0 +1,1 @@
+Make sure that Trust Center allows for xls files to be opened and that document opens a available for editing.
