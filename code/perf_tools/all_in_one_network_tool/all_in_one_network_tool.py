@@ -1,301 +1,377 @@
 #!/usr/bin/env python3
 """
-Network Emulator for Windows using PyQt5 + WinDivert + pydivert.
+all_in_one_network_tool.py
 
-- Emulates latency, jitter, packet loss, and bandwidth throttling.
-- Requires running with admin privileges and WinDivert installed.
+PyQt5 + WinDivert application that injects latency, jitter, and packet loss 
+for outbound IPv4 traffic on Windows. Fixes "WinDivert handle is already open." 
+by ensuring only ONE handle is open at a time.
 
-Install:
-    pip install pydivert PyQt5
-Download WinDivert:
-    https://github.com/basil00/Divert
-Place WinDivert.dll and driver files in PATH or current directory.
+Steps to use:
+1) Place WinDivert.dll and WinDivert.sys in the same folder or in your PATH.
+2) pip install pydivert PyQt5
+3) Run this script as Administrator (it attempts to elevate if not admin).
+4) Adjust Latency/Jitter/Loss in the GUI and click "Apply" or "Reset."
 """
 
 import sys
+import logging
+import json
+import os
+import traceback
 import random
 import time
-import threading
 import heapq
-from collections import deque
+import ctypes
+
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QFormLayout, QHBoxLayout,
-    QLabel, QDoubleSpinBox, QSpinBox, QPushButton, QMessageBox
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QFormLayout,
+    QLabel, QSpinBox, QDoubleSpinBox, QPushButton, QMessageBox,
+    QComboBox
 )
-from PyQt5.QtCore import QTimer, Qt
-import pydivert  # pip install pydivert
+from PyQt5.QtCore import QThread, pyqtSignal
+
+try:
+    import pywintypes
+    import win32con
+    from win32com.shell.shell import ShellExecuteEx
+    import wmi
+    pywin32_available = True
+except ImportError:
+    # We can still run without pywin32 or wmi, but can't list adapters or elevate automatically
+    pywin32_available = False
+
+try:
+    import pydivert
+except ImportError:
+    print("Error: pydivert is not installed. Please run: pip install pydivert")
+    sys.exit(1)
 
 
-class PacketScheduler:
+# Configure logging
+logging.basicConfig(
+    level=logging.ERROR,
+    filename="network_throttler.log",
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+CONFIG_FILE = "config.json"
+
+def is_admin():
     """
-    Manages packet scheduling, latency, jitter, loss, and bandwidth throttling.
-    Uses a priority queue to hold packets with their future release times.
+    Check if the current user has administrative privileges.
+    """
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+def elevate_privileges():
+    """
+    Attempt to relaunch this script with administrator privileges.
+    """
+    params = {
+        "verb": "runas",
+        "file": sys.executable,
+        "parameters": " ".join(sys.argv),
+        "show": win32con.SW_SHOWNORMAL
+    }
+    try:
+        ShellExecuteEx(**params)
+        return True
+    except Exception as e:
+        logging.error(f"Failed to elevate privileges: {e}")
+        print("Failed to elevate privileges. Please run as administrator.")
+        return False
+
+
+class ShaperThread(QThread):
+    """
+    A QThread that uses WinDivert to capture OUTBOUND IPv4 traffic,
+    applying user-defined latency, jitter, and packet loss.
+    
+    IMPORTANT: We use a 'with pydivert.WinDivert(...) as w' block
+    and do NOT call w.open() manually inside it. The 'with' block
+    automatically opens/closes the WinDivert handle.
     """
 
-    def __init__(self):
-        # User-configurable settings
-        self.latency_ms = 0
-        self.jitter_ms = 0
-        self.loss_percent = 0
-        self.bandwidth_kbps = 0
+    finished = pyqtSignal()      # Emitted when the thread finishes normally
+    error = pyqtSignal(str)      # Emitted if an exception occurs
 
-        # For bandwidth throttling (token bucket)
-        self.tokens_per_second = 0
-        self.token_bucket = 0
-        self.last_token_time = time.time()
+    def __init__(self, latency_ms, jitter_ms, loss_percent):
+        super().__init__()
+        self.latency_ms = latency_ms
+        self.jitter_ms = jitter_ms
+        self.loss_percent = loss_percent
+        self.packet_queue = []   # A priority queue (release_time, packet)
+        self.running = True      # Controls the main loop
 
-        # Priority queue for scheduled packets (release_time, packet)
-        self.packet_queue = []
-        self.lock = threading.Lock()
-
-        self.running = False
-        self.thread = None
-
-    def update_settings(self, latency_ms, jitter_ms, loss_percent, bandwidth_kbps):
+    def run(self):
         """
-        Update shaping parameters (thread safe).
+        Main logic: capture packets, apply netem-like latency and loss, re-inject.
         """
-        with self.lock:
-            self.latency_ms = latency_ms
-            self.jitter_ms = jitter_ms
-            self.loss_percent = loss_percent
-            self.bandwidth_kbps = bandwidth_kbps
-            # Update token generation rate
-            self.tokens_per_second = bandwidth_kbps / 8.0  # kbps -> kBytes/s
-            # Reset token bucket if desired
-            self.token_bucket = self.tokens_per_second  # start with 1 second worth of tokens
+        filter_str = "ip and outbound"
 
-    def start(self):
-        if self.running:
-            return
-        self.running = True
-        self.thread = threading.Thread(target=self._packet_releaser, daemon=True)
-        self.thread.start()
+        try:
+            # The 'with' statement automatically calls w.open() at the start 
+            # and w.close() at the end (closing the handle).
+            with pydivert.WinDivert(filter_str) as w:
+                # We do NOT call w.open() here -- 'with' has done that for us.
+                while self.running:
+                    # 1) recv packet
+                    try:
+                        packet = w.recv()
+                    except OSError:
+                        # If the handle was closed externally, break out
+                        break
+
+                    # 2) Packet loss
+                    if random.uniform(0, 100) < self.loss_percent:
+                        # Drop this packet
+                        continue
+
+                    # 3) Compute total delay
+                    delay_s = self.latency_ms / 1000.0
+                    if self.jitter_ms > 0:
+                        delay_s += random.uniform(0, self.jitter_ms) / 1000.0
+
+                    release_time = time.time() + delay_s
+
+                    # 4) Push into priority queue
+                    heapq.heappush(self.packet_queue, (release_time, packet))
+
+                    # 5) Release any packets whose time has arrived
+                    self._release_due_packets(w)
+
+                    # Sleep a bit to avoid max CPU usage
+                    time.sleep(0.005)
+
+                # If the user requests stop, release everything left
+                self._release_remaining_packets(w)
+
+            # Normal finish
+            self.finished.emit()
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            logging.error(f"ShaperThread error: {tb_str}")
+            self.error.emit(tb_str)
 
     def stop(self):
+        """
+        Signal the thread to stop the main loop.
+        """
         self.running = False
-        if self.thread:
-            self.thread.join()
-            self.thread = None
-        with self.lock:
-            self.packet_queue.clear()
 
-    def schedule_packet(self, packet):
+    def _release_due_packets(self, w):
         """
-        Calculate when to release this packet based on latency + jitter + 
-        possible bandwidth constraints, then store in the queue.
-        Also account for potential packet loss.
+        Re-inject any queued packets whose time has come.
         """
-        with self.lock:
-            # Packet loss check
-            if random.uniform(0, 100) < self.loss_percent:
-                # Drop packet
-                return
+        now = time.time()
+        while self.packet_queue and self.packet_queue[0][0] <= now:
+            _, pkt = heapq.heappop(self.packet_queue)
+            w.send(pkt)
 
-            # Latency + jitter
-            base_delay = self.latency_ms / 1000.0
-            if self.jitter_ms > 0:
-                jitter = random.uniform(0, self.jitter_ms) / 1000.0
-            else:
-                jitter = 0
-
-            delay = base_delay + jitter
-            release_time = time.time() + delay
-
-            # Insert into priority queue
-            heapq.heappush(self.packet_queue, (release_time, packet))
-
-    def _packet_releaser(self):
+    def _release_remaining_packets(self, w):
         """
-        Continuously checks the queue for packets whose release times have arrived,
-        then re-injects them if bandwidth tokens are available.
+        Re-inject all remaining packets if we're stopping.
         """
-        while self.running:
-            now = time.time()
-            with self.lock:
-                # Refill token bucket based on elapsed time
-                elapsed = now - self.last_token_time
-                self.last_token_time = now
-                self.token_bucket += self.tokens_per_second * elapsed
-                # Cap the bucket to one second worth, to prevent huge backlog 
-                # if we want to keep the model simpler.
-                if self.token_bucket > self.tokens_per_second:
-                    self.token_bucket = self.tokens_per_second
-
-                # Release any packets whose time has arrived and we have tokens for.
-                released_packets = []
-                while self.packet_queue and self.packet_queue[0][0] <= now:
-                    release_time, packet = heapq.heappop(self.packet_queue)
-                    pkt_size = len(packet.raw) / 1024.0  # in kBytes
-                    # Check if we have enough tokens (bandwidth)
-                    if self.bandwidth_kbps > 0:
-                        if pkt_size <= self.token_bucket:
-                            # Use tokens
-                            self.token_bucket -= pkt_size
-                            released_packets.append(packet)
-                        else:
-                            # Not enough tokens: reinsert packet with a small delay
-                            # so we try again in ~10ms
-                            heapq.heappush(self.packet_queue, (now + 0.01, packet))
-                            break
-                    else:
-                        # No bandwidth limit, just release
-                        released_packets.append(packet)
-
-            # Re-inject outside the lock to keep concurrency safe
-            for packet in released_packets:
-                # Re-inject the packet
-                packet.send()
-
-            # Sleep briefly to avoid spinning
-            time.sleep(0.005)
+        while self.packet_queue:
+            _, pkt = heapq.heappop(self.packet_queue)
+            w.send(pkt)
 
 
-class NetworkEmulatorApp(QMainWindow):
+class NetworkThrottler(QMainWindow):
     """
-    PyQt5 GUI for Windows network emulation.
+    Main PyQt window to configure latency, jitter, loss, 
+    and start/stop the ShaperThread.
     """
+
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Windows Network Emulator")
-        self.setMinimumSize(400, 250)
+        self.setWindowTitle("Network Throttler (WinDivert) - Single Handle Fix")
+        self.setGeometry(100, 100, 400, 300)
 
-        # Scheduler that processes shaping
-        self.scheduler = PacketScheduler()
+        self.central_widget = QWidget()
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
+        self.form_layout = QFormLayout()
 
-        # WinDivert handle
-        self.divert_handle = None
-        self.capture_thread = None
-        self.capture_running = False
+        # If you want to list network adapters using WMI:
+        self.adapter_combo = QComboBox()
 
-        # Build UI
-        self._build_ui()
+        self.latency_spin = QSpinBox()
+        self.jitter_spin = QSpinBox()
+        self.packet_loss_spin = QDoubleSpinBox()
+        self.apply_button = QPushButton("Apply")
+        self.reset_button = QPushButton("Reset")
 
-    def _build_ui(self):
-        central_widget = QWidget()
-        self.setCentralWidget(central_widget)
-        layout = QVBoxLayout()
-        central_widget.setLayout(layout)
+        self.setup_ui()
+        self.load_config()
 
-        form_layout = QFormLayout()
+        # Keep track of the current shaping thread
+        self.shaper_thread = None
 
-        # Latency (ms)
-        self.latency_spin = QDoubleSpinBox()
-        self.latency_spin.setRange(0, 10000)
+    def setup_ui(self):
+        self.form_layout.addRow(QLabel("Network Adapter (optional):"), self.adapter_combo)
+        self.form_layout.addRow(QLabel("Latency (ms):"), self.latency_spin)
+        self.form_layout.addRow(QLabel("Jitter (ms):"), self.jitter_spin)
+        self.form_layout.addRow(QLabel("Packet Loss (%):"), self.packet_loss_spin)
+
+        self.layout.addLayout(self.form_layout)
+        self.layout.addWidget(self.apply_button)
+        self.layout.addWidget(self.reset_button)
+
+        # Configure spin ranges
+        self.latency_spin.setRange(0, 10_000)
+        self.jitter_spin.setRange(0, 10_000)
+        self.packet_loss_spin.setRange(0, 100)
+        self.packet_loss_spin.setDecimals(2)
+
+        self.apply_button.clicked.connect(self.apply_settings)
+        self.reset_button.clicked.connect(self.reset_settings)
+
+        # If pywin32 + wmi are available, list adapters
+        if pywin32_available:
+            try:
+                c = wmi.WMI()
+                for interface in c.Win32_NetworkAdapter():
+                    if interface.NetConnectionID:
+                        self.adapter_combo.addItem(interface.NetConnectionID)
+            except:
+                pass
+
+    def apply_settings(self):
+        """
+        Start shaping with the chosen latency, jitter, and packet loss.
+        """
+        # 1) Stop any existing thread (and wait for its handle to close)
+        if self.shaper_thread and self.shaper_thread.isRunning():
+            self.stop_shaper_thread()
+
+        # 2) Read user values
+        latency = self.latency_spin.value()
+        jitter = self.jitter_spin.value()
+        loss = self.packet_loss_spin.value()
+
+        # 3) Save config
+        self.save_config()
+
+        # 4) Create and start a new shaping thread
+        self.shaper_thread = ShaperThread(latency, jitter, loss)
+        self.shaper_thread.finished.connect(self.on_shaper_finished)
+        self.shaper_thread.error.connect(self.on_shaper_error)
+        self.shaper_thread.start()
+
+        QMessageBox.information(self, "Shaping Started", "Network shaping has started.")
+
+    def reset_settings(self):
+        """
+        Reset shaping to zero (no latency, no jitter, no packet loss).
+        """
+        if self.shaper_thread and self.shaper_thread.isRunning():
+            self.stop_shaper_thread()
+
+        self.shaper_thread = ShaperThread(0, 0, 0.0)
+        self.shaper_thread.finished.connect(self.on_shaper_finished)
+        self.shaper_thread.error.connect(self.on_shaper_error)
+        self.shaper_thread.start()
+
+        # Reset the spin boxes
         self.latency_spin.setValue(0)
-        form_layout.addRow("Latency (ms):", self.latency_spin)
-
-        # Jitter (ms)
-        self.jitter_spin = QDoubleSpinBox()
-        self.jitter_spin.setRange(0, 10000)
         self.jitter_spin.setValue(0)
-        form_layout.addRow("Jitter (ms):", self.jitter_spin)
+        self.packet_loss_spin.setValue(0)
+        self.save_config()
 
-        # Packet loss (%)
-        self.loss_spin = QDoubleSpinBox()
-        self.loss_spin.setRange(0, 100)
-        self.loss_spin.setDecimals(3)
-        self.loss_spin.setValue(0)
-        form_layout.addRow("Packet Loss (%):", self.loss_spin)
+        QMessageBox.information(self, "Shaping Reset", "All shaping is set to normal (0).")
 
-        # Bandwidth (Kbps)
-        self.bandwidth_spin = QSpinBox()
-        self.bandwidth_spin.setRange(0, 10000000)  # up to 10 Gbps in Kbps
-        self.bandwidth_spin.setValue(0)
-        form_layout.addRow("Bandwidth (Kbps):", self.bandwidth_spin)
-
-        # Buttons
-        btn_layout = QHBoxLayout()
-        self.start_button = QPushButton("Start")
-        self.stop_button = QPushButton("Stop")
-        btn_layout.addWidget(self.start_button)
-        btn_layout.addWidget(self.stop_button)
-
-        layout.addLayout(form_layout)
-        layout.addLayout(btn_layout)
-
-        self.start_button.clicked.connect(self.on_start)
-        self.stop_button.clicked.connect(self.on_stop)
-
-    def on_start(self):
+    def stop_shaper_thread(self):
         """
-        Starts packet capturing via WinDivert and applies the user settings.
+        Gracefully stop the current shaper thread and wait for it to finish.
+        This ensures the WinDivert handle is actually closed 
+        before we open a new one.
         """
-        if self.capture_running:
-            QMessageBox.warning(self, "Already Running", "Capture is already running.")
-            return
+        if self.shaper_thread:
+            self.shaper_thread.stop()
+            self.shaper_thread.wait()
 
-        # Get user settings
-        latency_ms = self.latency_spin.value()
-        jitter_ms = self.jitter_spin.value()
-        loss_pct = self.loss_spin.value()
-        bandwidth_kbps = self.bandwidth_spin.value()
+    def on_shaper_finished(self):
+        QMessageBox.information(self, "Finished", "Shaper thread finished or stopped.")
 
-        # Update the scheduler
-        self.scheduler.update_settings(latency_ms, jitter_ms, loss_pct, bandwidth_kbps)
-        self.scheduler.start()
+    def on_shaper_error(self, message):
+        QMessageBox.critical(self, "Error in Shaper Thread", message)
 
-        # Start capturing in a new thread
-        self.capture_running = True
-        self.capture_thread = threading.Thread(target=self._capture_packets, daemon=True)
-        self.capture_thread.start()
-
-        QMessageBox.information(self, "Started", "Network emulation started.")
-
-    def on_stop(self):
+    def load_config(self):
         """
-        Stops packet capturing and resets the scheduler.
+        Load last user-set values from config.json
         """
-        if not self.capture_running:
-            QMessageBox.warning(self, "Not Running", "Capture is not running.")
-            return
-
-        self.capture_running = False
-
-        if self.divert_handle is not None:
-            self.divert_handle.close()
-            self.divert_handle = None
-
-        if self.capture_thread:
-            self.capture_thread.join()
-            self.capture_thread = None
-
-        self.scheduler.stop()
-
-        QMessageBox.information(self, "Stopped", "Network emulation stopped.")
-
-    def _capture_packets(self):
-        """
-        Capture loop for WinDivert. For simplicity, we capture all outbound and inbound IP packets.
-        You can refine the filter to match specific addresses or ports.
-        """
-        # Example filter: "true" (all traffic). Adjust as needed.
-        # You might specify: "outbound or inbound and ip" to capture IP packets only, etc.
-        # Please see WinDivert filter syntax: https://reqrypt.org/windivert-doc.html#filter_language
-        filter_str = "true"
         try:
-            self.divert_handle = pydivert.WinDivert(filter_str)
-            self.divert_handle.open()
+            if os.path.exists(CONFIG_FILE):
+                with open(CONFIG_FILE, "r") as f:
+                    config = json.load(f)
+                self.latency_spin.setValue(config.get("latency", 0))
+                self.jitter_spin.setValue(config.get("jitter", 0))
+                self.packet_loss_spin.setValue(config.get("packet_loss", 0.0))
+        except Exception as e:
+            logging.exception("Error loading config")
 
-            while self.capture_running:
-                packet = self.divert_handle.recv()  # blocks until a packet is available
-                # Hand it off to the scheduler for possible dropping, delay, re-injection
-                self.scheduler.schedule_packet(packet)
+    def save_config(self):
+        """
+        Save user-set values to config.json
+        """
+        try:
+            config = {
+                "latency": self.latency_spin.value(),
+                "jitter": self.jitter_spin.value(),
+                "packet_loss": self.packet_loss_spin.value()
+            }
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(config, f)
+        except Exception as e:
+            logging.exception("Error saving config")
 
-        except pydivert.WinDivertError as e:
-            # This often occurs if the driver isn't installed or we lack admin privileges
-            print(f"WinDivert error: {e}")
-        finally:
-            if self.divert_handle:
-                self.divert_handle.close()
-                self.divert_handle = None
+    def closeEvent(self, event):
+        """
+        When the main window closes, stop the shaping thread if running.
+        """
+        self.stop_shaper_thread()
+        super().closeEvent(event)
 
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    """
+    A global exception hook that logs errors and can show a message box.
+    """
+    logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    print(f"Main thread crashed with exception:\n{tb}")
+    app = QApplication.instance()
+    if app:
+        QMessageBox.critical(None, "Fatal Error", str(exc_value))
 
 def main():
-    app = QApplication(sys.argv)
-    window = NetworkEmulatorApp()
+    """
+    Program entry point. Checks admin privileges, elevates if needed.
+    Then runs the PyQt5 event loop with NetworkThrottler.
+    """
+    # 1) Check admin
+    if not is_admin():
+        print("Not running as admin, attempting to elevate privileges...")
+        if elevate_privileges():
+            sys.exit(0)
+        else:
+            print("Failed to elevate. Exiting.")
+            sys.exit(1)
+
+    # 2) Create QApplication
+    qt_app = QApplication(sys.argv)
+    sys.excepthook = handle_exception
+
+    # 3) Create and show main window
+    window = NetworkThrottler()
     window.show()
-    sys.exit(app.exec_())
+
+    # 4) Run event loop
+    sys.exit(qt_app.exec_())
 
 
 if __name__ == "__main__":
