@@ -2,7 +2,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ui_app_in_vs_code", "ui_app_in_vs_code.csproj", "{C8147D52-4A40-7423-6DEA-9C1A68328CC2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrafficThrottleApp", "TrafficThrottleApp\TrafficThrottleApp.csproj", "{D6151293-9AA2-4E67-F476-118D5A020EF0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -10,15 +10,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C8147D52-4A40-7423-6DEA-9C1A68328CC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C8147D52-4A40-7423-6DEA-9C1A68328CC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C8147D52-4A40-7423-6DEA-9C1A68328CC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C8147D52-4A40-7423-6DEA-9C1A68328CC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6151293-9AA2-4E67-F476-118D5A020EF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6151293-9AA2-4E67-F476-118D5A020EF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6151293-9AA2-4E67-F476-118D5A020EF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6151293-9AA2-4E67-F476-118D5A020EF0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {885C1A13-5368-4FD5-B683-99344FD22F8A}
+		SolutionGuid = {0387D404-800E-4175-82DE-A070816E26AB}
 	EndGlobalSection
 EndGlobal
