@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TrafficThrottleApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+573669dfa5824a3a61d43b92420eccc85d756867")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a00072912ce3a0d920672ffa98a8f8aa1c787ff8")]
 [assembly: System.Reflection.AssemblyProductAttribute("TrafficThrottleApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TrafficThrottleApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
