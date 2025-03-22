@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Speed Test Plugin",
+  "name": "Real Speed Test - GitHub Video",
   "version": "1.0",
-  "description": "Measures and reports your internet download speed.",
+  "description": "Measures download speed by fetching an 8K video file from GitHub.",
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
