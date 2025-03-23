@@ -1,68 +1,68 @@
 from ursina import *
+from ursina.mesh_importer import Mesh
 
-def sierpinski_tetrahedron(order, size=1, position=(0,0,0)):
-    """
-    Recursively spawn a Sierpinski Tetrahedron of a given 'order' and 'size'
-    at the given 'position' (x, y, z).
+app = Ursina()
+camera.position = (0, 5, -20)
+camera.look_at(Vec3(0, 0, 0))
+window.color = color.black
 
-    If order = 0, we just create a single tetrahedron.
-    Otherwise, we subdivide into 4 smaller tetrahedrons.
-    """
-    if order == 0:
-        # Base case: spawn a single tetrahedron
-        Entity(
-            model='tetra',
-            position=position,
-            scale=size,
-            color=color.random_color()  # random colors for fun
-        )
-    else:
-        # Subdivide
-        offset = size / 2
-        x, y, z = position
-
-        # 1) Top
-        sierpinski_tetrahedron(
-            order-1, offset,
-            (x,       y + offset, z     )
-        )
-        # 2) Bottom-left-back
-        sierpinski_tetrahedron(
-            order-1, offset,
-            (x - offset, y - offset, z - offset)
-        )
-        # 3) Bottom-right-back
-        sierpinski_tetrahedron(
-            order-1, offset,
-            (x + offset, y - offset, z - offset)
-        )
-        # 4) Bottom-center-front
-        sierpinski_tetrahedron(
-            order-1, offset,
-            (x, y - offset, z + offset)
-        )
-
-def main():
-    # Initialize Ursina
-    app = Ursina()
-
-    # Position the camera
-    camera.position = (0, 25, -60)
-    camera.look_at((0, 0, 0))
-
-    # Optionally add a directional light for shading
-    DirectionalLight(
-        parent=scene,
-        rotation=(45, 45, 45),
-        shadows=True
+# Define a single tetrahedron using 4 vertices and faces
+def create_tetrahedron(v0, v1, v2, v3, color=color.white):
+    vertices = [v0, v1, v2, v3]
+    triangles = [
+        (0, 1, 2),  # Base
+        (0, 1, 3),
+        (1, 2, 3),
+        (2, 0, 3)
+    ]
+    mesh = Mesh(
+        vertices=[vertices[i] for tri in triangles for i in tri],
+        triangles=[i for i in range(12)],
+        mode='triangle'
     )
+    mesh.generate_normals()
+    return Entity(model=mesh, color=color, collider=None)
 
-    # Create the Sierpinski Tetrahedron fractal
-    # Increase "order" for more detail, "size" for overall scale
-    sierpinski_tetrahedron(order=3, size=15, position=(0, 0, 0))
+# Midpoint helper
+def midpoint(p1, p2):
+    return (p1 + p2) / 2
 
-    # Start the Ursina engine
-    app.run()
+# Recursive Sierpinski builder
+def sierpinski(v0, v1, v2, v3, depth):
+    if depth == 0:
+        tetra = create_tetrahedron(v0, v1, v2, v3, color.hsv(random.uniform(0,1), 1, 1))
+        tetra_list.append(tetra)
+        return
 
-if __name__ == '__main__':
-    main()
+    # Midpoints of edges
+    m01 = midpoint(v0, v1)
+    m02 = midpoint(v0, v2)
+    m03 = midpoint(v0, v3)
+    m12 = midpoint(v1, v2)
+    m13 = midpoint(v1, v3)
+    m23 = midpoint(v2, v3)
+
+    # Recurse into 4 smaller tetrahedra (omit center one for hollow look)
+    sierpinski(v0, m01, m02, m03, depth - 1)
+    sierpinski(m01, v1, m12, m13, depth - 1)
+    sierpinski(m02, m12, v2, m23, depth - 1)
+    sierpinski(m03, m13, m23, v3, depth - 1)
+
+# Main tetrahedron vertices (equilateral)
+size = 5
+v0 = Vec3(0, size, 0)
+v1 = Vec3(-size, -size, size)
+v2 = Vec3(size, -size, size)
+v3 = Vec3(0, -size, -size)
+
+# Store all pieces for animation
+tetra_list = []
+sierpinski(v0, v1, v2, v3, depth=2)  # Change depth for more detail (2–4 is good)
+
+# Optional: spin animation
+def update():
+    for t in tetra_list:
+        t.rotation_y += 20 * time.dt  # rotate all
+        t.rotation_x += 10 * time.dt  # tilt
+
+app.run()
