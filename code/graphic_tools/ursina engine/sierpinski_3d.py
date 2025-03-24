@@ -27,15 +27,15 @@ def create_tetrahedron(v0, v1, v2, v3, color=color.white):
         mode='triangle'
     )
     mesh.generate_normals()  # Generate normals for proper shading
-    # Use the lit_with_shadows_shader for proper lighting effects.
-    return Entity(model=mesh, color=color, collider=None, shader=lit_with_shadows_shader)
+    # Add double_sided=True to render both sides of each face.
+    return Entity(model=mesh, color=color, collider=None, shader=lit_with_shadows_shader, double_sided=True)
 
 def midpoint(p1, p2):
     return (p1 + p2) / 2
 
 def sierpinski(v0, v1, v2, v3, depth):
     if depth == 0:
-        # Each tetrahedron is given a random HSV color (red hues will be possible if desired)
+        # Each tetrahedron is given a random HSV color.
         tetra = create_tetrahedron(v0, v1, v2, v3, color.hsv(random.uniform(0,1), 1, 1))
         tetra_list.append(tetra)
         return
@@ -63,7 +63,7 @@ v3 = Vec3(0, -size, -size)
 
 # Store all tetrahedra for animation
 tetra_list = []
-sierpinski(v0, v1, v2, v3, depth=2)  # Adjust depth (2–4 is good, higher depth means more detail)
+sierpinski(v0, v1, v2, v3, depth=2)  # Adjust depth (2–4 is good)
 
 def update():
     # Spin animation: rotate each tetrahedron over time
