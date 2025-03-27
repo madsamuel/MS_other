@@ -25,7 +25,7 @@ cube = Entity(
 )
 
 instructions = Text(
-    text="Use arrows to move, click to rotate",
+    text="Use arrows to move, click to rotate, and mouse scroll to zoom",
     origin=(0, 0),  # Center the text
     position=(0, -.45),  # Adjust position so it doesn’t overlap with the cube
     background=True,  # Optional: make it stand out with a background
