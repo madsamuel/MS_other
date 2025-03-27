@@ -24,6 +24,14 @@ cube = Entity(
     collider='box'
 )
 
+instructions = Text(
+    text="Use arrows to move, click to rotate",
+    origin=(0, 0),  # Center the text
+    position=(0, -.45),  # Adjust position so it doesn’t overlap with the cube
+    background=True,  # Optional: make it stand out with a background
+    scale=2
+)
+
 # This function rotates the cube by 360 degrees when called
 def rotate_cube():
     cube.animate('rotation_y', cube.rotation_y + 360, duration=2, curve=curve.in_out_expo)
@@ -32,6 +40,17 @@ def rotate_cube():
 # This function resets the cube's position
 def reset_cube_position():
     cube.rotation_y = 0
+
+def update():
+    # Move the cube left and right based on arrow key input
+    if held_keys['right arrow']:
+        cube.x += 5 * time.dt
+    elif held_keys['left arrow']:
+        cube.x -= 5 * time.dt
+    elif held_keys['up arrow']:
+        cube.y += 5 * time.dt
+    elif held_keys['down arrow']:
+        cube.y -= 5 * time.dt
 
 cube.on_click = rotate_cube
 
