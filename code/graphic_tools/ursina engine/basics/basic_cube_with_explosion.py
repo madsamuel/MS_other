@@ -35,7 +35,7 @@ app = Ursina()
 # Create the cube
 cube = Entity(
     model='cube',
-    color=color.azure,
+    color=color.random_color(),
     scale=2,
     collider='box'
 )
