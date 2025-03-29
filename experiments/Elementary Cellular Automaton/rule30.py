@@ -37,5 +37,5 @@ def plot_automaton(grid, rule_number):
 # Run it!
 if __name__ == "__main__":
     rule_number = 30
-    grid = generate_automaton(rule_number=rule_number, width=101, steps=60)
+    grid = generate_automaton(rule_number=rule_number, width=1000, steps=600)
     plot_automaton(grid, rule_number)
