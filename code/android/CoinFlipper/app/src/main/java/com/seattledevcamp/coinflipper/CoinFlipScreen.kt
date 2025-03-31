@@ -45,7 +45,7 @@ fun CoinFlipScreen(viewModel: CoinFlipViewModel) {
             CoinSection(viewModel)
 
             // Buttons section
-            ButtonsSection(viewModel, scope)
+            ButtonsSection(viewModel)
         }
     }
 }
@@ -165,7 +165,7 @@ fun CoinSection(viewModel: CoinFlipViewModel) {
 }
 
 @Composable
-fun ButtonsSection(viewModel: CoinFlipViewModel, scope: CoroutineScope) {
+fun ButtonsSection(viewModel: CoinFlipViewModel) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
