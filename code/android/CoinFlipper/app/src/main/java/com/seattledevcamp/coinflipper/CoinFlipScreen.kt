@@ -23,13 +23,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 fun CoinFlipScreen(viewModel: CoinFlipViewModel) {
     val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Coin Flip") }
-            )
-        }
-    ) { paddingValues ->
+    Scaffold() { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
