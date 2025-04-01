@@ -7,13 +7,13 @@
     <style name="Theme.CoinFlipper.Splash" parent="Theme.SplashScreen">
         <!-- Configure your splash screen resources -->
         <!-- Background color -->
-        <item name="android:windowSplashScreenBackground">@color/purple_200</item>
+        <item name="android:windowSplashScreenBackground">@color/white</item>
 
         <!-- Animated icon or static drawable -->
         <item name="android:windowSplashScreenAnimatedIcon">@drawable/coin_icon</item>
 
         <!-- Optional: Control fade-out durations, etc. -->
         <item name="android:windowSplashScreenAnimationDuration">2000</item>
-        
+
     </style>
 </resources>
