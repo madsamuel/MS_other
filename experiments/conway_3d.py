@@ -1,13 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import time
+import sys
+
+# Global flag indicating whether the figure is still open
+window_open = True
+
+def on_close(event):
+    """
+    Matplotlib callback for when the figure window is closed.
+    """
+    global window_open
+    window_open = False
 
 def count_neighbors_3d(grid, x, y, z):
-    """
-    Count the number of alive neighbors around cell (x, y, z) in the 3D grid.
-    Neighbors are all surrounding cells within 1 step in each dimension,
-    excluding the cell itself (26 neighbors total in 3D).
-    """
     nx, ny, nz = grid.shape
     count = 0
     
@@ -20,19 +25,12 @@ def count_neighbors_3d(grid, x, y, z):
                 ny_pos = y + dy
                 nz_pos = z + dz
                 
-                # Check boundaries
                 if 0 <= nx_pos < nx and 0 <= ny_pos < ny and 0 <= nz_pos < nz:
                     count += grid[nx_pos, ny_pos, nz_pos]
                     
     return count
 
 def next_generation_3d(grid):
-    """
-    Compute the next generation of the 3D Game of Life based on the current grid.
-    Using standard Conway-like rules adapted to 3D:
-      - A live cell stays alive if it has 2 or 3 neighbors.
-      - A dead cell becomes alive if it has exactly 3 neighbors.
-    """
     nx, ny, nz = grid.shape
     new_grid = np.zeros((nx, ny, nz), dtype=int)
     
@@ -42,24 +40,23 @@ def next_generation_3d(grid):
                 alive_neighbors = count_neighbors_3d(grid, x, y, z)
                 
                 if grid[x, y, z] == 1:
-                    # Survival rule
+                    # Survival
                     if alive_neighbors == 2 or alive_neighbors == 3:
                         new_grid[x, y, z] = 1
                 else:
-                    # Birth rule
+                    # Birth
                     if alive_neighbors == 3:
                         new_grid[x, y, z] = 1
                         
     return new_grid
 
 def main():
-    # Grid size (small to keep it manageable)
-    nx, ny, nz = 8, 8, 8
-
-    # Random initialization: 50% chance alive, 50% dead
-    grid = np.random.choice([0, 1], size=(nx, ny, nz), p=[0.5, 0.5])
+    global window_open
     
-    # Number of generations to simulate
+    # Grid size
+    nx, ny, nz = 8, 8, 8
+    # Random init
+    grid = np.random.choice([0, 1], size=(nx, ny, nz), p=[0.5, 0.5])
     generations = 30
     
     # Set up interactive plotting
@@ -67,31 +64,42 @@ def main():
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
     
+    # Attach the on_close callback to detect when the window is closed
+    fig.canvas.mpl_connect('close_event', on_close)
+    
     for gen in range(generations):
+        # If the window was closed, break out of the loop
+        if not window_open:
+            break
+
         ax.clear()
         
-        # Extract coordinates of all living cells
         living_cells = np.argwhere(grid == 1)
-        
         if living_cells.size > 0:
             xs, ys, zs = living_cells[:, 0], living_cells[:, 1], living_cells[:, 2]
             ax.scatter(xs, ys, zs, marker='o')
         
-        # Set the plot boundaries
         ax.set_xlim(0, nx)
         ax.set_ylim(0, ny)
         ax.set_zlim(0, nz)
-        
         ax.set_title(f"3D Game of Life - Generation {gen}")
+        
         plt.draw()
-        plt.pause(0.5)  # pause so we can see the update
-
-        # Advance to next generation
+        
+        # If the window is closed during pause, we handle it gracefully
+        try:
+            plt.pause(0.5)
+        except:
+            # If pause fails (window closed), exit the loop
+            break
+        
+        # Next generation
         grid = next_generation_3d(grid)
 
-    # Keep the final plot open after the simulation
+    # Turn off interactive mode and close
     plt.ioff()
-    plt.show()
+    plt.close(fig)
+    sys.exit()
 
 if __name__ == "__main__":
     main()
