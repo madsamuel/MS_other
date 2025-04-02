@@ -21,7 +21,7 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoinFlipScreen(viewModel: CoinFlipViewModel) {
-    Scaffold() { paddingValues ->
+    Scaffold { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
