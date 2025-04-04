@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import android.media.MediaPlayer
+import androidx.compose.ui.platform.LocalContext
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,8 +91,13 @@ fun CoinSection(viewModel: CoinFlipViewModel) {
     val rotation = remember { Animatable(0f) }
     val scale = remember { Animatable(1f) }
 
+    val context = LocalContext.current
+    val mediaPlayer = remember { MediaPlayer.create(context, R.raw.coin_flip) }
+
     LaunchedEffect(isFlipping) {
         if (isFlipping) {
+            mediaPlayer.start()
+
             // Reset rotation to 0 before starting
             rotation.snapTo(0f)
 
