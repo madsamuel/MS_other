@@ -1,16 +1,20 @@
 import { weaselWords } from "./weaselWords";
 
+// ✅ Protect Office-dependent code from running in non-Office context
+if (typeof Office !== "undefined" && Office.onReady) {
+  Office.onReady().then(() => {
+    console.log("✅ Office.js is loaded and ready");
 
-Office.onReady(() => {
-  console.log("✅ Office.js is loaded and ready");
-
-  document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("checkBtn");
-    if (btn) {
-      btn.addEventListener("click", findWeaselWords);
-    }
+    document.addEventListener("DOMContentLoaded", () => {
+      const btn = document.getElementById("checkBtn");
+      if (btn) {
+        btn.addEventListener("click", findWeaselWords);
+      }
+    });
   });
-});
+} else {
+  console.warn("⚠️ Office.js not available — this is probably a browser preview.");
+}
 
 async function findWeaselWords() {
   try {
