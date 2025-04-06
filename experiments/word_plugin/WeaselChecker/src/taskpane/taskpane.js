@@ -1,21 +1,18 @@
 import { weaselWords } from "./weaselWords";
-if (typeof Office !== "undefined") {
-  Office.onReady(() => {
-    console.log("✅ Office is ready");
+Office.onReady(() => {
+  console.log("✅ Office is ready");
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const btn = document.getElementById("checkBtn");
-      if (btn) {
-        console.log("✅ Button found");
-        btn.addEventListener("click", findWeaselWords);
-      } else {
-        console.error("❌ Button not found");
-      }
-    });
+  document.addEventListener("DOMContentLoaded", () => {
+    console.log("✅ DOM ready");
+    const btn = document.getElementById("checkBtn");
+    if (btn) {
+      console.log("✅ Button found");
+      btn.addEventListener("click", findWeaselWords);
+    } else {
+      console.error("❌ Button not found");
+    }
   });
-} else {
-  console.error("❌ Office.js is not loaded!");
-}
+});
 
 async function findWeaselWords() {
   console.log("🔍 findWeaselWords called");
