@@ -1,3 +1,5 @@
+# https://learn.microsoft.com/en-us/azure/virtual-desktop/graphics-chroma-value-increase-4-4-4?tabs=group-policy
+
 # Define the registry path
 $regPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Terminal Services"
 
