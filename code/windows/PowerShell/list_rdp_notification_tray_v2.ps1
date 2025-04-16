@@ -118,4 +118,3 @@ $trayIcon.ShowBalloonTip(2000)
 
 # Cleanup after exit
 Cleanup
-s
