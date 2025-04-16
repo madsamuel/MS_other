@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.ProjectManagementGuru" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.ProjectManagementGuru.Splash" parent="">
+        <!-- Fullscreen during the splash -->
+        <item name="android:windowFullscreen">true</item>
+        <!-- Make the splash go edge to edge on Android 12+ -->
+        <!-- <item name="android:windowSplashScreenFullScreen">true</item> -->
+        <!-- Optionally transparent status bar -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+</resources>

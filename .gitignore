@@ -7,3 +7,19 @@ perf_tools/temp/test.py
 perf_tools/temp/test2.py
 perf_tools/temp/test2.py
 perf_tools/temp/test2.py
+perf_tools/test.py
+perf_tools/camera work/camera_gui_phone_detection/yolov3.weights
+perf_tools/ml_samples/.env
+perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
+perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
+perf_tool_csharp/custom_notifications/SmartConnectAdvisorAI/.env
+perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+perf_tools/camera work/camera_gui_phone_detection/yolov3.cfg
+perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+perf_tools/camera work/camera_gui_phone_detection/coco.names
+code/perf_tools/camera work/camera_gui_phone_detection/yolov3.weights
+code/perf_tools/camera work/camera_gui_phone_detection/yolov3.cfg
+code/perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
+code/ml_samples/.env
+code/azure/store_to_blob_storage/.env

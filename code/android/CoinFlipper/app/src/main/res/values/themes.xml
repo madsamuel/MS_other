@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.CoinFlipper" parent="android:Theme.Material.Light.NoActionBar"/>
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.CoinFlipper.Splash" parent="Theme.SplashScreen">
+        <!-- Configure your splash screen resources -->
+        <!-- Background color -->
+        <item name="android:windowSplashScreenBackground">@color/white</item>
+
+        <!-- Animated icon or static drawable -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/coin_icon</item>
+
+        <!-- Optional: Control fade-out durations, etc. -->
+        <item name="android:windowSplashScreenAnimationDuration">2000</item>
+
+    </style>
+</resources>

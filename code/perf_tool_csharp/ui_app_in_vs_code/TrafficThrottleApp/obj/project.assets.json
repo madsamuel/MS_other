@@ -1,0 +1,75 @@
+{
+  "version": 3,
+  "targets": {
+    "net9.0-windows7.0": {}
+  },
+  "libraries": {},
+  "projectFileDependencyGroups": {
+    "net9.0-windows7.0": []
+  },
+  "packageFolders": {
+    "C:\\Users\\madsa\\.nuget\\packages\\": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\ui_app_in_vs_code\\TrafficThrottleApp\\TrafficThrottleApp.csproj",
+      "projectName": "TrafficThrottleApp",
+      "projectPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\ui_app_in_vs_code\\TrafficThrottleApp\\TrafficThrottleApp.csproj",
+      "packagesPath": "C:\\Users\\madsa\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\ui_app_in_vs_code\\TrafficThrottleApp\\obj\\",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "C:\\Users\\madsa\\AppData\\Roaming\\NuGet\\NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "net9.0-windows"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "net9.0-windows7.0": {
+          "targetAlias": "net9.0-windows",
+          "projectReferences": {}
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.200"
+    },
+    "frameworks": {
+      "net9.0-windows7.0": {
+        "targetAlias": "net9.0-windows",
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "Microsoft.NETCore.App": {
+            "privateAssets": "all"
+          },
+          "Microsoft.WindowsDesktop.App.WindowsForms": {
+            "privateAssets": "none"
+          }
+        },
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

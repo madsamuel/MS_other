@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Real Speed Test</title>
+  <style>
+    /* Basic layout and background */
+    body {
+      margin: 0;
+      padding: 10px;
+      width: 220px;
+      height: auto;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: linear-gradient(135deg, #ece9e6, #ffffff);
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    /* Title */
+    h1 {
+      font-size: 18px;
+      margin: 0 0 10px;
+      color: #333;
+    }
+
+    /* Subtitle or instructions */
+    p {
+      font-size: 14px;
+      margin: 0 0 15px;
+      color: #666;
+    }
+
+    /* Test button */
+    #startButton {
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      background-color: #2196f3;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+    }
+    #startButton:hover {
+      background-color: #1976d2;
+    }
+    #startButton:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+
+    /* Spinner container */
+    #spinner {
+      display: none;
+      margin: 15px auto;
+      width: 24px;
+      height: 24px;
+    }
+
+    /* Spinner animation */
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #ccc;
+      border-top: 3px solid #2196f3;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Result text */
+    #result {
+      margin-top: 15px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #333;
+      min-height: 24px; /* Reserve space even before the result is shown */
+    }
+  </style>
+</head>
+<body>
+  <h1>Real Speed Test</h1>
+  <p>Click the button to measure your download speed.</p>
+
+  <button id="startButton">Test Download Speed</button>
+
+  <!-- Spinner shown while the test runs -->
+  <div id="spinner">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="result">—</div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

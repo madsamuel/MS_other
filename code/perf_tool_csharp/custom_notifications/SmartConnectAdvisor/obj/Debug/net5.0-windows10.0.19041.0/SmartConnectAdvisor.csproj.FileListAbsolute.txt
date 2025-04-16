@@ -1,0 +1,6 @@
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\perf_tool_csharp\custom_notifications\SmartConnectAdvisor\obj\Debug\net5.0-windows10.0.19041.0\SmartConnectAdvisor.csproj.AssemblyReference.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\perf_tool_csharp\custom_notifications\SmartConnectAdvisor\obj\Debug\net5.0-windows10.0.19041.0\SmartConnectAdvisor.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\perf_tool_csharp\custom_notifications\SmartConnectAdvisor\obj\Debug\net5.0-windows10.0.19041.0\SmartConnectAdvisor.AssemblyInfoInputs.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\perf_tool_csharp\custom_notifications\SmartConnectAdvisor\obj\Debug\net5.0-windows10.0.19041.0\SmartConnectAdvisor.AssemblyInfo.cs
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\perf_tool_csharp\custom_notifications\SmartConnectAdvisor\obj\Debug\net5.0-windows10.0.19041.0\SmartConnectAdvisor.csproj.CoreCompileInputs.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\perf_tool_csharp\custom_notifications\SmartConnectAdvisor\obj\Debug\net5.0-windows10.0.19041.0\SmartConnectAdvisor.sourcelink.json
