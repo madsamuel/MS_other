@@ -18,7 +18,7 @@ function Cleanup {
     $trayIcon.Visible = $false
     $trayIcon.Dispose()
     $form.Close()
-    Write-Host "✔ Clean exit."
+    Write-Host "Clean exit."
 }
 
 # Prevent sleep function

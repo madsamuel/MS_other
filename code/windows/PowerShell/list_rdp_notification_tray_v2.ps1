@@ -13,17 +13,28 @@ $trayIcon.Icon = [System.Drawing.SystemIcons]::Information
 $trayIcon.Visible = $true
 $trayIcon.Text = "RDP Tray Monitor"
 
+# Create Timer
+$timer = New-Object System.Windows.Forms.Timer
+$timer.Interval = 60000
+
 # Cleanup function
 function Cleanup {
-    $trayIcon.Visible = $false
-    $trayIcon.Dispose()
-    $timer.Stop()
-    $timer.Dispose()
-    $form.Close()
+    try {
+        $timer.Stop()
+        $timer.Dispose()
+    } catch {}
+    try {
+        $trayIcon.Visible = $false
+        $trayIcon.Dispose()
+    } catch {}
+    try {
+        $form.Close()
+    } catch {}
     Write-Host "Clean exit."
+    exit
 }
 
-# Function to get RDP info
+# Get RDP info
 function Get-RDPDetails {
     $info = @{}
 
@@ -52,15 +63,25 @@ function Get-RDPDetails {
         "\Terminal Services\Inactive Sessions",
         "\Terminal Services\Total Sessions"
     )
-    $perf = Get-Counter -Counter $counters -ErrorAction SilentlyContinue
-    foreach ($sample in $perf.CounterSamples) {
-        $info[$sample.Path] = [math]::Round($sample.CookedValue, 0)
-    }
+    try {
+        $perf = Get-Counter -Counter $counters -ErrorAction Stop
+        foreach ($sample in $perf.CounterSamples) {
+            $info[$sample.Path] = [math]::Round($sample.CookedValue, 0)
+        }
+    } catch {}
 
     return ($info.GetEnumerator() | Sort-Object Name | ForEach-Object { "$($_.Name): $($_.Value)" }) -join "`n"
 }
 
-# Double-click shows details
+# Format compact tooltip
+function Get-ShortStatus {
+    $statusLines = (Get-RDPDetails).Split("`n")[0..2] -join " | "
+    $prefix = "RDP: "
+    $maxLength = 63 - $prefix.Length
+    return "$prefix$statusLines".Substring(0, [Math]::Min($statusLines.Length, $maxLength))
+}
+
+# Double-click shows MessageBox with full RDP details
 $trayIcon.Add_DoubleClick({
     [System.Windows.Forms.MessageBox]::Show((Get-RDPDetails), "RDP Details", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
 })
@@ -70,38 +91,31 @@ $menu = New-Object System.Windows.Forms.ContextMenuStrip
 $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem "Exit"
 $exitItem.Add_Click({
     $global:stopRequested = $true
-    $form.Close()  # Close the message loop
+    Cleanup
 })
 $menu.Items.Add($exitItem)
 $trayIcon.ContextMenuStrip = $menu
 
-# Timer to update tooltip and balloon
-$timer = New-Object System.Windows.Forms.Timer
-$timer.Interval = 60000
+# Timer updates balloon and tooltip
 $timer.Add_Tick({
-    $status = (Get-RDPDetails).Split("`n")[0..2] -join " | "
-    $prefix = "RDP: "
-    $maxLength = 63 - $prefix.Length
-    $shortStatus = $status.Substring(0, [Math]::Min($status.Length, $maxLength))
-    $trayIcon.Text = "$prefix$shortStatus"
+    $tooltip = Get-ShortStatus
+    $trayIcon.Text = $tooltip
     $trayIcon.BalloonTipTitle = "RDP Monitor"
-    $trayIcon.BalloonTipText = $status
+    $trayIcon.BalloonTipText = $tooltip
     $trayIcon.ShowBalloonTip(1000)
 })
 $timer.Start()
 
-# First-time tooltip
-$status = (Get-RDPDetails).Split("`n")[0..2] -join " | "
-$prefix = "RDP: "
-$maxLength = 63 - $prefix.Length
-$shortStatus = $status.Substring(0, [Math]::Min($status.Length, $maxLength))
-$trayIcon.Text = "$prefix$shortStatus"
+# First-time balloon
+$initTip = Get-ShortStatus
+$trayIcon.Text = $initTip
 $trayIcon.BalloonTipTitle = "RDP Monitor"
-$trayIcon.BalloonTipText = $status
+$trayIcon.BalloonTipText = $initTip
 $trayIcon.ShowBalloonTip(2000)
 
-# Run the real WinForms message loop
+# Run WinForms loop (blocks until $form is closed)
 [System.Windows.Forms.Application]::Run($form)
 
-# After loop exits, clean up
+# Cleanup after exit
 Cleanup
+s
