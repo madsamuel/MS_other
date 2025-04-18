@@ -1,61 +1,101 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# Globals
-$global:form = New-Object System.Windows.Forms.Form
-$global:form.WindowState = 'Minimized'
-$global:form.ShowInTaskbar = $false
-$global:preventSleep = $true
-
-# Create NotifyIcon
+# Create Tray Icon
 $trayIcon = New-Object System.Windows.Forms.NotifyIcon
 $trayIcon.Icon = [System.Drawing.SystemIcons]::Information
 $trayIcon.Visible = $true
-$trayIcon.Text = "Prevent Sleep Mode"
+$trayIcon.Text = "Perf Monitor"
 
-# Cleanup function
-function Cleanup {
-    $trayIcon.Visible = $false
-    $trayIcon.Dispose()
-    $form.Close()
-    Write-Host "Clean exit."
-}
+# Performance Counter Templates
+$counterTemplates = @(
+    '\Processor(_Total)\% Processor Time',
+    '\System\Processor Queue Length',
+    '\Memory\Available MBytes',
+    '\Memory\Pages/sec',
+    '\PhysicalDisk(_Total)\% Disk Time',
+    '\PhysicalDisk(_Total)\Avg. Disk Queue Length',
+    '\Network Interface(*)\Bytes Total/sec',
+    '\Network Interface(*)\Packets Outbound Errors',
+    '\Network Interface(*)\Packets Received Errors',
+    '\RemoteFX Network\Current TCP RTT',
+    '\RemoteFX Network\Current UDP RTT',
+    '\RemoteFX Graphics\Frames Skipped Per Second'
+)
 
-# Prevent sleep function
-function Prevent-Sleep {
-    if ($global:preventSleep) {
-        [void][System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError=$true)]
-        [extern] static bool SetThreadExecutionState([uint32] $esFlags)
-        $esFlags = 0x80000002 # ES_CONTINUOUS | ES_SYSTEM_REQUIRED
-        [void][SetThreadExecutionState]::SetThreadExecutionState($esFlags)
-    } else {
-        [void][SetThreadExecutionState]::SetThreadExecutionState(0x80000000) # ES_CONTINUOUS
+# Expand Wildcard Counters
+function Expand-ValidCounters {
+    $expanded = @()
+    foreach ($template in $counterTemplates) {
+        try {
+            $setName = ($template -split '\\')[1] -replace '\(.*\)', ''
+            $counters = Get-Counter -ListSet $setName -ErrorAction Stop
+            $matched = $counters.Paths | Where-Object { $_ -like $template }
+            if ($matched) {
+                $expanded += $matched
+            }
+        } catch {
+            Write-Host "Skipping invalid counter: $template"
+        }
     }
+    return $expanded
 }
 
-# Right-click menu
+# Get Performance Data
+function Get-PerfData {
+    $lines = @()
+    try {
+        $counters = Expand-ValidCounters
+        if ($counters.Count -eq 0) {
+            $lines += "No valid counters found."
+        } else {
+            $results = Get-Counter -Counter $counters -ErrorAction Stop
+            foreach ($sample in $results.CounterSamples) {
+                $name = $sample.Path
+                $value = "{0:N2}" -f $sample.CookedValue
+                $lines += "${name}: ${value}"
+            }
+        }
+    } catch {
+        $lines += "Error: $($_.Exception.Message)"
+    }
+    return ($lines -join "`r`n")
+}
+
+# Show Static Form
+function Show-PerfForm {
+    $form = New-Object System.Windows.Forms.Form
+    $form.Text = "Performance Metrics"
+    $form.Size = New-Object System.Drawing.Size(800, 500)
+    $form.StartPosition = "CenterScreen"
+
+    $textBox = New-Object System.Windows.Forms.TextBox
+    $textBox.Multiline = $true
+    $textBox.Dock = "Fill"
+    $textBox.ScrollBars = "Vertical"
+    $textBox.ReadOnly = $true
+    $textBox.Font = New-Object System.Drawing.Font("Consolas", 10)
+    $textBox.Text = Get-PerfData
+
+    $form.Controls.Add($textBox)
+    $form.Topmost = $true
+    $form.Add_Shown({ $form.Activate() })
+    $form.ShowDialog()
+}
+
+# Double-click = Show static perf window
+$trayIcon.Add_DoubleClick({ Show-PerfForm })
+
+# Right-click Exit Menu
 $menu = New-Object System.Windows.Forms.ContextMenuStrip
-$pauseItem = New-Object System.Windows.Forms.ToolStripMenuItem "Pause"
-$pauseItem.Add_Click({
-    $global:preventSleep = -not $global:preventSleep
-    $pauseItem.Text = if ($global:preventSleep) { "Pause" } else { "Resume" }
-    Prevent-Sleep
-})
 $exitItem = New-Object System.Windows.Forms.ToolStripMenuItem "Exit"
 $exitItem.Add_Click({
-    $global:preventSleep = $false
-    Prevent-Sleep
-    $form.Close()  # Close the message loop
+    $trayIcon.Visible = $false
+    $trayIcon.Dispose()
+    [System.Windows.Forms.Application]::Exit()
 })
-$menu.Items.Add($pauseItem)
 $menu.Items.Add($exitItem)
 $trayIcon.ContextMenuStrip = $menu
 
-# Start preventing sleep
-Prevent-Sleep
-
-# Run the real WinForms message loop
-[System.Windows.Forms.Application]::Run($form)
-
-# After loop exits, clean up
-Cleanup
+# Start Message Loop
+[System.Windows.Forms.Application]::Run()
