@@ -16,11 +16,27 @@ $counterTemplates = @(
     '\PhysicalDisk(_Total)\% Disk Time',
     '\PhysicalDisk(_Total)\Avg. Disk Queue Length',
     '\Network Interface(*)\Bytes Total/sec',
-    '\Network Interface(*)\Packets Outbound Errors',
+    '\Network Interface(*)\Packets/sec',
+    '\Network Interface(*)\Packets Received/sec',
+    '\Network Interface(*)\Packets Sent/sec',
+    '\Network Interface(*)\Current Bandwidth',
+    '\Network Interface(*)\Bytes Received/sec',
+    '\Network Interface(*)\Packets Received Unicast/sec',
+    '\Network Interface(*)\Packets Received Non-Unicast/sec',
+    '\Network Interface(*)\Packets Received Discarded',
     '\Network Interface(*)\Packets Received Errors',
-    '\RemoteFX Network\Current TCP RTT',
-    '\RemoteFX Network\Current UDP RTT',
-    '\RemoteFX Graphics\Frames Skipped Per Second'
+    '\Network Interface(*)\Packets Received Unknown',
+    '\Network Interface(*)\Bytes Sent/sec',
+    '\Network Interface(*)\Packets Sent Unicast/sec',
+    '\Network Interface(*)\Packets Sent Non-Unicast/sec',
+    '\Network Interface(*)\Packets Outbound Discarded',
+    '\Network Interface(*)\Packets Outbound Errors',
+    '\Network Interface(*)\Output Queue Length',
+    '\Network Interface(*)\Offloaded Connections',
+    '\Network Interface(*)\TCP Active RSC Connections',
+    '\Network Interface(*)\TCP RSC Coalesced Packets/sec',
+    '\Network Interface(*)\TCP RSC Exceptions/sec',
+    '\Network Interface(*)\TCP RSC Average Packet Size'
 )
 
 # Expand wildcards to real instance paths
