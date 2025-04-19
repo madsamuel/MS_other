@@ -1,5 +1,15 @@
 Add-Type -AssemblyName System.Drawing
 
+# Get defaults before param in case $PSScriptRoot is not set
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$defaultPng = Join-Path $scriptDir "input.png"
+$defaultIco = Join-Path $scriptDir "output.ico"
+
+param (
+    [string]$InputPng = $defaultPng,
+    [string]$OutputIco = $defaultIco
+)
+
 function Convert-PngToIco {
     param (
         [string]$pngPath,
@@ -20,11 +30,11 @@ function Convert-PngToIco {
 
         $width = [byte]($bitmap.Width -bor 0)
         $height = [byte]($bitmap.Height -bor 0)
-        $iconStream.WriteByte($width)        # Width
-        $iconStream.WriteByte($height)       # Height
-        $iconStream.WriteByte(0)             # Color palette
-        $iconStream.WriteByte(0)             # Reserved
-        $iconStream.Write([byte[]]@(1, 0, 32, 0), 0, 4) # Planes and bit count
+        $iconStream.WriteByte($width)
+        $iconStream.WriteByte($height)
+        $iconStream.WriteByte(0)
+        $iconStream.WriteByte(0)
+        $iconStream.Write([byte[]]@(1, 0, 32, 0), 0, 4)
 
         $pngBytes = [System.IO.File]::ReadAllBytes($pngPath)
         $size = [BitConverter]::GetBytes($pngBytes.Length)
@@ -43,5 +53,4 @@ function Convert-PngToIco {
     }
 }
 
-# Example usage
-Convert-PngToIco -pngPath "C:\Path\to\input.png" -icoPath "C:\Path\to\output.ico"
+Convert-PngToIco -pngPath $InputPng -icoPath $OutputIco

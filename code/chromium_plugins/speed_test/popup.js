@@ -8,8 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
     startButton.disabled = true;
     spinner.style.display = 'block';
     resultDiv.textContent = "Testing...";
-
-    // The video (raw) URL on GitHub. Cache-busting parameter added
+222222
     const testFileUrl = "https://raw.githubusercontent.com/madsamuel/MS_other/master/non_code/pre%202022/Events/MS%20Build%202019/Optimizing%20your%20applications%20for%20Windows%20Virtual%20Desktop%20-%20BRK3076%20-%20Copy%20part%201.mp4?cb=" + Date.now();
 
     const startTime = performance.now();
@@ -21,7 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const blob = await response.blob();
-      const fileSize = blob.size; // in bytes
+      const fileSize = blob.size; // in bytes222222
       const duration = (performance.now() - startTime) / 1000; // seconds
       const bitsLoaded = fileSize * 8; // bytes -> bits
       const speedBps = bitsLoaded / duration;
