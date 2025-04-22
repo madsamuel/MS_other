@@ -17,7 +17,7 @@ COLOR_SCHEMES = [(GREEN, BRIGHT_GREEN), (RED, (255, 200, 200)), (BLUE, (180, 255
 color_index = 0
 
 # Characters used (Mix of ASCII and Katakana-like)
-CHARS = list("ﾊﾐﾋｰｳｼﾅﾓｸﾘｿｵﾁﾄ0123456789@#$%^&*abcdefghijklmnopqrstuvwxyz")
+CHARS = list("ﾊﾐﾋｰｳｼﾅﾓｸﾘｿｵﾁﾄ0123456789@#$%^&*abcdefghijklmnopqrstuvwxyzあいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンがぎぐげござじずぜぞだぢづでどばびぶべぼぱぴぷぺぽァィゥェォッャュョヮヵヶ")
 
 # Grid setup
 COLUMNS = WIDTH // FONT_SIZE
