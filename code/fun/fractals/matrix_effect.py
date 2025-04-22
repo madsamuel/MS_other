@@ -50,7 +50,7 @@ def draw_matrix():
 # Main loop
 running = True
 while running:
-    clock.tick(30)
+    clock.tick(10)
     draw_matrix()
     pygame.display.flip()
 
