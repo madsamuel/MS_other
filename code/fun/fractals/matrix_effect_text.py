@@ -2,59 +2,62 @@ MAX_CASCADES = 600
 MAX_COLS = 20
 FRAME_DELAY = 0.03
 MAX_SPEED = 5
+FIXED_LINES = 31  # LOCKED to 31 lines
 
 import shutil, sys, time, os
 from random import choice, randrange, paretovariate
 
 CSI = "\x1b["
-pr = lambda command: print("\x1b[", command, sep="", end="")
+pr = lambda command: sys.stdout.write(f"\x1b[{command}")
 
 black, green, white = "30", "32", "37"
 
 def getchars(start, end):
     return [chr(i) for i in range(start, end)]
 
-# Character sets
 latin = getchars(0x30, 0x80)
 greek = getchars(0x390, 0x3d0)
 hebrew = getchars(0x5d0, 0x5eb)
 cyrillic = getchars(0x400, 0x500)
 
-# Matrix-style extras
 extra = list("ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄ0123456789@#$%^&*abcdefghijklmnopqrstuvwxyz"
              "あいうえおかきくけこさしすせそたちつてと"
              "なにぬねのはひふへほまみむめもやゆよらりるれろわをん"
              "ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ")
 
-# Combine and deduplicate
 chars = list(dict.fromkeys(latin + greek + hebrew + cyrillic + extra))
 
 def pareto(limit):
-    scale = lines // 2
+    scale = limit // 2
     number = (paretovariate(1.16) - 1) * scale
-    return max(0, limit - number)
+    return max(0, min(limit - 2, int(limit - number)))
 
 def init():
     global cols, lines
     try:
-        if os.name == 'nt':  # Windows terminal size boost
+        if os.name == 'nt':
             os.system("mode con: cols=300 lines=100")
     except:
         pass
-    cols, lines = shutil.get_terminal_size()
+    cols, _ = shutil.get_terminal_size()
+    lines = FIXED_LINES
     pr("?25l")  # Hide cursor
     pr("s")     # Save cursor position
+    pr("2J")    # Clear screen
 
 def end():
-    pr("m")     # Reset attributes
+    pr("0m")    # Reset attributes
     pr("2J")    # Clear screen
-    pr("u")     # Restore cursor
+    pr("u")     # Restore cursor position
     pr("?25h")  # Show cursor
+    sys.stdout.flush()
 
 def print_at(char, x, y, color="", bright="0"):
-    pr("%d;%df" % (y, x))
-    pr(bright + ";" + color + "m")
-    print(char, end="", flush=True)
+    if 1 <= y <= FIXED_LINES:
+        pr(f"{y};{x}f")
+        pr(f"{bright};{color}m")
+        sys.stdout.write(char)
+        sys.stdout.flush()
 
 def update_line(speed, counter, line):
     counter += 1
@@ -70,20 +73,20 @@ def cascade(col):
     oldline = eline = -1
     erasing = False
     bright = "1"
-    limit = pareto(lines)
+    limit = pareto(FIXED_LINES)
     while True:
         counter, line = update_line(speed, counter, line)
         if randrange(10 * speed) < 1:
             bright = "0"
-        if line > 1 and line <= limit and oldline != line:
+        if 1 < line <= limit and oldline != line:
             print_at(choice(chars), col, line - 1, green, bright)
-        if line < limit:
+        if line <= limit:
             print_at(choice(chars), col, line, white, "1")
         if erasing:
             ecounter, eline = update_line(espeed, ecounter, eline)
             print_at(" ", col, eline, black)
         else:
-            erasing = randrange(line + 1) > (lines / 2)
+            erasing = randrange(line + 1) > (FIXED_LINES / 2)
             eline = 0
         yield None
         oldline = line
