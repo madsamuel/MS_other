@@ -1,41 +1,40 @@
 import pygame
 import sys
 
-# Constants
+# Game constants
 WIDTH, HEIGHT = 640, 480
 FPS = 60
 GRAVITY = 0.6
 JUMP_STRENGTH = -12
-PIXEL_SIZE = 4  # Scale factor for Mario's pixel art
+PIXEL_SIZE = 8
 
 # Colors
-BLACK   = (0, 0, 0)
-RED     = (255, 0, 0)
-YELLOW  = (255, 255, 0)
-BLUE    = (0, 0, 255)
-BROWN   = (139, 69, 19)
-SKIN    = (255, 220, 170)
-WHITE   = (255, 255, 255)
-CLEAR   = None  # transparent pixel
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+BROWN = (139, 69, 19)
+SKIN = (255, 224, 189)
+YELLOW = (255, 255, 0)
+CLEAR = None
 
-# Pixel Mario (16x16 grid)
+# Simplified Mario Pixel Art (16x16 based on provided image)
 mario_pixels = [
-    [CLEAR,CLEAR,CLEAR,RED,RED,RED,RED,CLEAR,CLEAR,RED,RED,RED,RED,CLEAR,CLEAR,CLEAR],
-    [CLEAR,CLEAR,BLACK,BLACK,SKIN,SKIN,BLACK,BLACK,BLACK,BLACK,SKIN,SKIN,BLACK,CLEAR,CLEAR,CLEAR],
-    [CLEAR,CLEAR,BLACK,SKIN,SKIN,SKIN,SKIN,BLACK,SKIN,SKIN,SKIN,SKIN,BLACK,CLEAR,CLEAR,CLEAR],
-    [CLEAR,BLACK,BLACK,BLACK,SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,BLACK,BLACK,CLEAR,CLEAR],
-    [CLEAR,SKIN,SKIN,SKIN,SKIN,SKIN,BLACK,BLACK,SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,CLEAR,CLEAR],
-    [SKIN,SKIN,SKIN,SKIN,SKIN,BLACK,BLACK,BLACK,SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,SKIN,CLEAR],
-    [CLEAR,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,RED,CLEAR,CLEAR,CLEAR],
-    [CLEAR,RED,BLUE,BLUE,RED,RED,RED,RED,RED,RED,BLUE,BLUE,RED,CLEAR,CLEAR,CLEAR],
-    [CLEAR,RED,BLUE,YELLOW,BLUE,RED,RED,RED,RED,BLUE,YELLOW,BLUE,RED,CLEAR,CLEAR,CLEAR],
-    [CLEAR,RED,BLUE,BLUE,BLUE,BLUE,BLUE,BLUE,BLUE,BLUE,BLUE,BLUE,RED,CLEAR,CLEAR,CLEAR],
-    [CLEAR,RED,RED,CLEAR,RED,RED,RED,RED,RED,RED,CLEAR,RED,RED,CLEAR,CLEAR,CLEAR],
-    [CLEAR,SKIN,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,SKIN,CLEAR,CLEAR,CLEAR],
-    [CLEAR,SKIN,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,SKIN,CLEAR,CLEAR,CLEAR],
-    [BROWN,BROWN,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,BROWN,BROWN,CLEAR,CLEAR],
-    [BROWN,BROWN,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,BROWN,BROWN,CLEAR,CLEAR],
-    [CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR,CLEAR],
+    [CLEAR, CLEAR, CLEAR, CLEAR, RED, RED, RED, RED, RED, RED, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, CLEAR, RED, RED, RED, RED, RED, RED, RED, RED, RED, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, CLEAR, BROWN, BROWN, BROWN, SKIN, SKIN, BLACK, SKIN, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, BROWN, SKIN, BROWN, SKIN, SKIN, SKIN, BLACK, SKIN, SKIN, SKIN, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, BROWN, SKIN, BROWN, BROWN, SKIN, SKIN, SKIN, BLACK, SKIN, SKIN, SKIN, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, BROWN, BROWN, SKIN, SKIN, SKIN, SKIN, BLACK, BLACK, BLACK, BLACK, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, CLEAR, CLEAR, SKIN, SKIN, SKIN, SKIN, SKIN, SKIN, SKIN, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, CLEAR, RED, RED, BLUE, RED, RED, RED, RED, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, RED, RED, RED, BLUE, RED, RED, BLUE, RED, RED, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, RED, RED, RED, BLUE, BLUE, BLUE, BLUE, RED, RED, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, RED, RED, BLUE, YELLOW, BLUE, BLUE, YELLOW, BLUE, RED, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, CLEAR, CLEAR, BLUE, BLUE, BLUE, BLUE, BLUE, BLUE, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, CLEAR, CLEAR, RED, RED, RED, RED, RED, RED, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, CLEAR, RED, RED, RED, RED, RED, RED, RED, RED, RED, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, CLEAR, BROWN, BROWN, BROWN, CLEAR, CLEAR, CLEAR, CLEAR, BROWN, BROWN, BROWN, CLEAR, CLEAR, CLEAR, CLEAR],
+    [CLEAR, BROWN, BROWN, BROWN, BROWN, CLEAR, CLEAR, CLEAR, CLEAR, BROWN, BROWN, BROWN, BROWN, CLEAR, CLEAR, CLEAR],
 ]
 
 # Generate Mario sprite from pixel data
@@ -47,13 +46,13 @@ def draw_mario_surface():
                 pygame.draw.rect(surface, color, (x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE))
     return surface
 
-# Setup
+# Setup pygame
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Pixel Mario Clone")
+pygame.display.set_caption("Mario Pixel Art Clone")
 clock = pygame.time.Clock()
 
-# Ground and Player Setup
+# Platforms and player
 ground_height = 40
 platforms = [pygame.Rect(0, HEIGHT - ground_height, WIDTH, ground_height)]
 player = pygame.Rect(100, HEIGHT - 100, 16 * PIXEL_SIZE, 16 * PIXEL_SIZE)
@@ -61,10 +60,10 @@ mario_surface = draw_mario_surface()
 vel_y = 0
 on_ground = False
 
-# Main loop
+# Game loop
 running = True
 while running:
-    screen.fill((106, 150, 252))  # sky blue background
+    screen.fill((106, 150, 252))
     keys = pygame.key.get_pressed()
 
     for event in pygame.event.get():
@@ -76,7 +75,6 @@ while running:
         player.x -= 5
     if keys[pygame.K_RIGHT]:
         player.x += 5
-
     if keys[pygame.K_SPACE] and on_ground:
         vel_y = JUMP_STRENGTH
         on_ground = False
@@ -85,7 +83,7 @@ while running:
     vel_y += GRAVITY
     player.y += int(vel_y)
 
-    # Platform collision
+    # Collision detection
     on_ground = False
     for plat in platforms:
         if player.colliderect(plat) and vel_y >= 0:
@@ -93,11 +91,9 @@ while running:
             vel_y = 0
             on_ground = True
 
-    # Draw platforms
+    # Draw everything
     for plat in platforms:
         pygame.draw.rect(screen, (0, 200, 0), plat)
-
-    # Draw Mario
     screen.blit(mario_surface, player)
 
     pygame.display.flip()
