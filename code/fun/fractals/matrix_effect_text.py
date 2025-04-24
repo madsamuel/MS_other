@@ -3,20 +3,18 @@ MAX_COLS = 20
 FRAME_DELAY = 0.03
 MAX_SPEED = 5
 
-import shutil, sys, time
+import shutil, sys, time, os
 from random import choice, randrange, paretovariate
 
-# ANSI escape sequence helpers
 CSI = "\x1b["
 pr = lambda command: print("\x1b[", command, sep="", end="")
 
-# ANSI colors
 black, green, white = "30", "32", "37"
 
-# Character groups
 def getchars(start, end):
     return [chr(i) for i in range(start, end)]
 
+# Character sets
 latin = getchars(0x30, 0x80)
 greek = getchars(0x390, 0x3d0)
 hebrew = getchars(0x5d0, 0x5eb)
@@ -38,6 +36,11 @@ def pareto(limit):
 
 def init():
     global cols, lines
+    try:
+        if os.name == 'nt':  # Windows terminal size boost
+            os.system("mode con: cols=300 lines=100")
+    except:
+        pass
     cols, lines = shutil.get_terminal_size()
     pr("?25l")  # Hide cursor
     pr("s")     # Save cursor position
