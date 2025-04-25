@@ -6,6 +6,8 @@ WIDTH, HEIGHT = 640, 480
 FPS = 60
 GRAVITY = 0.6
 JUMP_STRENGTH = -12
+RUN_SPEED = 8
+WALK_SPEED = 4
 PIXEL_SIZE = 8
 
 # Colors
@@ -71,15 +73,18 @@ while running:
             running = False
 
     # Movement
+    speed = RUN_SPEED if keys[pygame.K_y] else WALK_SPEED
     if keys[pygame.K_LEFT]:
-        player.x -= 5
+        player.x -= speed
     if keys[pygame.K_RIGHT]:
-        player.x += 5
+        player.x += speed
     if keys[pygame.K_SPACE] and on_ground:
         vel_y = JUMP_STRENGTH
         on_ground = False
 
-    # Gravity
+    # Gravity and variable jump height
+    if not keys[pygame.K_SPACE] and vel_y < 0:
+        vel_y += GRAVITY * 2
     vel_y += GRAVITY
     player.y += int(vel_y)
 
