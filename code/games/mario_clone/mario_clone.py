@@ -1,22 +1,20 @@
-import pygame
-import sys
+import turtle
 
 # Game constants
 WIDTH, HEIGHT = 640, 480
-FPS = 60
+PIXEL_SIZE = 8
 GRAVITY = 0.6
 JUMP_STRENGTH = -12
 RUN_SPEED = 8
 WALK_SPEED = 4
-PIXEL_SIZE = 8
 
 # Colors
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
-BROWN = (139, 69, 19)
-SKIN = (255, 224, 189)
-YELLOW = (255, 255, 0)
+BLACK = "black"
+RED = "red"
+BLUE = "blue"
+BROWN = "#8B4513"
+SKIN = "#FFE0BD"
+YELLOW = "yellow"
 CLEAR = None
 
 # Simplified Mario Pixel Art (16x16 based on provided image)
@@ -39,70 +37,37 @@ mario_pixels = [
     [CLEAR, BROWN, BROWN, BROWN, BROWN, CLEAR, CLEAR, CLEAR, CLEAR, BROWN, BROWN, BROWN, BROWN, CLEAR, CLEAR, CLEAR],
 ]
 
-# Generate Mario sprite from pixel data
-def draw_mario_surface():
-    surface = pygame.Surface((16 * PIXEL_SIZE, 16 * PIXEL_SIZE), pygame.SRCALPHA)
+# Draw Mario using turtle
+def draw_mario():
+    turtle.speed(0)  # Set the fastest drawing speed
+    turtle.hideturtle()
+    turtle.penup()
+    turtle.tracer(0, 0)  # Disable screen updates for faster drawing
     for y, row in enumerate(mario_pixels):
         for x, color in enumerate(row):
             if color:
-                pygame.draw.rect(surface, color, (x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE))
-    return surface
+                turtle.goto(x * PIXEL_SIZE - WIDTH // 2, HEIGHT // 2 - y * PIXEL_SIZE)
+                turtle.fillcolor(color)
+                turtle.begin_fill()
+                for _ in range(4):
+                    turtle.forward(PIXEL_SIZE)
+                    turtle.right(90)
+                turtle.end_fill()
+    turtle.update()  # Update the screen after all drawing is done
 
-# Setup pygame
-pygame.init()
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Mario Pixel Art Clone")
-clock = pygame.time.Clock()
+# Setup turtle screen
+def setup_screen():
+    screen = turtle.Screen()
+    screen.setup(WIDTH, HEIGHT)
+    screen.bgcolor("#6A96FC")
+    screen.title("Mario Pixel Art Clone")
+    return screen
 
-# Platforms and player
-ground_height = 40
-platforms = [pygame.Rect(0, HEIGHT - ground_height, WIDTH, ground_height)]
-player = pygame.Rect(100, HEIGHT - 100, 16 * PIXEL_SIZE, 16 * PIXEL_SIZE)
-mario_surface = draw_mario_surface()
-vel_y = 0
-on_ground = False
+# Main game loop
+def main():
+    screen = setup_screen()
+    draw_mario()
+    screen.mainloop()
 
-# Game loop
-running = True
-while running:
-    screen.fill((106, 150, 252))
-    keys = pygame.key.get_pressed()
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-    # Movement
-    speed = RUN_SPEED if keys[pygame.K_y] else WALK_SPEED
-    if keys[pygame.K_LEFT]:
-        player.x -= speed
-    if keys[pygame.K_RIGHT]:
-        player.x += speed
-    if keys[pygame.K_SPACE] and on_ground:
-        vel_y = JUMP_STRENGTH
-        on_ground = False
-
-    # Gravity and variable jump height
-    if not keys[pygame.K_SPACE] and vel_y < 0:
-        vel_y += GRAVITY * 2
-    vel_y += GRAVITY
-    player.y += int(vel_y)
-
-    # Collision detection
-    on_ground = False
-    for plat in platforms:
-        if player.colliderect(plat) and vel_y >= 0:
-            player.bottom = plat.top
-            vel_y = 0
-            on_ground = True
-
-    # Draw everything
-    for plat in platforms:
-        pygame.draw.rect(screen, (0, 200, 0), plat)
-    screen.blit(mario_surface, player)
-
-    pygame.display.flip()
-    clock.tick(FPS)
-
-pygame.quit()
-sys.exit()
+if __name__ == "__main__":
+    main()
