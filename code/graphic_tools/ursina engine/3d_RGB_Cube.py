@@ -2,26 +2,49 @@ from ursina import *
 
 app = Ursina()
 
-cube = Entity(
-    model='cube',
-    scale=(2, 2, 2)
-)
+# Set the background color to black
+window.color = color.black
 
-# Access the mesh of the cube and set colors
-vertex_colors = [
-    color.rgb(0, 0, 0),      # Black
-    color.rgb(255, 0, 0),    # Red
-    color.rgb(0, 255, 0),    # Green
-    color.rgb(0, 0, 255),    # Blue
-    color.rgb(255, 255, 0),  # Yellow
-    color.rgb(255, 0, 255),  # Magenta
-    color.rgb(0, 255, 255),  # Cyan
-    color.rgb(255, 255, 255) # White
-]
+rgb_cube = Entity()  # Parent entity for all small cubes
 
-cube.model.vertex_colors = vertex_colors
-cube.model.generate()
+resolution = 8  # How many subdivisions along each axis
+size = 2         # Overall cube size
+half = size / 2
 
-EditorCamera()  # Allows rotation with mouse
+for x in range(resolution):
+    for y in range(resolution):
+        for z in range(resolution):
+            # Correct color mapping: x -> R, y -> G, z -> B
+            r = int((x / (resolution - 1)) * 255)
+            g = int((y / (resolution - 1)) * 255)
+            b = int((z / (resolution - 1)) * 255)
+
+            Entity(
+                parent=rgb_cube,
+                model=Mesh(vertices=[
+                    Vec3(-0.5, -0.5, -0.5), Vec3(0.5, -0.5, -0.5), Vec3(0.5, 0.5, -0.5), Vec3(-0.5, 0.5, -0.5),
+                    Vec3(-0.5, -0.5, 0.5), Vec3(0.5, -0.5, 0.5), Vec3(0.5, 0.5, 0.5), Vec3(-0.5, 0.5, 0.5)
+                ],
+                triangles=[
+                    (0,1,2), (0,2,3), (1,5,6), (1,6,2),
+                    (5,4,7), (5,7,6), (4,0,3), (4,3,7),
+                    (3,2,6), (3,6,7), (4,5,1), (4,1,0)
+                ],
+                colors=[
+                    color.rgba(r, g, b, 200)]*8,  # More solid (brighter)
+                mode='triangle'),
+                position=Vec3(
+                    lerp(-half, half, x / (resolution - 1)),
+                    lerp(-half, half, y / (resolution - 1)),
+                    lerp(-half, half, z / (resolution - 1))
+                ),
+                scale=size / resolution * 0.9
+            )
+
+EditorCamera()
+
+# Rotate the whole RGB cube slowly
+def update():
+    rgb_cube.rotation_y += time.dt * 20  # 20 degrees per second
 
 app.run()
