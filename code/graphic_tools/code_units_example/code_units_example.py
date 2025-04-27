@@ -3,8 +3,11 @@ from tkinter import filedialog, ttk
 from PIL import Image, ImageTk, ImageOps
 import numpy as np
 
-# Global variable to store the loaded image
+# Global variables
 loaded_img = None
+original_img = None
+subsampled_img = None
+downsampled_img = None
 
 # Function to perform subsampling (average block)
 def subsample_image(img_array, block_size):
@@ -21,6 +24,7 @@ def downsample_image(img_array, block_size):
 
 # Function to process the image with the current block size
 def process_image():
+    global original_img, subsampled_img, downsampled_img
     if loaded_img is None:
         return
 
@@ -33,26 +37,43 @@ def process_image():
     subsampled_img = Image.fromarray(subsampled)
     downsampled_img = Image.fromarray(downsampled)
 
-    def resize_image(image, max_size=300):
-        ratio = min(max_size / image.width, max_size / image.height)
+    update_display()
+
+# Function to update image display
+def update_display():
+    if loaded_img is None:
+        return
+
+    frame.update_idletasks()
+    frame_width = frame.winfo_width()
+    frame_height = frame.winfo_height()
+
+    width = frame_width // 3 - 20
+    height = frame_height - 100
+
+    def resize_image(image):
+        ratio = min(width / image.width, height / image.height)
         new_size = (int(image.width * ratio), int(image.height * ratio))
         return image.resize(new_size)
 
-    original_img = ImageTk.PhotoImage(image=resize_image(loaded_img))
-    subsampled_img = ImageTk.PhotoImage(image=resize_image(subsampled_img))
-    downsampled_img = ImageTk.PhotoImage(image=resize_image(downsampled_img))
+    resized_original = ImageTk.PhotoImage(image=resize_image(loaded_img))
+    resized_subsampled = ImageTk.PhotoImage(image=resize_image(subsampled_img))
+    resized_downsampled = ImageTk.PhotoImage(image=resize_image(downsampled_img))
 
-    original_title.grid(row=0, column=0, padx=10, pady=(0, 5))
-    original_label.config(image=original_img)
-    original_label.image = original_img
+    original_title.grid(row=0, column=0, padx=10, pady=(0, 5), sticky="n")
+    original_label.config(image=resized_original)
+    original_label.image = resized_original
+    original_label.grid(row=1, column=0, padx=10, pady=10, sticky="n")
 
-    subsampled_title.grid(row=0, column=1, padx=10, pady=(0, 5))
-    subsampled_label.config(image=subsampled_img)
-    subsampled_label.image = subsampled_img
+    subsampled_title.grid(row=0, column=1, padx=10, pady=(0, 5), sticky="n")
+    subsampled_label.config(image=resized_subsampled)
+    subsampled_label.image = resized_subsampled
+    subsampled_label.grid(row=1, column=1, padx=10, pady=10, sticky="n")
 
-    downsampled_title.grid(row=0, column=2, padx=10, pady=(0, 5))
-    downsampled_label.config(image=downsampled_img)
-    downsampled_label.image = downsampled_img
+    downsampled_title.grid(row=0, column=2, padx=10, pady=(0, 5), sticky="n")
+    downsampled_label.config(image=resized_downsampled)
+    downsampled_label.image = resized_downsampled
+    downsampled_label.grid(row=1, column=2, padx=10, pady=10, sticky="n")
 
 # Function to load the image
 def load_image():
@@ -69,6 +90,7 @@ def load_image():
 # Setup main window
 root = tk.Tk()
 root.title("Image Subsampling vs Downsampling")
+root.geometry("900x600")
 
 # Load Button and Block Size
 controls_frame = tk.Frame(root)
@@ -86,23 +108,21 @@ block_size_combo.bind("<<ComboboxSelected>>", lambda e: process_image())
 
 # Frame to organize images and labels
 frame = tk.Frame(root)
-frame.pack()
+frame.pack(expand=True, fill="both")
+frame.columnconfigure(0, weight=1)
+frame.columnconfigure(1, weight=1)
+frame.columnconfigure(2, weight=1)
 
 # Labels with titles and images
 original_title = tk.Label(frame, text="Original")
-original_title.grid_remove()
 original_label = tk.Label(frame)
-original_label.grid(row=1, column=0, padx=10)
-
 subsampled_title = tk.Label(frame, text="Subsampled")
-subsampled_title.grid_remove()
 subsampled_label = tk.Label(frame)
-subsampled_label.grid(row=1, column=1, padx=10)
-
 downsampled_title = tk.Label(frame, text="Downsampled")
-downsampled_title.grid_remove()
 downsampled_label = tk.Label(frame)
-downsampled_label.grid(row=1, column=2, padx=10)
+
+# Bind window resize to update_display
+root.bind("<Configure>", lambda event: update_display())
 
 # Start the UI loop
 root.mainloop()
