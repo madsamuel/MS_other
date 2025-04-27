@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageOps
 import numpy as np
 
 # Function to load and process the image
@@ -10,8 +10,27 @@ def load_image():
         return
 
     img = Image.open(file_path)
+    img = ImageOps.exif_transpose(img)  # Fix orientation based on EXIF
     img_ycbcr = img.convert('YCbCr')
     y, cb, cr = img_ycbcr.split()
+
+    # Create proper visualization for Cb and Cr channels
+    cb_array = np.array(cb).astype(np.float32)
+    cb_visual = np.stack([
+        np.full(cb_array.shape, 128, dtype=np.float32),  # Red
+        np.full(cb_array.shape, 128, dtype=np.float32),  # Green
+        128 + (cb_array - 128)                          # Blue
+    ], axis=-1).clip(0, 255).astype(np.uint8)
+
+    cr_array = np.array(cr).astype(np.float32)
+    cr_visual = np.stack([
+        128 + (cr_array - 128),                          # Red
+        np.full(cr_array.shape, 128, dtype=np.float32),  # Green
+        np.full(cr_array.shape, 128, dtype=np.float32)   # Blue
+    ], axis=-1).clip(0, 255).astype(np.uint8)
+
+    cb_colored = Image.fromarray(cb_visual, mode='RGB')
+    cr_colored = Image.fromarray(cr_visual, mode='RGB')
 
     # Maintain aspect ratio and resize
     def resize_image(image, max_size=300):
@@ -21,8 +40,8 @@ def load_image():
 
     original_img = ImageTk.PhotoImage(image=resize_image(img))
     y_img = ImageTk.PhotoImage(image=resize_image(y))
-    cb_img = ImageTk.PhotoImage(image=resize_image(cb))
-    cr_img = ImageTk.PhotoImage(image=resize_image(cr))
+    cb_img = ImageTk.PhotoImage(image=resize_image(cb_colored))
+    cr_img = ImageTk.PhotoImage(image=resize_image(cr_colored))
 
     # Update UI images
     original_title.grid(row=0, column=0, padx=10, pady=(0, 5))
