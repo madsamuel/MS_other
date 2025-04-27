@@ -3,6 +3,9 @@ from tkinter import filedialog, ttk
 from PIL import Image, ImageTk, ImageOps
 import numpy as np
 
+# Global variable to store the loaded image
+loaded_img = None
+
 # Function to perform subsampling (average block)
 def subsample_image(img_array, block_size):
     h, w, c = img_array.shape
@@ -16,36 +19,29 @@ def subsample_image(img_array, block_size):
 def downsample_image(img_array, block_size):
     return img_array[::block_size, ::block_size]
 
-# Function to load and process the image
-def load_image():
-    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
-    if not file_path:
+# Function to process the image with the current block size
+def process_image():
+    if loaded_img is None:
         return
 
     block_size = int(block_size_var.get())
-
-    img = Image.open(file_path)
-    img = ImageOps.exif_transpose(img)  # Fix orientation based on EXIF
-    img_array = np.array(img)
+    img_array = np.array(loaded_img)
 
     subsampled = subsample_image(img_array, block_size)
     downsampled = downsample_image(img_array, block_size)
 
-    # Convert back to images
     subsampled_img = Image.fromarray(subsampled)
     downsampled_img = Image.fromarray(downsampled)
 
-    # Maintain aspect ratio and resize
     def resize_image(image, max_size=300):
         ratio = min(max_size / image.width, max_size / image.height)
         new_size = (int(image.width * ratio), int(image.height * ratio))
         return image.resize(new_size)
 
-    original_img = ImageTk.PhotoImage(image=resize_image(img))
+    original_img = ImageTk.PhotoImage(image=resize_image(loaded_img))
     subsampled_img = ImageTk.PhotoImage(image=resize_image(subsampled_img))
     downsampled_img = ImageTk.PhotoImage(image=resize_image(downsampled_img))
 
-    # Update UI images
     original_title.grid(row=0, column=0, padx=10, pady=(0, 5))
     original_label.config(image=original_img)
     original_label.image = original_img
@@ -57,6 +53,18 @@ def load_image():
     downsampled_title.grid(row=0, column=2, padx=10, pady=(0, 5))
     downsampled_label.config(image=downsampled_img)
     downsampled_label.image = downsampled_img
+
+# Function to load the image
+def load_image():
+    global loaded_img
+    file_path = filedialog.askopenfilename(filetypes=[("Image Files", "*.png;*.jpg;*.jpeg;*.bmp")])
+    if not file_path:
+        return
+
+    img = Image.open(file_path)
+    img = ImageOps.exif_transpose(img)
+    loaded_img = img
+    process_image()
 
 # Setup main window
 root = tk.Tk()
@@ -74,6 +82,7 @@ block_size_label = tk.Label(controls_frame, text="Block Size:")
 block_size_label.pack(side="left", padx=5)
 block_size_combo = ttk.Combobox(controls_frame, textvariable=block_size_var, values=["2", "4", "8", "16", "32", "64"], width=5)
 block_size_combo.pack(side="left", padx=5)
+block_size_combo.bind("<<ComboboxSelected>>", lambda e: process_image())
 
 # Frame to organize images and labels
 frame = tk.Frame(root)
