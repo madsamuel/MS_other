@@ -25,21 +25,21 @@ def load_image():
     cr_img = ImageTk.PhotoImage(image=resize_image(cr))
 
     # Update UI images
+    original_title.grid(row=0, column=0, padx=10, pady=(0, 5))
     original_label.config(image=original_img)
     original_label.image = original_img
-    original_title.grid()
 
+    y_title.grid(row=0, column=1, padx=10, pady=(0, 5))
     y_label.config(image=y_img)
     y_label.image = y_img
-    y_title.grid()
 
+    cb_title.grid(row=0, column=2, padx=10, pady=(0, 5))
     cb_label.config(image=cb_img)
     cb_label.image = cb_img
-    cb_title.grid()
 
+    cr_title.grid(row=0, column=3, padx=10, pady=(0, 5))
     cr_label.config(image=cr_img)
     cr_label.image = cr_img
-    cr_title.grid()
 
 # Setup main window
 root = tk.Tk()
