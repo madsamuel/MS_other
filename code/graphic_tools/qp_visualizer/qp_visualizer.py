@@ -55,23 +55,33 @@ class ImageEncoderApp:
             self.process_image()
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load image:\n{e}")
-
-    def encode_image(self, img_array, quality):
+    
+    def encode_image(self, img_array_bgr, quality):
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
-        _, encimg = cv2.imencode('.jpg', img_array, encode_param)
-        return cv2.imdecode(encimg, cv2.IMREAD_COLOR)
+        _, encimg = cv2.imencode('.jpg', img_array_bgr, encode_param)
+        decoded_img = cv2.imdecode(encimg, cv2.IMREAD_COLOR)
+        return decoded_img
 
     def process_image(self):
         if self.loaded_img is None:
             return
 
         quality = int(self.quality_var.get())
+        
+        # Convert PIL RGB image to OpenCV BGR
         img_array = np.array(self.loaded_img)
+        img_array_bgr = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
 
-        encoded = self.encode_image(img_array, quality)
-        self.encoded_img = Image.fromarray(cv2.cvtColor(encoded, cv2.COLOR_BGR2RGB))
+        # Encode and decode with OpenCV
+        encoded_array = self.encode_image(img_array_bgr, quality)
 
+        # Convert the resulting BGR array back to RGB for PIL
+        encoded_array_rgb = cv2.cvtColor(encoded_array, cv2.COLOR_BGR2RGB)
+        
+        self.encoded_img = Image.fromarray(encoded_array_rgb)
         self.update_display()
+
+
 
     def resize_image(self, image, max_width, max_height):
         ratio = min(max_width / image.width, max_height / image.height)
