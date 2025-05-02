@@ -24,13 +24,12 @@ class ImageEncoderApp:
         tk.Button(controls_frame, text="Load Image", command=self.load_image).pack(side="left", padx=5)
 
         tk.Label(controls_frame, text="Quality (QP):").pack(side="left", padx=5)
-        self.quality_var = tk.StringVar(value="90")
-        quality_combo = ttk.Combobox(
-            controls_frame, textvariable=self.quality_var,
-            values=[str(i) for i in range(10, 101, 10)], width=5
+        self.quality_var = tk.IntVar(value=90)
+        quality_slider = tk.Scale(
+            controls_frame, from_=10, to=100, orient="horizontal", variable=self.quality_var,
+            command=lambda _: self.process_image()
         )
-        quality_combo.pack(side="left", padx=5)
-        quality_combo.bind("<<ComboboxSelected>>", lambda _: self.process_image())
+        quality_slider.pack(side="left", padx=5)
 
         self.frame = tk.Frame(self.root)
         self.frame.pack(expand=True, fill="both")
@@ -61,6 +60,7 @@ class ImageEncoderApp:
         _, encimg = cv2.imencode('.jpg', img_array_bgr, encode_param)
         decoded_img = cv2.imdecode(encimg, cv2.IMREAD_COLOR)
         return decoded_img
+
 
     def process_image(self):
         if self.loaded_img is None:
