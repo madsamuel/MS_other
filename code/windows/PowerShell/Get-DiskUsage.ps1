@@ -1,13 +1,16 @@
-# --- Auto-elevate and relaunch in PowerShell if needed ---
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole("Administrator")) {
-    Write-Host "Restarting with admin rights..."
-    Start-Process powershell "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`"" -Verb RunAs
-    exit
-}
-
 param (
     [string]$Path = "C:\"
 )
+
+
+# --- Auto-elevate and relaunch in PowerShell if needed ---
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "Restarting script with elevated privileges..."
+    $script = $MyInvocation.MyCommand.Definition
+    Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -NoProfile -File `"$script`"" -Verb RunAs
+    exit
+}
+
 
 # Ensure the path exists
 if (-not (Test-Path $Path)) {
