@@ -1,7 +1,9 @@
-# Ensure script is running as admin
-if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole('Administrator')) {
-    Write-Error "This script must be run as Administrator."
-    exit 1
+# Self-elevate the script if not already running as admin
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "Restarting script with elevated privileges..."
+    $script = $MyInvocation.MyCommand.Definition
+    Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -NoProfile -File `"$script`"" -Verb RunAs
+    exit
 }
 
 # Get all Ethernet adapters (filter out Bluetooth, virtual, Wi-Fi, etc.)
