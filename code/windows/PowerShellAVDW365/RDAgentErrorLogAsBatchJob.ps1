@@ -1,5 +1,5 @@
 # Updated Script Using Background Job
-##############################################
+
 # Set log file path
 $logPath = "$env:SystemRoot\System32\Winevt\Logs\RemoteDesktopServices.evtx"
 
