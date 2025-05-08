@@ -38,7 +38,7 @@ class ImageCompareApp:
         tk.Button(root, text="Load Image A", command=self.load_image_a, width=20).pack()
         tk.Button(root, text="Load Image B", command=self.load_image_b, width=20).pack()
 
-        # Panels
+        # Image panels
         self.panel_a = tk.Label(root)
         self.panel_a.pack(side="left", padx=10, pady=10)
 
@@ -48,6 +48,9 @@ class ImageCompareApp:
         # Result display
         self.result_label = tk.Label(root, text="Load two images to compare", font=("Arial", 12), justify="left")
         self.result_label.pack(pady=10)
+
+        # Calculate Scores button
+        tk.Button(root, text="Calculate Scores", command=self.try_compute, width=20).pack(pady=5)
 
     def display_image(self, panel, image):
         im = Image.fromarray(image).resize((256, 256))
@@ -60,14 +63,12 @@ class ImageCompareApp:
         if path:
             self.image1 = load_image(path)
             self.display_image(self.panel_a, self.image1)
-            self.try_compute()
 
     def load_image_b(self):
         path = filedialog.askopenfilename()
         if path:
             self.image2 = load_image(path)
             self.display_image(self.panel_b, self.image2)
-            self.try_compute()
 
     def try_compute(self):
         if self.image1 is not None and self.image2 is not None:
