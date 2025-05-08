@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw, ImageFont
 import numpy as np
 import cv2
 from skimage.metrics import structural_similarity as compare_ssim
@@ -24,7 +24,16 @@ def ssim(img1, img2):
     return compare_ssim(img1, img2, channel_axis=-1)
 
 def estimate_qp(mse):
-    return min(51, max(0, 2.0 * np.log1p(mse)))  # Heuristic formula
+    return min(51, max(0, 2.0 * np.log1p(mse)))  # Heuristic
+
+def create_placeholder(text="No Image", size=(256, 256)):
+    img = Image.new("RGB", size, color=(220, 220, 220))
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default()
+    bbox = draw.textbbox((0, 0), text, font=font)
+    w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    draw.text(((size[0] - w) // 2, (size[1] - h) // 2), text, fill=(100, 100, 100), font=font)
+    return img
 
 class ImageCompareApp:
     def __init__(self, root):
@@ -34,26 +43,36 @@ class ImageCompareApp:
         self.image1 = None
         self.image2 = None
 
-        # Buttons
-        tk.Button(root, text="Load Image A", command=self.load_image_a, width=20).pack()
-        tk.Button(root, text="Load Image B", command=self.load_image_b, width=20).pack()
+        # Button row
+        btn_frame = tk.Frame(root)
+        btn_frame.pack(pady=5)
+
+        tk.Button(btn_frame, text="Load Image A", command=self.load_image_a, width=20).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Load Image B", command=self.load_image_b, width=20).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Calculate Scores", command=self.try_compute, width=20).pack(side="left", padx=5)
 
         # Image panels
-        self.panel_a = tk.Label(root)
+        img_frame = tk.Frame(root)
+        img_frame.pack()
+
+        self.panel_a = tk.Label(img_frame)
         self.panel_a.pack(side="left", padx=10, pady=10)
 
-        self.panel_b = tk.Label(root)
+        self.panel_b = tk.Label(img_frame)
         self.panel_b.pack(side="left", padx=10, pady=10)
 
-        # Result display
+        # Display placeholders
+        self.display_image(self.panel_a, create_placeholder("Image A"))
+        self.display_image(self.panel_b, create_placeholder("Image B"))
+
+        # Results
         self.result_label = tk.Label(root, text="Load two images to compare", font=("Arial", 12), justify="left")
         self.result_label.pack(pady=10)
 
-        # Calculate Scores button
-        tk.Button(root, text="Calculate Scores", command=self.try_compute, width=20).pack(pady=5)
-
     def display_image(self, panel, image):
-        im = Image.fromarray(image).resize((256, 256))
+        if isinstance(image, np.ndarray):
+            image = Image.fromarray(image)
+        im = image.resize((256, 256))
         photo = ImageTk.PhotoImage(im)
         panel.configure(image=photo)
         panel.image = photo
