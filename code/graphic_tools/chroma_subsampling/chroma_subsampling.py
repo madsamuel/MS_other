@@ -58,33 +58,50 @@ class SubsamplingApp:
         self.canvas_frame = tk.Frame(self.root)
         self.canvas_frame.pack(fill=tk.BOTH, expand=True)
 
-        self.canvas_original = tk.Label(self.canvas_frame)
-        self.canvas_original.pack(side=tk.LEFT, padx=10)
+        self.canvas_original = tk.Canvas(self.canvas_frame, bg="black")
+        self.canvas_original.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.canvas_processed = tk.Label(self.canvas_frame)
-        self.canvas_processed.pack(side=tk.LEFT, padx=10)
+        self.canvas_processed = tk.Canvas(self.canvas_frame, bg="black")
+        self.canvas_processed.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.root.bind("<Configure>", self.on_resize)
 
     def load_image(self):
         path = filedialog.askopenfilename()
         if not path:
             return
         self.img_original = Image.open(path).convert("RGB")
-        self.display_image(self.canvas_original, self.img_original)
+        self.display_images()
 
     def apply_subsampling(self):
         if not self.img_original:
             return
         subsample_type = self.subsample_var.get()
         self.img_processed = ycbcr_subsample(self.img_original, subsample_type)
-        self.display_image(self.canvas_processed, self.img_processed)
+        self.display_images()
 
-    def display_image(self, widget, img):
-        max_size = (450, 450)
+    def display_images(self):
+        self._draw_image_on_canvas(self.canvas_original, self.img_original)
+        if self.img_processed:
+            self._draw_image_on_canvas(self.canvas_processed, self.img_processed)
+
+    def _draw_image_on_canvas(self, canvas, img):
+        canvas.delete("all")
+        if img is None:
+            return
+        w = canvas.winfo_width()
+        h = canvas.winfo_height()
         img_resized = img.copy()
-        img_resized.thumbnail(max_size, Image.LANCZOS)
+        img_resized.thumbnail((w - 20, h - 20), Image.LANCZOS)
         photo = ImageTk.PhotoImage(img_resized)
-        widget.configure(image=photo)
-        widget.image = photo
+        canvas.image = photo  # Keep a reference!
+        img_w, img_h = photo.width(), photo.height()
+        x = (w - img_w) // 2
+        y = (h - img_h) // 2
+        canvas.create_image(x, y, image=photo, anchor=tk.NW)
+
+    def on_resize(self, event):
+        self.display_images()
 
 if __name__ == "__main__":
     root = tk.Tk()
