@@ -12,6 +12,23 @@ def ycbcr_subsample(img, subsample_type):
     cr_np = np.array(cr)
 
     h, w = cb_np.shape
+
+    def pad_to_even(arr, axis):
+        size = arr.shape[axis]
+        if size % 2 != 0:
+            pad_width = ((0, 1), (0, 0)) if axis == 0 else ((0, 0), (0, 1))
+            arr = np.pad(arr, pad_width, mode='edge')
+        return arr
+
+    if subsample_type in ["4:2:2", "4:2:1", "4:1:1"]:
+        cb_np = pad_to_even(cb_np, axis=1)
+        cr_np = pad_to_even(cr_np, axis=1)
+    elif subsample_type == "4:2:0":
+        cb_np = pad_to_even(cb_np, axis=0)
+        cb_np = pad_to_even(cb_np, axis=1)
+        cr_np = pad_to_even(cr_np, axis=0)
+        cr_np = pad_to_even(cr_np, axis=1)
+
     if subsample_type == "4:2:2":
         cb_np[:, 1::2] = cb_np[:, ::2]
         cr_np[:, 1::2] = cr_np[:, ::2]
@@ -27,8 +44,8 @@ def ycbcr_subsample(img, subsample_type):
         cb_np[:, 1::4] = cb_np[:, ::4]
         cr_np[:, 1::4] = cr_np[:, ::4]
 
-    cb_new = Image.fromarray(cb_np, 'L')
-    cr_new = Image.fromarray(cr_np, 'L')
+    cb_new = Image.fromarray(cb_np[:h, :w], 'L')  # crop to original size
+    cr_new = Image.fromarray(cr_np[:h, :w], 'L')  # crop to original size
     img_new = Image.merge("YCbCr", (y, cb_new, cr_new)).convert('RGB')
     return img_new
 
