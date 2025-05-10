@@ -4,6 +4,9 @@ from PIL import Image, ImageTk
 import numpy as np
 
 def ycbcr_subsample(img, subsample_type):
+    if subsample_type == "4:4:4":
+        return img  # No subsampling; return original
+
     img_ycbcr = img.convert('YCbCr')
     y, cb, cr = img_ycbcr.split()
 
@@ -44,8 +47,8 @@ def ycbcr_subsample(img, subsample_type):
         cb_np[:, 1::4] = cb_np[:, ::4]
         cr_np[:, 1::4] = cr_np[:, ::4]
 
-    cb_new = Image.fromarray(cb_np[:h, :w], 'L')  # crop to original size
-    cr_new = Image.fromarray(cr_np[:h, :w], 'L')  # crop to original size
+    cb_new = Image.fromarray(cb_np[:h, :w], 'L')
+    cr_new = Image.fromarray(cr_np[:h, :w], 'L')
     img_new = Image.merge("YCbCr", (y, cb_new, cr_new)).convert('RGB')
     return img_new
 
@@ -64,9 +67,9 @@ class SubsamplingApp:
         top_frame = tk.Frame(self.root)
         top_frame.pack(pady=10)
 
-        self.subsample_var = tk.StringVar(value="4:2:2")
+        self.subsample_var = tk.StringVar(value="4:4:4")
         ttk.Combobox(
-            top_frame, textvariable=self.subsample_var, values=["4:2:2", "4:2:1", "4:2:0", "4:1:1"]
+            top_frame, textvariable=self.subsample_var, values=["4:4:4", "4:2:2", "4:2:1", "4:2:0", "4:1:1"]
         ).pack(side=tk.LEFT, padx=5)
 
         tk.Button(top_frame, text="Load Image", command=self.load_image).pack(side=tk.LEFT, padx=5)
