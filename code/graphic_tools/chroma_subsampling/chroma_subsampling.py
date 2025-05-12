@@ -72,6 +72,7 @@ class SubsamplingApp:
 
         tk.Button(top_frame, text="Load Image", command=self.load_image).pack(side=tk.LEFT, padx=5)
         tk.Button(top_frame, text="Apply Subsampling", command=self.apply_subsampling).pack(side=tk.LEFT, padx=5)
+        tk.Button(top_frame, text="Save Processed Image", command=self.save_processed_image).pack(side=tk.LEFT, padx=5)
 
         self.canvas_frame = tk.Frame(self.root)
         self.canvas_frame.pack(fill=tk.BOTH, expand=True)
@@ -103,6 +104,15 @@ class SubsamplingApp:
         self.img_processed = ycbcr_subsample(self.img_original, subsample_type)
         self.zoom_processed = 1.0
         self.display_images()
+
+    def save_processed_image(self):
+        if self.img_processed:
+            file_path = filedialog.asksaveasfilename(
+                defaultextension=".png",
+                filetypes=[("PNG files", "*.png"), ("JPEG files", "*.jpg;*.jpeg"), ("All files", "*.*")]
+            )
+            if file_path:
+                self.img_processed.save(file_path)
 
     def display_images(self):
         self._draw_image_on_canvas(self.canvas_original, self.img_original, self.zoom_original)
