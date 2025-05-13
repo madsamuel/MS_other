@@ -71,7 +71,8 @@ class SubsamplingApp:
         ).pack(side=tk.LEFT, padx=5)
 
         tk.Button(top_frame, text="Load Image", command=self.load_image).pack(side=tk.LEFT, padx=5)
-        tk.Button(top_frame, text="Apply Subsampling", command=self.apply_subsampling).pack(side=tk.LEFT, padx=5)
+        self.apply_button = tk.Button(top_frame, text="Apply Subsampling", command=self.apply_subsampling, state=tk.DISABLED)
+        self.apply_button.pack(side=tk.LEFT, padx=5)
         self.save_button = tk.Button(top_frame, text="Save Processed Image", command=self.save_processed_image, state=tk.DISABLED)
         self.save_button.pack(side=tk.LEFT, padx=5)
 
@@ -96,6 +97,7 @@ class SubsamplingApp:
         self.zoom_original = 1.0
         self.zoom_processed = 1.0
         self.img_processed = None
+        self.apply_button.config(state=tk.NORMAL)
         self.save_button.config(state=tk.DISABLED)
         self.display_images()
 
