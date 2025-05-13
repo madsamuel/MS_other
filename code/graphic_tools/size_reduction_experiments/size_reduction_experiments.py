@@ -53,17 +53,23 @@ class ImageCompressionApp:
         if self.original_img:
             quality = int(self.quality_slider.get())
             temp_path = "temp_compressed.jpg"
-            self.original_img.save(temp_path, 'JPEG', quality=quality, optimize=True)
+            img_to_save = self.original_img.convert('RGB')  # ensure RGB mode
+            img_to_save.save(temp_path, 'JPEG', quality=quality, optimize=True)
             self.compressed_img = Image.open(temp_path)
             self.display_image(self.compressed_canvas, self.compressed_img)
             os.remove(temp_path)
 
     def save_image(self):
         if self.compressed_img:
-            path = filedialog.asksaveasfilename(defaultextension=".jpg", filetypes=[("JPEG files", "*.jpg"), ("All files", "*.*")])
+            path = filedialog.asksaveasfilename(defaultextension=".jpg",
+                                                filetypes=[("JPEG files", "*.jpg"), ("All files", "*.*")])
             if path:
                 quality = int(self.quality_slider.get())
-                self.original_img.save(path, 'JPEG', quality=quality, optimize=True)
+                img_to_save = self.original_img.convert('RGB')  # ensure RGB mode
+                img_to_save.save(path, 'JPEG', quality=quality, optimize=True)
+                if path:
+                    quality = int(self.quality_slider.get())
+                    self.original_img.save(path, 'JPEG', quality=quality, optimize=True)
 
 if __name__ == "__main__":
     root = tk.Tk()
