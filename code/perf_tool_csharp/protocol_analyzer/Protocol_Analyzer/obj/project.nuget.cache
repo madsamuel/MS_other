@@ -1,8 +1,11 @@
 {
   "version": 2,
-  "dgSpecHash": "J+rji8Zq3HQ=",
+  "dgSpecHash": "OfzbDoNM3dQ=",
   "success": true,
   "projectFilePath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\madsa\\.nuget\\packages\\system.codedom\\9.0.5\\system.codedom.9.0.5.nupkg.sha512",
+    "C:\\Users\\madsa\\.nuget\\packages\\system.management\\9.0.5\\system.management.9.0.5.nupkg.sha512"
+  ],
   "logs": []
 }

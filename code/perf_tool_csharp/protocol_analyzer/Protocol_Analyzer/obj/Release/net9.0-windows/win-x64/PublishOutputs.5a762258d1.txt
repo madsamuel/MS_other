@@ -3,3 +3,5 @@ C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_a
 C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Release\net9.0-windows\win-x64\publish\Protocol_Analyzer.deps.json
 C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Release\net9.0-windows\win-x64\publish\Protocol_Analyzer.runtimeconfig.json
 C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Release\net9.0-windows\win-x64\publish\Protocol_Analyzer.pdb
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Release\net9.0-windows\win-x64\publish\System.CodeDom.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Release\net9.0-windows\win-x64\publish\System.Management.dll
