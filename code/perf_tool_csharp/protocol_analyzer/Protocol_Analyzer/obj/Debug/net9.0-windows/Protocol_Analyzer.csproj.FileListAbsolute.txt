@@ -1,0 +1,15 @@
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.exe
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.deps.json
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.runtimeconfig.json
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.pdb
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.AssemblyInfoInputs.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.AssemblyInfo.cs
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.csproj.CoreCompileInputs.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.sourcelink.json
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\refint\Protocol_Analyzer.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.pdb
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.genruntimeconfig.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\ref\Protocol_Analyzer.dll

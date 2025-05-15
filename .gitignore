@@ -23,3 +23,4 @@ code/perf_tools/camera work/camera_gui_phone_detection/yolov3.cfg
 code/perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
 code/ml_samples/.env
 code/azure/store_to_blob_storage/.env
+code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/readme.ignore
