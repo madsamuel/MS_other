@@ -119,8 +119,8 @@ namespace Protocol_Analyzer
 
         private void DisplayGPUInfo()
         {
-            string gpuName = "";
-            string driverVersion = "";
+            string gpuName = "Unknown GPU";
+            string driverVersion = "Unknown Version";
             string licenseType = "NVIDIA Virtual PC";
             string licenseStatus = "Activated";
 
@@ -128,25 +128,30 @@ namespace Protocol_Analyzer
             {
                 foreach (var obj in searcher.Get())
                 {
-                    gpuName = obj["Name"]?.ToString();
-                    driverVersion = obj["DriverVersion"]?.ToString();
+                    gpuName = obj["Name"]?.ToString() ?? "Unknown GPU";                  
+                    driverVersion = obj["DriverVersion"]?.ToString() ?? "Unknown Version"; 
                     break;
                 }
             }
 
-            int totalMemoryMB = (int)(new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory / (1024 * 1024));
-            Size resolution = Screen.PrimaryScreen.Bounds.Size;
-            float dpiScale = CreateGraphics().DpiX / 96f;
+            var totalMemoryBytes = new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory;
+            int totalMemoryMB = (int)(totalMemoryBytes / (1024 * 1024));
+
+            Size resolution = Screen.PrimaryScreen?.Bounds.Size ?? new Size(1920, 1080); 
+            float dpiScale = CreateGraphics()?.DpiX / 96f ?? 1.0f;                        
 
             string info = $"Active GPU:\n  {gpuName}\n\n" +
-                          $"Total Memory:\n  {totalMemoryMB} MB\n\n" +
-                          $"Primary Screen Resolution:\n  {resolution.Width}x{resolution.Height}\n" +
-                          $"DPI Scale:\n  {dpiScale * 100:F0} %\n\n" +
-                          $"Driver Version:\n  {driverVersion}\n\n" +
-                          $"License:\n  {licenseStatus}\n\n" +
-                          $"License Type:\n  {licenseType}";
+                        $"Total Memory:\n  {totalMemoryMB} MB\n\n" +
+                        $"Primary Screen Resolution:\n  {resolution.Width}x{resolution.Height}\n" +
+                        $"DPI Scale:\n  {dpiScale * 100:F0} %\n\n" +
+                        $"Driver Version:\n  {driverVersion}\n\n" +
+                        $"License:\n  {licenseStatus}\n\n" +
+                        $"License Type:\n  {licenseType}";
 
-            gpuInfoLabel.Text = info;
+            if (gpuInfoLabel != null)
+            {
+                gpuInfoLabel.Text = info;
+            }
         }
     }
 }
