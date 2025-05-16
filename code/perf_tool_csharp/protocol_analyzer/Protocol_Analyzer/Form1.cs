@@ -7,9 +7,9 @@ namespace Protocol_Analyzer
 {
     public partial class Form1 : Form
     {
-        private GroupBox gpuGroup;
-        private Label gpuInfoLabel;
-        private GroupBox displaySettingsGroup;
+        private GroupBox? gpuGroup;
+        private Label? gpuInfoLabel;
+        private GroupBox? displaySettingsGroup;
 
         public Form1()
         {
