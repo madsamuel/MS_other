@@ -10,6 +10,8 @@ namespace Protocol_Analyzer
         private GroupBox? gpuGroup;
         private Label? gpuInfoLabel;
         private GroupBox? displaySettingsGroup;
+        private GroupBox? gpuStatsGroup;
+        private Label? gpuStatsLabel;
 
         public Form1()
         {
@@ -19,16 +21,31 @@ namespace Protocol_Analyzer
         private void BuildUI()
         {
             this.Text = "System Info";
-            this.Size = new Size(800, 500);
+            this.Size = new Size(800, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            // --- GPU INFO GROUP (Left) ---
-            gpuGroup = new GroupBox
+            // GPU Information
+            gpuGroup = CreateGpuInfoGroup(new Point(20, 20));
+            this.Controls.Add(gpuGroup);
+            DisplayGPUInfo();
+
+            // Adjust Display Settings
+            displaySettingsGroup = CreateAdjustDisplaySettingsGroup(new Point(400, 20));
+            this.Controls.Add(displaySettingsGroup);
+
+            // GPU Statistics
+            gpuStatsGroup = CreateGpuStatsGroup(new Point(20, 460));
+            this.Controls.Add(gpuStatsGroup);
+        }
+
+        private GroupBox CreateGpuInfoGroup(Point location)
+        {
+            var group = new GroupBox
             {
                 Text = "GPU Information",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 Size = new Size(350, 420),
-                Location = new Point(20, 20)
+                Location = location
             };
 
             gpuInfoLabel = new Label
@@ -38,46 +55,43 @@ namespace Protocol_Analyzer
                 Font = new Font("Segoe UI", 9)
             };
 
-            gpuGroup.Controls.Add(gpuInfoLabel);
-            this.Controls.Add(gpuGroup);
-            DisplayGPUInfo();
+            group.Controls.Add(gpuInfoLabel);
+            return group;
+        }
 
-            // --- ADJUST DISPLAY SETTINGS GROUP (Right) ---
-            displaySettingsGroup = new GroupBox
+        private GroupBox CreateAdjustDisplaySettingsGroup(Point location)
+        {
+            var group = new GroupBox
             {
                 Text = "Adjust Display Settings",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
                 Size = new Size(370, 420),
-                Location = new Point(400, 20)
+                Location = location
             };
 
-            var codecLabel = new Label { Text = "Use video codec for compression:", Location = new Point(15, 30), AutoSize = true };
+            var codecLabel = CreateLabel("Use video codec for compression:", new Point(15, 30));
             var codecCombo = new ComboBox
             {
-                Location = new Point(15, 50),
-                Width = 320,
+                Location = new Point(15, 50), Width = 320,
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             codecCombo.Items.AddRange(new[] { "Use when preferred", "Always", "Never" });
             codecCombo.SelectedIndex = 0;
 
-            var qualityLabel = new Label { Text = "Visual Quality:", Location = new Point(15, 85), AutoSize = true };
+            var qualityLabel = CreateLabel("Visual Quality:", new Point(15, 85));
             var qualityCombo = new ComboBox
             {
-                Location = new Point(15, 105),
-                Width = 150,
+                Location = new Point(15, 105), Width = 150,
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             qualityCombo.Items.AddRange(new[] { "Low", "Medium", "High" });
             qualityCombo.SelectedIndex = 1;
 
             var losslessCheck = new CheckBox { Text = "Allow visually lossless compression", Location = new Point(15, 140), AutoSize = true };
-
-            var maxFpsLabel = new Label { Text = "Max Frames per second:", Location = new Point(15, 170), AutoSize = true };
+            var maxFpsLabel = CreateLabel("Max Frames per second:", new Point(15, 170));
             var maxFpsCombo = new ComboBox
             {
-                Location = new Point(15, 190),
-                Width = 80,
+                Location = new Point(15, 190), Width = 80,
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             maxFpsCombo.Items.AddRange(new[] { "15", "24", "30", "60" });
@@ -86,7 +100,7 @@ namespace Protocol_Analyzer
             var hwEncodeCheck = new CheckBox { Text = "Use hardware encoding", Location = new Point(15, 225), AutoSize = true };
             var optimizeCheck = new CheckBox { Text = "Optimize for 3D graphics Workload", Location = new Point(15, 250), AutoSize = true };
 
-            var citrixIddLabel = new Label { Text = "Citrix IDD:", Location = new Point(15, 280), AutoSize = true };
+            var citrixIddLabel = CreateLabel("Citrix IDD:", new Point(15, 280));
             var iddValueLabel = new Label
             {
                 Text = "Not configured",
@@ -96,14 +110,9 @@ namespace Protocol_Analyzer
                 AutoSize = true
             };
 
-            var advancedBtn = new Button
-            {
-                Text = "⚙ Advanced Settings",
-                Location = new Point(15, 320),
-                Width = 320
-            };
+            var advancedBtn = new Button { Text = "Advanced Settings", Location = new Point(15, 320), Width = 320 };
 
-            displaySettingsGroup.Controls.AddRange(new Control[]
+            group.Controls.AddRange(new Control[]
             {
                 codecLabel, codecCombo,
                 qualityLabel, qualityCombo,
@@ -114,7 +123,43 @@ namespace Protocol_Analyzer
                 advancedBtn
             });
 
-            this.Controls.Add(displaySettingsGroup);
+            return group;
+        }
+
+        private GroupBox CreateGpuStatsGroup(Point location)
+        {
+            var group = new GroupBox
+            {
+                Text = "GPU Statistics",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Size = new Size(750, 160),
+                Location = location
+            };
+
+            gpuStatsLabel = new Label
+            {
+                AutoSize = true,
+                Location = new Point(15, 30),
+                Font = new Font("Segoe UI", 9),
+                Text = "GPU Utilization:        30%\n" +
+                       "Memory Usage:           45% (3500 MB)\n" +
+                       "Video Encoder Usage:    12%\n" +
+                       "Video Decoder Usage:    5%"
+            };
+
+            group.Controls.Add(gpuStatsLabel);
+            return group;
+        }
+
+        private Label CreateLabel(string text, Point location)
+        {
+            return new Label
+            {
+                Text = text,
+                Location = location,
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9)
+            };
         }
 
         private void DisplayGPUInfo()
@@ -128,8 +173,8 @@ namespace Protocol_Analyzer
             {
                 foreach (var obj in searcher.Get())
                 {
-                    gpuName = obj["Name"]?.ToString() ?? "Unknown GPU";                  
-                    driverVersion = obj["DriverVersion"]?.ToString() ?? "Unknown Version"; 
+                    gpuName = obj["Name"]?.ToString() ?? "Unknown GPU";
+                    driverVersion = obj["DriverVersion"]?.ToString() ?? "Unknown Version";
                     break;
                 }
             }
@@ -137,16 +182,16 @@ namespace Protocol_Analyzer
             var totalMemoryBytes = new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory;
             int totalMemoryMB = (int)(totalMemoryBytes / (1024 * 1024));
 
-            Size resolution = Screen.PrimaryScreen?.Bounds.Size ?? new Size(1920, 1080); 
-            float dpiScale = CreateGraphics()?.DpiX / 96f ?? 1.0f;                        
+            Size resolution = Screen.PrimaryScreen?.Bounds.Size ?? new Size(1920, 1080);
+            float dpiScale = CreateGraphics()?.DpiX / 96f ?? 1.0f;
 
             string info = $"Active GPU:\n  {gpuName}\n\n" +
-                        $"Total Memory:\n  {totalMemoryMB} MB\n\n" +
-                        $"Primary Screen Resolution:\n  {resolution.Width}x{resolution.Height}\n" +
-                        $"DPI Scale:\n  {dpiScale * 100:F0} %\n\n" +
-                        $"Driver Version:\n  {driverVersion}\n\n" +
-                        $"License:\n  {licenseStatus}\n\n" +
-                        $"License Type:\n  {licenseType}";
+                          $"Total Memory:\n  {totalMemoryMB} MB\n\n" +
+                          $"Primary Screen Resolution:\n  {resolution.Width}x{resolution.Height}\n" +
+                          $"DPI Scale:\n  {dpiScale * 100:F0} %\n\n" +
+                          $"Driver Version:\n  {driverVersion}\n\n" +
+                          $"License:\n  {licenseStatus}\n\n" +
+                          $"License Type:\n  {licenseType}";
 
             if (gpuInfoLabel != null)
             {
