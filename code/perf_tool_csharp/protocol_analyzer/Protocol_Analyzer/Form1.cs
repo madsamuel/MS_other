@@ -13,6 +13,9 @@ namespace Protocol_Analyzer
         private GroupBox? gpuStatsGroup;
         private Label? gpuStatsLabel;
 
+        private IntPtr gpuDevice;
+        private System.Windows.Forms.Timer? gpuStatsTimer;
+
         public Form1()
         {
             BuildUI();
@@ -36,6 +39,25 @@ namespace Protocol_Analyzer
             // GPU Statistics
             gpuStatsGroup = CreateGpuStatsGroup(new Point(20, 460));
             this.Controls.Add(gpuStatsGroup);
+
+            int initResult = NvmlInterop.nvmlInit_v2();
+            if (initResult != 0)
+            {
+                MessageBox.Show("NVML initialization failed. Is nvml.dll accessible?");
+                return;
+            }
+
+            int handleResult = NvmlInterop.nvmlDeviceGetHandleByIndex(0, out gpuDevice);
+            if (handleResult != 0)
+            {
+                MessageBox.Show("Failed to get GPU device handle.");
+                return;
+            }
+            
+            gpuStatsTimer = new System.Windows.Forms.Timer();
+            gpuStatsTimer.Interval = 1000;
+            gpuStatsTimer.Tick += UpdateGpuStats;
+            gpuStatsTimer.Start();
         }
 
         private GroupBox CreateGpuInfoGroup(Point location)
@@ -141,10 +163,7 @@ namespace Protocol_Analyzer
                 AutoSize = true,
                 Location = new Point(15, 30),
                 Font = new Font("Segoe UI", 9),
-                Text = "GPU Utilization:        30%\n" +
-                       "Memory Usage:           45% (3500 MB)\n" +
-                       "Video Encoder Usage:    12%\n" +
-                       "Video Decoder Usage:    5%"
+                Text = "Loading..."
             };
 
             group.Controls.Add(gpuStatsLabel);
@@ -198,5 +217,42 @@ namespace Protocol_Analyzer
                 gpuInfoLabel.Text = info;
             }
         }
+
+        private void UpdateGpuStats(object? sender, EventArgs e)
+        {
+            try
+            {
+                NvmlInterop.NvmlUtilization util;
+                NvmlInterop.nvmlDeviceGetUtilizationRates(gpuDevice, out util);
+
+                NvmlInterop.NvmlMemory mem;
+                NvmlInterop.nvmlDeviceGetMemoryInfo(gpuDevice, out mem);
+                int usedMB = (int)(mem.used / (1024 * 1024));
+                int totalMB = (int)(mem.total / (1024 * 1024));
+                int memoryPct = (int)(100 * mem.used / mem.total);
+
+                uint encUtil, encPeriod, decUtil, decPeriod;
+                NvmlInterop.nvmlDeviceGetEncoderUtilization(gpuDevice, out encUtil, out encPeriod);
+                NvmlInterop.nvmlDeviceGetDecoderUtilization(gpuDevice, out decUtil, out decPeriod);
+
+                gpuStatsLabel!.Text = $"GPU Utilization:        {util.gpu}%\n" +
+                                      $"Memory Usage:           {memoryPct}% ({usedMB} MB)\n" +
+                                      $"Video Encoder Usage:    {encUtil}%\n" +
+                                      $"Video Decoder Usage:    {decUtil}%";
+
+                
+            }
+            catch (Exception ex)
+            {
+                gpuStatsLabel!.Text = $"Error retrieving GPU stats:\n{ex.Message}";
+            }
+        }
+
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            base.OnFormClosed(e);
+            gpuStatsTimer?.Stop();
+            NvmlInterop.nvmlShutdown();
+        }
     }
-}
+} 
