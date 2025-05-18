@@ -204,13 +204,13 @@ namespace Protocol_Analyzer
             Size resolution = Screen.PrimaryScreen?.Bounds.Size ?? new Size(1920, 1080);
             float dpiScale = CreateGraphics()?.DpiX / 96f ?? 1.0f;
 
-            string info = $"Active GPU:\n  {gpuName}\n\n" +
-                          $"Total Memory:\n  {totalMemoryMB} MB\n\n" +
-                          $"Primary Screen Resolution:\n  {resolution.Width}x{resolution.Height}\n" +
-                          $"DPI Scale:\n  {dpiScale * 100:F0} %\n\n" +
-                          $"Driver Version:\n  {driverVersion}\n\n" +
-                          $"License:\n  {licenseStatus}\n\n" +
-                          $"License Type:\n  {licenseType}";
+            string info = $"Active GPU:{gpuName}\n\n" +
+                          $"Total Memory:{totalMemoryMB} MB\n\n" +
+                          $"Primary Screen Resolution:{resolution.Width}x{resolution.Height}\n" +
+                          $"DPI Scale:{dpiScale * 100:F0} %\n\n" +
+                          $"Driver Version:{driverVersion}\n\n" +
+                          $"License:{licenseStatus}\n\n" +
+                          $"License Type:{licenseType}";
 
             if (gpuInfoLabel != null)
             {
