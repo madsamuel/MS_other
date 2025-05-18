@@ -66,7 +66,8 @@ namespace Protocol_Analyzer
             {
                 Text = "GPU Information",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Size = new Size(350, 420),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Location = location
             };
 
