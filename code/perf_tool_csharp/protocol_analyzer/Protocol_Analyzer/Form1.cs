@@ -53,7 +53,7 @@ namespace Protocol_Analyzer
                 MessageBox.Show("Failed to get GPU device handle.");
                 return;
             }
-            
+
             gpuStatsTimer = new System.Windows.Forms.Timer();
             gpuStatsTimer.Interval = 1000;
             gpuStatsTimer.Tick += UpdateGpuStats;
@@ -155,7 +155,8 @@ namespace Protocol_Analyzer
             {
                 Text = "GPU Statistics",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Size = new Size(750, 160),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Location = location
             };
 
@@ -236,12 +237,14 @@ namespace Protocol_Analyzer
                 NvmlInterop.nvmlDeviceGetEncoderUtilization(gpuDevice, out encUtil, out encPeriod);
                 NvmlInterop.nvmlDeviceGetDecoderUtilization(gpuDevice, out decUtil, out decPeriod);
 
-                gpuStatsLabel!.Text = $"GPU Utilization:        {util.gpu}%\n" +
-                                      $"Memory Usage:           {memoryPct}% ({usedMB} MB)\n" +
-                                      $"Video Encoder Usage:    {encUtil}%\n" +
-                                      $"Video Decoder Usage:    {decUtil}%";
-
-                
+                gpuStatsLabel!.Text =
+                    $"GPU Utilization:        {util.gpu}%\n" +
+                    $"Memory Usage:           {memoryPct}% ({usedMB} MB)\n" +
+                    $"Video Encoder Usage:    {encUtil}%\n" +
+                    $"Video Decoder Usage:    {decUtil}%\n" +
+                    $"Video Encoder FPS:      0\n" +
+                    $"Video Encoder Latency:  0 ms\n" +
+                    $"Video Encoder Sessions: 0";
             }
             catch (Exception ex)
             {
@@ -256,4 +259,4 @@ namespace Protocol_Analyzer
             NvmlInterop.nvmlShutdown();
         }
     }
-} 
+}
