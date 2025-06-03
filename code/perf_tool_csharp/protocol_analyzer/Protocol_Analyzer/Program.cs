@@ -16,7 +16,9 @@ namespace Protocol_Analyzer
         {
             bool isRemoteSession = GetSystemMetrics(SM_REMOTESESSION) != 0;
 
-            if (!isRemoteSession)
+            // Check if the application is running in a Remote Desktop session 
+            // set to !isRemoteSession for production use
+            if (isRemoteSession)
             {
                 MessageBox.Show(
                     "This application can only run in a Remote Desktop session.",

@@ -17,7 +17,7 @@ namespace Protocol_Analyzer
         private IntPtr gpuDevice;
         private System.Windows.Forms.Timer? gpuStatsTimer;
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct NvmlEncoderStats
         {
             public uint sessionCount;
@@ -50,6 +50,9 @@ namespace Protocol_Analyzer
 
             [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
             public static extern int nvmlDeviceGetEncoderStats(IntPtr device, out NvmlEncoderStats stats);
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlSystemGetDriverVersion(byte[] version, int length);
 
             public struct NvmlUtilization
             {
