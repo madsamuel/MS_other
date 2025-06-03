@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Management;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace Protocol_Analyzer
 {
@@ -16,6 +17,54 @@ namespace Protocol_Analyzer
         private IntPtr gpuDevice;
         private System.Windows.Forms.Timer? gpuStatsTimer;
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NvmlEncoderStats
+        {
+            public uint sessionCount;
+            public uint averageFps;
+            public uint averageLatency;
+        }
+
+        public static class NvmlInterop
+        {
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlInit_v2();
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlShutdown();
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlDeviceGetHandleByIndex(int index, out IntPtr device);
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlDeviceGetUtilizationRates(IntPtr device, out NvmlUtilization utilization);
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlDeviceGetMemoryInfo(IntPtr device, out NvmlMemory memory);
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlDeviceGetEncoderUtilization(IntPtr device, out uint utilization, out uint samplingPeriod);
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlDeviceGetDecoderUtilization(IntPtr device, out uint utilization, out uint samplingPeriod);
+
+            [DllImport("nvml.dll", CallingConvention = CallingConvention.Cdecl)]
+            public static extern int nvmlDeviceGetEncoderStats(IntPtr device, out NvmlEncoderStats stats);
+
+            public struct NvmlUtilization
+            {
+                public uint gpu;
+                public uint memory;
+            }
+
+            public struct NvmlMemory
+            {
+                public ulong total;
+                public ulong free;
+                public ulong used;
+            }
+        }
+
         public Form1()
         {
             BuildUI();
@@ -27,16 +76,13 @@ namespace Protocol_Analyzer
             this.Size = new Size(800, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            // GPU Information
             gpuGroup = CreateGpuInfoGroup(new Point(20, 20));
             this.Controls.Add(gpuGroup);
             DisplayGPUInfo();
 
-            // Adjust Display Settings
             displaySettingsGroup = CreateAdjustDisplaySettingsGroup(new Point(400, 20));
             this.Controls.Add(displaySettingsGroup);
 
-            // GPU Statistics
             gpuStatsGroup = CreateGpuStatsGroup(new Point(20, 460));
             this.Controls.Add(gpuStatsGroup);
 
@@ -224,27 +270,25 @@ namespace Protocol_Analyzer
         {
             try
             {
-                NvmlInterop.NvmlUtilization util;
-                NvmlInterop.nvmlDeviceGetUtilizationRates(gpuDevice, out util);
-
-                NvmlInterop.NvmlMemory mem;
-                NvmlInterop.nvmlDeviceGetMemoryInfo(gpuDevice, out mem);
+                NvmlInterop.nvmlDeviceGetUtilizationRates(gpuDevice, out var util);
+                NvmlInterop.nvmlDeviceGetMemoryInfo(gpuDevice, out var mem);
                 int usedMB = (int)(mem.used / (1024 * 1024));
                 int totalMB = (int)(mem.total / (1024 * 1024));
                 int memoryPct = (int)(100 * mem.used / mem.total);
 
-                uint encUtil, encPeriod, decUtil, decPeriod;
-                NvmlInterop.nvmlDeviceGetEncoderUtilization(gpuDevice, out encUtil, out encPeriod);
-                NvmlInterop.nvmlDeviceGetDecoderUtilization(gpuDevice, out decUtil, out decPeriod);
+                NvmlInterop.nvmlDeviceGetEncoderUtilization(gpuDevice, out var encUtil, out _);
+                NvmlInterop.nvmlDeviceGetDecoderUtilization(gpuDevice, out var decUtil, out _);
+
+                NvmlInterop.nvmlDeviceGetEncoderStats(gpuDevice, out var encoderStats);
 
                 gpuStatsLabel!.Text =
                     $"GPU Utilization:        {util.gpu}%\n" +
                     $"Memory Usage:           {memoryPct}% ({usedMB} MB)\n" +
                     $"Video Encoder Usage:    {encUtil}%\n" +
                     $"Video Decoder Usage:    {decUtil}%\n" +
-                    $"Video Encoder FPS:      0\n" +
-                    $"Video Encoder Latency:  0 ms\n" +
-                    $"Video Encoder Sessions: 0";
+                    $"Video Encoder FPS:      {encoderStats.averageFps}\n" +
+                    $"Video Encoder Latency:  {encoderStats.averageLatency} ms\n" +
+                    $"Video Encoder Sessions: {encoderStats.sessionCount}";
             }
             catch (Exception ex)
             {

@@ -5,11 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
+            "name": ".NET: Launch Protocol_Analyzer",
+            "type": "coreclr",
             "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
+            "preLaunchTask": "dotnet: build",
+            "program": "${workspaceFolder}/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Debug/net9.0-windows/Protocol_Analyzer.exe",
+            "args": [],
+            "cwd": "${workspaceFolder}/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer",
+            "stopAtEntry": false,
+            "console": "internalConsole"
         }
     ]
 }
