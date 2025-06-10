@@ -8,6 +8,9 @@ namespace Protocol_Analyzer
 {
     public partial class Form1 : Form
     {
+        private Label statsLabel;
+        private System.Windows.Forms.Timer statsTimer;
+
         public Form1()
         {
             BuildUI();
@@ -26,6 +29,12 @@ namespace Protocol_Analyzer
             // Real-Time Advanced Statistics section
             var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, 200));
             this.Controls.Add(realTimeStatsGroup);
+
+            // Start polling for encoder frames dropped every 15 seconds
+            statsTimer = new System.Windows.Forms.Timer();
+            statsTimer.Interval = 15000; // 15 seconds
+            statsTimer.Tick += PollEncoderFramesDropped;
+            statsTimer.Start();
         }
 
         private GroupBox CreateDetectedSettingsGroup(Point location)
@@ -79,9 +88,9 @@ namespace Protocol_Analyzer
                 Location = location
             };
 
-            var statsLabel = new Label
+            statsLabel = new Label
             {
-                Text = "(Real-time statistics will appear here)",
+                Text = "Encoder Frames Dropped: (waiting for data)",
                 Location = new Point(15, 30),
                 AutoSize = true,
                 Font = new Font("Segoe UI", 9)
@@ -89,6 +98,42 @@ namespace Protocol_Analyzer
 
             group.Controls.Add(statsLabel);
             return group;
+        }
+
+        private void PollEncoderFramesDropped(object? sender, EventArgs e)
+        {
+            int framesDropped = GetEncoderFramesDroppedFromWMI();
+            statsLabel.Text = $"Encoder Frames Dropped: {(framesDropped >= 0 ? framesDropped.ToString() : "Unavailable")}";
+        }
+
+        private int GetEncoderFramesDroppedFromWMI()
+        {
+            // Try to get encoder frames dropped from WMI (if available)
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher("root\\CIMV2", "SELECT * FROM Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        // The property name for dropped frames may vary by driver/OS. Commonly, it's not directly exposed.
+                        // Here, we look for any property that might indicate dropped frames.
+                        foreach (var prop in obj.Properties)
+                        {
+                            if (prop.Name.ToLower().Contains("dropped") && prop.Value != null)
+                            {
+                                if (int.TryParse(prop.Value.ToString(), out int dropped))
+                                    return dropped;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // If WMI fails or property not found, return -1 to indicate unavailable
+                return -1;
+            }
+            return -1; // Not found
         }
 
         // UI helper methods
@@ -117,6 +162,7 @@ namespace Protocol_Analyzer
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             base.OnFormClosed(e);
+            statsTimer?.Stop();
         }
     }
 }
