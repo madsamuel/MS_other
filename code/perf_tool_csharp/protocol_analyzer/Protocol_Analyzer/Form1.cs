@@ -8,8 +8,8 @@ namespace Protocol_Analyzer
 {
     public partial class Form1 : Form
     {
-        private Label statsLabel;
-        private Label fpsLabel;
+        private Label statsLabel = null!;
+        private Label fpsLabel = null!;
         private System.Windows.Forms.Timer statsTimer;
 
         public Form1()
