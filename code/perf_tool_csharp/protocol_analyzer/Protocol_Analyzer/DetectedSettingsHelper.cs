@@ -74,7 +74,7 @@ namespace Protocol_Analyzer
                     {
                         if (obj["VideoProcessor"] != null)
                         {
-                            string processor = obj["VideoProcessor"].ToString().ToLower();
+                            string processor = obj["VideoProcessor"]?.ToString()?.ToLower() ?? string.Empty;
                             // Check for common GPU vendors that support hardware encoding
                             if (processor.Contains("nvidia") || processor.Contains("amd") || processor.Contains("intel"))
                             {
