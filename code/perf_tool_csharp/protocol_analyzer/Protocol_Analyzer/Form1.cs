@@ -10,7 +10,7 @@ namespace Protocol_Analyzer
     {
         private Label statsLabel = null!;
         private Label fpsLabel = null!;
-        private System.Windows.Forms.Timer statsTimer;
+        private System.Windows.Forms.Timer statsTimer = null!;
 
         public Form1()
         {
@@ -32,7 +32,6 @@ namespace Protocol_Analyzer
             this.Controls.Add(realTimeStatsGroup);
 
             // Start polling for encoder frames dropped every 15 seconds
-            statsTimer = new System.Windows.Forms.Timer();
             statsTimer.Interval = 15000; // 15 seconds
             statsTimer.Tick += PollEncoderFramesDropped;
             statsTimer.Start();
