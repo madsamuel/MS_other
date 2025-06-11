@@ -23,18 +23,55 @@ namespace Protocol_Analyzer
             this.Size = new Size(800, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
 
+            // GPU Information section
+            var gpuInfoGroup = CreateGpuInfoGroup(new Point(20, 20));
+            this.Controls.Add(gpuInfoGroup);
+
             // holder for Detected Setting    
-            var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20, 20));
+            var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20, 120));
             this.Controls.Add(detectedSettingsGroup);    
 
             // Real-Time Advanced Statistics section
-            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, 200));
+            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, 300));
             this.Controls.Add(realTimeStatsGroup);
 
             // Start polling for encoder frames dropped every 15 seconds
+            statsTimer = new System.Windows.Forms.Timer();
             statsTimer.Interval = 15000; // 15 seconds
             statsTimer.Tick += PollEncoderFramesDropped;
             statsTimer.Start();
+        }
+
+        private GroupBox CreateGpuInfoGroup(Point location)
+        {
+            var group = new GroupBox
+            {
+                Text = "GPU Information",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Location = location
+            };
+
+            var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
+            var resolutionLabel = new Label
+            {
+                Text = $"Main Display Resolution: {resolution.Width}x{resolution.Height}",
+                Location = new Point(15, 30),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9)
+            };
+            var dpiLabel = new Label
+            {
+                Text = $"DPI Scale: {dpiScale * 100:F0} %",
+                Location = new Point(15, 55),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9)
+            };
+
+            group.Controls.Add(resolutionLabel);
+            group.Controls.Add(dpiLabel);
+            return group;
         }
 
         private GroupBox CreateDetectedSettingsGroup(Point location)
