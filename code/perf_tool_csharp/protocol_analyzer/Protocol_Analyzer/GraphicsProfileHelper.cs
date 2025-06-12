@@ -44,11 +44,11 @@ namespace Protocol_Analyzer
             // Compose profile string
             if (isRemoteSession)
             {
-                profile = $"RDP Session\nGPU: {gpuType}\nEncoding: {encoderType}\nHW Encode: {(hwEncoding ? "Yes" : "No")}";
+                profile = $"RDP Session | GPU: {gpuType} | Encoding: {encoderType} | HW Encode: {(hwEncoding ? "Yes" : "No")}";
             }
             else
             {
-                profile = $"Local Session\nGPU: {gpuType}\nEncoding: {encoderType}\nHW Encode: {(hwEncoding ? "Yes" : "No")}";
+                profile = $"Local Session | GPU: {gpuType} | Encoding: {encoderType} | HW Encode: {(hwEncoding ? "Yes" : "No")}";
             }
             return profile;
         }
