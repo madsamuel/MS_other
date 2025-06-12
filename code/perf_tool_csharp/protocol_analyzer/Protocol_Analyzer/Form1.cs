@@ -28,7 +28,7 @@ namespace Protocol_Analyzer
             this.Controls.Add(gpuInfoGroup);
 
             // holder for Detected Setting    
-            var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20, 120));
+            var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(420, 20)); // Move to the right
             this.Controls.Add(detectedSettingsGroup);    
 
             // Real-Time Advanced Statistics section
