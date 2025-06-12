@@ -110,24 +110,32 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\madsa\\.nuget\\packages\\": {}
+    "D:\\NuGet": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
+      "projectUniqueName": "D:\\OneDrive - Personal\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
       "projectName": "Protocol_Analyzer",
-      "projectPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
-      "packagesPath": "C:\\Users\\madsa\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\obj\\",
+      "projectPath": "D:\\OneDrive - Personal\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
+      "packagesPath": "D:\\NuGet",
+      "outputPath": "D:\\OneDrive - Personal\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "C:\\Users\\madsa\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "d:\\Users\\ssa\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net9.0-windows"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {

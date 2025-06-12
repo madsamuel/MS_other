@@ -18,3 +18,23 @@ C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_a
 C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\runtimes\win\lib\net9.0\System.Management.dll
 C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.csproj.AssemblyReference.cache
 C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol.06BC18A9.Up2Date
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.exe
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.deps.json
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.runtimeconfig.json
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.dll
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\Protocol_Analyzer.pdb
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\System.CodeDom.dll
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\System.Management.dll
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\bin\Debug\net9.0-windows\runtimes\win\lib\net9.0\System.Management.dll
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.csproj.AssemblyReference.cache
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.GeneratedMSBuildEditorConfig.editorconfig
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.AssemblyInfoInputs.cache
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.AssemblyInfo.cs
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.csproj.CoreCompileInputs.cache
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.sourcelink.json
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol.06BC18A9.Up2Date
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.dll
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\refint\Protocol_Analyzer.dll
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.pdb
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\Protocol_Analyzer.genruntimeconfig.cache
+D:\OneDrive - Personal\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer\obj\Debug\net9.0-windows\ref\Protocol_Analyzer.dll
