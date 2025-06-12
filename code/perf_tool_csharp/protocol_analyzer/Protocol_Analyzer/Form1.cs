@@ -26,18 +26,12 @@ namespace Protocol_Analyzer
             // GPU Information section
             var gpuInfoGroup = CreateGpuInfoGroup(new Point(20, 20));
             this.Controls.Add(gpuInfoGroup);
-
-<<<<<<< HEAD
-            // holder for Detected Setting    
-            var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20, 120));
-            this.Controls.Add(detectedSettingsGroup);    
-=======
+            
             // Detected Settings section - match width and padding
             int groupWidth = gpuInfoGroup.Width > 0 ? gpuInfoGroup.Width : 370;
             var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20 + groupWidth + 20, 20));
             detectedSettingsGroup.Size = new Size(groupWidth, detectedSettingsGroup.Height);
             this.Controls.Add(detectedSettingsGroup);
->>>>>>> 8b7b6bb527cb1f9896ef75e3149bd1da8fd8921d
 
             // Real-Time Advanced Statistics section
             var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, 300));
@@ -62,25 +56,6 @@ namespace Protocol_Analyzer
             };
 
             var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
-<<<<<<< HEAD
-            var resolutionLabel = new Label
-            {
-                Text = $"Main Display Resolution: {resolution.Width}x{resolution.Height}",
-                Location = new Point(15, 30),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9)
-            };
-            var dpiLabel = new Label
-            {
-                Text = $"DPI Scale: {dpiScale * 100:F0} %",
-                Location = new Point(15, 55),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9)
-            };
-
-            group.Controls.Add(resolutionLabel);
-            group.Controls.Add(dpiLabel);
-=======
             var resolutionLabel = CreateLabel("Main Display Resolution:", new Point(15, 30));
             var resolutionValue = CreateBoldLabel($"{resolution.Width}x{resolution.Height}", new Point(150, 30));
             var dpiLabel = CreateLabel("DPI Scale:", new Point(15, 55));
@@ -108,7 +83,6 @@ namespace Protocol_Analyzer
             group.Controls.Add(encoderTypeValue);
             group.Controls.Add(hwEncodeLabel);
             group.Controls.Add(hwEncodeValue);
->>>>>>> 8b7b6bb527cb1f9896ef75e3149bd1da8fd8921d
             return group;
         }
 
