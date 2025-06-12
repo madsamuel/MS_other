@@ -18,16 +18,16 @@ namespace Protocol_Analyzer
 
             // Check if the application is running in a Remote Desktop session 
             // set to !isRemoteSession for production use
-            if (isRemoteSession)
-            {
-                MessageBox.Show(
-                    "This application can only run in a Remote Desktop session.",
-                    "Remote Desktop Required",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning
-                );
-                return;
-            }
+            // if (!isRemoteSession)
+            // {
+            //     MessageBox.Show(
+            //         "This application can only run in a Remote Desktop session.",
+            //         "Remote Desktop Required",
+            //         MessageBoxButtons.OK,
+            //         MessageBoxIcon.Warning
+            //     );
+            //     return;
+            // }
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
