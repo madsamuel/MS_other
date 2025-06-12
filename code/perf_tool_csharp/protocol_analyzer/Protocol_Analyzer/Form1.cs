@@ -69,18 +69,26 @@ namespace Protocol_Analyzer
                 Font = new Font("Segoe UI", 9)
             };
 
-            var graphicsProfile = GraphicsProfileHelper.GetGraphicsProfile();
-            var profileLabel = new Label
-            {
-                Text = $"Graphics Profile: {graphicsProfile}",
-                Location = new Point(15, 80),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9)
-            };
+            var (sessionType, gpuType, encoderType, hwEncode) = GraphicsProfileHelper.GetGraphicsProfileDetails();
+            var sessionTypeLabel = CreateLabel("Session Type:", new Point(15, 80));
+            var sessionTypeValue = CreateBoldLabel(sessionType, new Point(150, 80));
+            var gpuTypeLabel = CreateLabel("GPU Type:", new Point(15, 105));
+            var gpuTypeValue = CreateBoldLabel(gpuType, new Point(150, 105));
+            var encoderTypeLabel = CreateLabel("Encoding:", new Point(15, 130));
+            var encoderTypeValue = CreateBoldLabel(encoderType, new Point(150, 130));
+            var hwEncodeLabel = CreateLabel("HW Encode:", new Point(15, 155));
+            var hwEncodeValue = CreateBoldLabel(hwEncode, new Point(150, 155));
 
             group.Controls.Add(resolutionLabel);
             group.Controls.Add(dpiLabel);
-            group.Controls.Add(profileLabel);
+            group.Controls.Add(sessionTypeLabel);
+            group.Controls.Add(sessionTypeValue);
+            group.Controls.Add(gpuTypeLabel);
+            group.Controls.Add(gpuTypeValue);
+            group.Controls.Add(encoderTypeLabel);
+            group.Controls.Add(encoderTypeValue);
+            group.Controls.Add(hwEncodeLabel);
+            group.Controls.Add(hwEncodeValue);
             return group;
         }
 

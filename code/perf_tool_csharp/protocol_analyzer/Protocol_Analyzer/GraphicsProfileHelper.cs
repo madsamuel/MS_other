@@ -44,13 +44,53 @@ namespace Protocol_Analyzer
             // Compose profile string
             if (isRemoteSession)
             {
-                profile = $"RDP Session | GPU: {gpuType} | Encoding: {encoderType} | HW Encode: {(hwEncoding ? "Yes" : "No")}";
+                profile = $"RDP Session\nGPU: {gpuType}\nEncoding: {encoderType}\nHW Encode: {(hwEncoding ? "Yes" : "No")}";
             }
             else
             {
-                profile = $"Local Session | GPU: {gpuType} | Encoding: {encoderType} | HW Encode: {(hwEncoding ? "Yes" : "No")}";
+                profile = $"Local Session\nGPU: {gpuType}\nEncoding: {encoderType}\nHW Encode: {(hwEncoding ? "Yes" : "No")}";
             }
             return profile;
+        }
+
+        public static (string sessionType, string gpuType, string encoderType, string hwEncode) GetGraphicsProfileDetails()
+        {
+            string sessionType = "Unknown";
+            string encoderType = DetectedSettingsHelper.GetEncoderType();
+            bool hwEncoding = DetectedSettingsHelper.IsHardwareEncodingSupported();
+            string hwEncode = hwEncoding ? "Yes" : "No";
+
+            // Check if running in RDP session
+            bool isRemoteSession = false;
+            try
+            {
+                isRemoteSession = System.Windows.Forms.SystemInformation.TerminalServerSession;
+            }
+            catch { }
+            sessionType = isRemoteSession ? "RDP Session" : "Local Session";
+
+            // Try to get GPU type (dGPU, iGPU, etc.)
+            string gpuType = "Unknown";
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        string name = obj["Name"]?.ToString()?.ToLower() ?? "";
+                        if (name.Contains("nvidia") || name.Contains("amd"))
+                            gpuType = "dGPU";
+                        else if (name.Contains("intel"))
+                            gpuType = "iGPU";
+                        else
+                            gpuType = "Other";
+                        break;
+                    }
+                }
+            }
+            catch { }
+
+            return (sessionType, gpuType, encoderType, hwEncode);
         }
     }
 }
