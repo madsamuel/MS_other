@@ -27,9 +27,11 @@ namespace Protocol_Analyzer
             var gpuInfoGroup = CreateGpuInfoGroup(new Point(20, 20));
             this.Controls.Add(gpuInfoGroup);
 
-            // holder for Detected Setting    
-            var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(420, 20)); // Move to the right
-            this.Controls.Add(detectedSettingsGroup);    
+            // Detected Settings section - match width and padding
+            int groupWidth = gpuInfoGroup.Width > 0 ? gpuInfoGroup.Width : 370;
+            var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20 + groupWidth + 20, 20));
+            detectedSettingsGroup.Size = new Size(groupWidth, detectedSettingsGroup.Height);
+            this.Controls.Add(detectedSettingsGroup);
 
             // Real-Time Advanced Statistics section
             var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, 300));
@@ -54,20 +56,10 @@ namespace Protocol_Analyzer
             };
 
             var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
-            var resolutionLabel = new Label
-            {
-                Text = $"Main Display Resolution: {resolution.Width}x{resolution.Height}",
-                Location = new Point(15, 30),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9)
-            };
-            var dpiLabel = new Label
-            {
-                Text = $"DPI Scale: {dpiScale * 100:F0} %",
-                Location = new Point(15, 55),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9)
-            };
+            var resolutionLabel = CreateLabel("Main Display Resolution:", new Point(15, 30));
+            var resolutionValue = CreateBoldLabel($"{resolution.Width}x{resolution.Height}", new Point(150, 30));
+            var dpiLabel = CreateLabel("DPI Scale:", new Point(15, 55));
+            var dpiValue = CreateBoldLabel($"{dpiScale * 100:F0} %", new Point(150, 55));
 
             var (sessionType, gpuType, encoderType, hwEncode) = GraphicsProfileHelper.GetGraphicsProfileDetails();
             var sessionTypeLabel = CreateLabel("Session Type:", new Point(15, 80));
@@ -80,7 +72,9 @@ namespace Protocol_Analyzer
             var hwEncodeValue = CreateBoldLabel(hwEncode, new Point(150, 155));
 
             group.Controls.Add(resolutionLabel);
+            group.Controls.Add(resolutionValue);
             group.Controls.Add(dpiLabel);
+            group.Controls.Add(dpiValue);
             group.Controls.Add(sessionTypeLabel);
             group.Controls.Add(sessionTypeValue);
             group.Controls.Add(gpuTypeLabel);
