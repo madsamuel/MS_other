@@ -69,8 +69,18 @@ namespace Protocol_Analyzer
                 Font = new Font("Segoe UI", 9)
             };
 
+            var graphicsProfile = GraphicsProfileHelper.GetGraphicsProfile();
+            var profileLabel = new Label
+            {
+                Text = $"Graphics Profile: {graphicsProfile}",
+                Location = new Point(15, 80),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9)
+            };
+
             group.Controls.Add(resolutionLabel);
             group.Controls.Add(dpiLabel);
+            group.Controls.Add(profileLabel);
             return group;
         }
 
