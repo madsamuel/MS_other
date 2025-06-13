@@ -20,7 +20,8 @@ namespace Protocol_Analyzer
         private void BuildUI()
         {
             this.Text = "Session Perf";
-            this.Size = new Size(800, 800);
+            // Remove explicit form size, let OnLoad handle sizing
+            // this.Size = new Size(800, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
 
             // GPU Information section
@@ -34,7 +35,12 @@ namespace Protocol_Analyzer
             this.Controls.Add(detectedSettingsGroup);
 
             // Real-Time Advanced Statistics section
-            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, 300));
+            // Place directly below the tallest of the two top group boxes
+            int topRowBottom = Math.Max(
+                gpuInfoGroup.Bottom,
+                detectedSettingsGroup.Bottom
+            );
+            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10)); // 10px vertical gap
             this.Controls.Add(realTimeStatsGroup);
 
             // Start polling for encoder frames dropped every 15 seconds
