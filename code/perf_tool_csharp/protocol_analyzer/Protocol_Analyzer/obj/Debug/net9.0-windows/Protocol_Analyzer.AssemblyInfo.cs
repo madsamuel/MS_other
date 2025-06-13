@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Protocol_Analyzer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6366d45fdc3b35e428f6c66f1ad462ca5393d665")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+514c5bcb01708618ddf14181b06e22062b133f63")]
 [assembly: System.Reflection.AssemblyProductAttribute("Protocol_Analyzer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Protocol_Analyzer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

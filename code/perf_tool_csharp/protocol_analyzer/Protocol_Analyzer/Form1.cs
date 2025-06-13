@@ -189,6 +189,17 @@ namespace Protocol_Analyzer
             };
         }
 
+        protected override void OnLoad(EventArgs e)
+        {
+            base.OnLoad(e);
+            // Snap to bottom right of the primary screen's working area
+            var workingArea = Screen.FromControl(this).WorkingArea;
+            this.Location = new System.Drawing.Point(
+                workingArea.Right - this.Width,
+                workingArea.Bottom - this.Height
+            );
+        }
+
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             base.OnFormClosed(e);
