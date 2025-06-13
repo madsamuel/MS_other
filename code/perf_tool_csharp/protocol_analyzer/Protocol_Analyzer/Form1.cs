@@ -192,6 +192,20 @@ namespace Protocol_Analyzer
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
+            // Dynamically size the form to fit all group boxes
+            int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+            foreach (Control ctrl in this.Controls)
+            {
+                if (ctrl is GroupBox)
+                {
+                    minX = Math.Min(minX, ctrl.Left);
+                    minY = Math.Min(minY, ctrl.Top);
+                    maxX = Math.Max(maxX, ctrl.Right);
+                    maxY = Math.Max(maxY, ctrl.Bottom);
+                }
+            }
+            int padding = 30; // Add some padding around the group boxes
+            this.ClientSize = new Size((maxX - minX) + padding, (maxY - minY) + padding);
             // Snap to bottom right of the primary screen's working area
             var workingArea = Screen.FromControl(this).WorkingArea;
             this.Location = new System.Drawing.Point(
