@@ -14,6 +14,7 @@ namespace Protocol_Analyzer
 
         public Form1()
         {
+            this.Icon = new Icon("Resources/banana.ico");
             BuildUI();
         }
     
