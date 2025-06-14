@@ -27,7 +27,12 @@ code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-win
 /code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
 /code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/readme.ignore
+<<<<<<< Updated upstream
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/Protocol_Analyzer.exe
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/Protocol_Analyzer.exe
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/Protocol_Analyzer.dll
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/publish/Protocol_Analyzer.pdb
+=======
+/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
+/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj
+>>>>>>> Stashed changes
