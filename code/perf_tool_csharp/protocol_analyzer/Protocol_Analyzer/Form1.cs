@@ -40,7 +40,7 @@ namespace Protocol_Analyzer
                 gpuInfoGroup.Bottom,
                 detectedSettingsGroup.Bottom
             );
-            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10)); // 10px vertical gap
+            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth); // Match width to GPU info
             this.Controls.Add(realTimeStatsGroup);
 
             // Start polling for encoder frames dropped every 15 seconds
@@ -133,15 +133,25 @@ namespace Protocol_Analyzer
             return group;
         }
 
-        private GroupBox CreateRealTimeStatsGroup(Point location)
+        private GroupBox CreateRealTimeStatsGroup(Point location, int matchWidth = 0)
         {
             var group = new GroupBox
             {
                 Text = "Real-Time Advanced Statistics",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Size = new Size(370, 150),
                 Location = location
             };
+
+            if (matchWidth > 0)
+            {
+                group.Size = new Size(matchWidth, 0); // Height will autosize
+                group.AutoSize = false;
+            }
+            else
+            {
+                group.AutoSize = true;
+                group.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            }
 
             statsLabel = new Label
             {
