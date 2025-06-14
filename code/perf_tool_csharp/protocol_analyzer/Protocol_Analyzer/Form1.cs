@@ -11,13 +11,29 @@ namespace Protocol_Analyzer
         private Label statsLabel = null!;
         private Label fpsLabel = null!;
         private System.Windows.Forms.Timer statsTimer = null!;
+        private NotifyIcon? trayIcon;
 
         public Form1()
         {
             this.Icon = new Icon("Resources/banana.ico");
+            InitializeTrayIcon();
             BuildUI();
         }
-    
+
+        private void InitializeTrayIcon()
+        {
+            trayIcon = new NotifyIcon();
+            trayIcon.Icon = new Icon("Resources/banana.ico");
+            trayIcon.Text = "Session Perf";
+            trayIcon.Visible = true;
+            // Optional: Add a context menu for exiting
+            var contextMenu = new ContextMenuStrip();
+            var exitItem = new ToolStripMenuItem("Exit");
+            exitItem.Click += (s, e) => { this.Close(); };
+            contextMenu.Items.Add(exitItem);
+            trayIcon.ContextMenuStrip = contextMenu;
+        }
+
         private void BuildUI()
         {
             this.Text = "Session Perf";
@@ -237,6 +253,11 @@ namespace Protocol_Analyzer
         {
             base.OnFormClosed(e);
             statsTimer?.Stop();
+            if (trayIcon != null)
+            {
+                trayIcon.Visible = false;
+                trayIcon.Dispose();
+            }
         }
     }
 }
