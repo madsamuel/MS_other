@@ -37,8 +37,6 @@ namespace Protocol_Analyzer
         private void BuildUI()
         {
             this.Text = "Session Perf";
-            this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
             // Remove explicit form size, let OnLoad handle sizing
             // this.Size = new Size(800, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -241,8 +239,9 @@ namespace Protocol_Analyzer
                     maxY = Math.Max(maxY, ctrl.Bottom);
                 }
             }
-            int padding = 30; // Add some padding around the group boxes
-            this.ClientSize = new Size((maxX - minX) + padding, (maxY - minY) + padding);
+            int sidePadding = minX; // Use the left padding as the standard for both sides
+            int verticalPadding = 20; // Keep vertical padding as before
+            this.ClientSize = new Size((maxX - minX) + sidePadding * 2, (maxY - minY) + verticalPadding * 2);
             // Snap to bottom right of the primary screen's working area
             var workingArea = Screen.FromControl(this).WorkingArea;
             this.Location = new System.Drawing.Point(
