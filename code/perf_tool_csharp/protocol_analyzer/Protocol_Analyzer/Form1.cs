@@ -3,6 +3,8 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Management;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using Microsoft.Win32;
 
 namespace Protocol_Analyzer
 {
@@ -13,10 +15,23 @@ namespace Protocol_Analyzer
         private System.Windows.Forms.Timer statsTimer = null!;
         private NotifyIcon? trayIcon;
 
+        public class CustomRegistrySetting
+        {
+            public string registry_path { get; set; } = string.Empty;
+            public string value_name { get; set; } = string.Empty;
+            public string value_type { get; set; } = string.Empty;
+            public int expected_value { get; set; }
+            public string friendly_name { get; set; } = string.Empty;
+            public string fallback_name { get; set; } = string.Empty;
+        }
+
+        private List<CustomRegistrySetting>? customSettings;
+
         public Form1()
         {
             this.Icon = new Icon("Resources/banana.ico");
             InitializeTrayIcon();
+            LoadCustomSettings();
             BuildUI();
         }
 
@@ -34,35 +49,47 @@ namespace Protocol_Analyzer
             trayIcon.ContextMenuStrip = contextMenu;
         }
 
+        private void LoadCustomSettings()
+        {
+            string path = "Resources/custom_registry_settings.json";
+            if (System.IO.File.Exists(path))
+            {
+                string json = System.IO.File.ReadAllText(path);
+                customSettings = JsonSerializer.Deserialize<List<CustomRegistrySetting>>(json);
+            }
+            else
+            {
+                customSettings = null;
+            }
+        }
+
         private void BuildUI()
         {
             this.Text = "Session Perf";
-            // Remove explicit form size, let OnLoad handle sizing
-            // this.Size = new Size(800, 800);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            // GPU Information section
             var gpuInfoGroup = CreateGpuInfoGroup(new Point(20, 20));
             this.Controls.Add(gpuInfoGroup);
-            
-            // Detected Settings section - match width and padding
             int groupWidth = gpuInfoGroup.Width > 0 ? gpuInfoGroup.Width : 370;
             var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20 + groupWidth + 20, 20));
             detectedSettingsGroup.Size = new Size(groupWidth, detectedSettingsGroup.Height);
             this.Controls.Add(detectedSettingsGroup);
-
-            // Real-Time Advanced Statistics section
-            // Place directly below the tallest of the two top group boxes
             int topRowBottom = Math.Max(
                 gpuInfoGroup.Bottom,
                 detectedSettingsGroup.Bottom
             );
-            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth); // Match width to GPU info
+            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth);
             this.Controls.Add(realTimeStatsGroup);
-
-            // Start polling for encoder frames dropped every 15 seconds
+            int customSettingsY = realTimeStatsGroup.Bottom + 10;
+            if (customSettings != null && customSettings.Count > 0)
+            {
+                var customSettingsGroup = CreateCustomSettingsGroup(new Point(20, customSettingsY));
+                this.Controls.Add(customSettingsGroup);
+            }
             statsTimer = new System.Windows.Forms.Timer();
-            statsTimer.Interval = 15000; // 15 seconds
+            statsTimer.Interval = 15000;
             statsTimer.Tick += PollEncoderFramesDropped;
             statsTimer.Start();
         }
@@ -191,6 +218,71 @@ namespace Protocol_Analyzer
             group.Controls.Add(statsLabel!);
             group.Controls.Add(fpsLabel!);
             return group;
+        }
+
+        private GroupBox CreateCustomSettingsGroup(Point location)
+        {
+            var group = new GroupBox
+            {
+                Text = "Custom Settings",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Location = location
+            };
+            int y = 30;
+            foreach (var setting in customSettings!)
+            {
+                string display = GetRegistryDisplay(setting);
+                var label = new Label
+                {
+                    Text = display,
+                    Location = new Point(15, y),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 9)
+                };
+                group.Controls.Add(label);
+                y += 25;
+            }
+            return group;
+        }
+
+        private string GetRegistryDisplay(CustomRegistrySetting setting)
+        {
+            try
+            {
+                var baseKey = GetBaseKey(setting.registry_path, out string subKeyPath);
+                using (var key = baseKey.OpenSubKey(subKeyPath))
+                {
+                    if (key != null)
+                    {
+                        var value = key.GetValue(setting.value_name);
+                        if (value != null && value.ToString() == setting.expected_value.ToString())
+                        {
+                            return setting.friendly_name;
+                        }
+                    }
+                }
+            }
+            catch { }
+            return setting.fallback_name;
+        }
+
+        private RegistryKey GetBaseKey(string fullPath, out string subKeyPath)
+        {
+            if (fullPath.StartsWith("HKEY_LOCAL_MACHINE"))
+            {
+                subKeyPath = fullPath.Substring("HKEY_LOCAL_MACHINE".Length + 1);
+                return Registry.LocalMachine;
+            }
+            if (fullPath.StartsWith("HKEY_CURRENT_USER"))
+            {
+                subKeyPath = fullPath.Substring("HKEY_CURRENT_USER".Length + 1);
+                return Registry.CurrentUser;
+            }
+            // Add more as needed
+            subKeyPath = fullPath;
+            return Registry.LocalMachine;
         }
 
         private void PollEncoderFramesDropped(object? sender, EventArgs e)
