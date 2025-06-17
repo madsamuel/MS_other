@@ -15,23 +15,13 @@ namespace Protocol_Analyzer
         private System.Windows.Forms.Timer statsTimer = null!;
         private NotifyIcon? trayIcon;
 
-        public class CustomRegistrySetting
-        {
-            public string registry_path { get; set; } = string.Empty;
-            public string value_name { get; set; } = string.Empty;
-            public string value_type { get; set; } = string.Empty;
-            public int expected_value { get; set; }
-            public string friendly_name { get; set; } = string.Empty;
-            public string fallback_name { get; set; } = string.Empty;
-        }
-
         private List<CustomRegistrySetting>? customSettings;
 
         public Form1()
         {
             this.Icon = new Icon("Resources/banana.ico");
             InitializeTrayIcon();
-            LoadCustomSettings();
+            customSettings = CustomSettingsHelper.LoadCustomSettings("Resources/custom_registry_settings.json");
             BuildUI();
         }
 
@@ -47,20 +37,6 @@ namespace Protocol_Analyzer
             exitItem.Click += (s, e) => { this.Close(); };
             contextMenu.Items.Add(exitItem);
             trayIcon.ContextMenuStrip = contextMenu;
-        }
-
-        private void LoadCustomSettings()
-        {
-            string path = "Resources/custom_registry_settings.json";
-            if (System.IO.File.Exists(path))
-            {
-                string json = System.IO.File.ReadAllText(path);
-                customSettings = JsonSerializer.Deserialize<List<CustomRegistrySetting>>(json);
-            }
-            else
-            {
-                customSettings = null;
-            }
         }
 
         private void BuildUI()
@@ -82,10 +58,12 @@ namespace Protocol_Analyzer
             );
             var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth);
             this.Controls.Add(realTimeStatsGroup);
-            int customSettingsY = realTimeStatsGroup.Bottom + 10;
+            // Place Custom Settings under Detected Settings, matching its width
             if (customSettings != null && customSettings.Count > 0)
             {
-                var customSettingsGroup = CreateCustomSettingsGroup(new Point(20, customSettingsY));
+                int customSettingsY = detectedSettingsGroup.Bottom + 10;
+                var customSettingsGroup = CreateCustomSettingsGroup(new Point(detectedSettingsGroup.Left, customSettingsY));
+                customSettingsGroup.Size = new Size(groupWidth, customSettingsGroup.Height);
                 this.Controls.Add(customSettingsGroup);
             }
             statsTimer = new System.Windows.Forms.Timer();
@@ -226,14 +204,13 @@ namespace Protocol_Analyzer
             {
                 Text = "Custom Settings",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Size = new Size(370, 150),
                 Location = location
             };
             int y = 30;
             foreach (var setting in customSettings!)
             {
-                string display = GetRegistryDisplay(setting);
+                string display = CustomSettingsHelper.GetRegistryDisplay(setting);
                 var label = new Label
                 {
                     Text = display,
@@ -245,44 +222,6 @@ namespace Protocol_Analyzer
                 y += 25;
             }
             return group;
-        }
-
-        private string GetRegistryDisplay(CustomRegistrySetting setting)
-        {
-            try
-            {
-                var baseKey = GetBaseKey(setting.registry_path, out string subKeyPath);
-                using (var key = baseKey.OpenSubKey(subKeyPath))
-                {
-                    if (key != null)
-                    {
-                        var value = key.GetValue(setting.value_name);
-                        if (value != null && value.ToString() == setting.expected_value.ToString())
-                        {
-                            return setting.friendly_name;
-                        }
-                    }
-                }
-            }
-            catch { }
-            return setting.fallback_name;
-        }
-
-        private RegistryKey GetBaseKey(string fullPath, out string subKeyPath)
-        {
-            if (fullPath.StartsWith("HKEY_LOCAL_MACHINE"))
-            {
-                subKeyPath = fullPath.Substring("HKEY_LOCAL_MACHINE".Length + 1);
-                return Registry.LocalMachine;
-            }
-            if (fullPath.StartsWith("HKEY_CURRENT_USER"))
-            {
-                subKeyPath = fullPath.Substring("HKEY_CURRENT_USER".Length + 1);
-                return Registry.CurrentUser;
-            }
-            // Add more as needed
-            subKeyPath = fullPath;
-            return Registry.LocalMachine;
         }
 
         private void PollEncoderFramesDropped(object? sender, EventArgs e)
@@ -316,6 +255,7 @@ namespace Protocol_Analyzer
             };
         }
 
+        // Form overrides
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
