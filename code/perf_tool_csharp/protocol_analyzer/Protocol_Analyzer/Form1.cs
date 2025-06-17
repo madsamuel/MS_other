@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Management;
 using System.Runtime.InteropServices;
 
 namespace Protocol_Analyzer
@@ -36,6 +37,8 @@ namespace Protocol_Analyzer
         private void BuildUI()
         {
             this.Text = "Session Perf";
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             // Remove explicit form size, let OnLoad handle sizing
             // this.Size = new Size(800, 800);
             this.StartPosition = FormStartPosition.CenterScreen;
