@@ -3,6 +3,8 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Management;
 using System.Runtime.InteropServices;
+using System.Text.Json;
+using Microsoft.Win32;
 
 namespace Protocol_Analyzer
 {
@@ -13,10 +15,13 @@ namespace Protocol_Analyzer
         private System.Windows.Forms.Timer statsTimer = null!;
         private NotifyIcon? trayIcon;
 
+        private List<CustomRegistrySetting>? customSettings;
+
         public Form1()
         {
             this.Icon = new Icon("Resources/banana.ico");
             InitializeTrayIcon();
+            customSettings = CustomSettingsHelper.LoadCustomSettings("Resources/custom_registry_settings.json");
             BuildUI();
         }
 
@@ -37,32 +42,32 @@ namespace Protocol_Analyzer
         private void BuildUI()
         {
             this.Text = "Session Perf";
-            // Remove explicit form size, let OnLoad handle sizing
-            // this.Size = new Size(800, 800);
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            // GPU Information section
             var gpuInfoGroup = CreateGpuInfoGroup(new Point(20, 20));
             this.Controls.Add(gpuInfoGroup);
-            
-            // Detected Settings section - match width and padding
             int groupWidth = gpuInfoGroup.Width > 0 ? gpuInfoGroup.Width : 370;
             var detectedSettingsGroup = CreateDetectedSettingsGroup(new Point(20 + groupWidth + 20, 20));
             detectedSettingsGroup.Size = new Size(groupWidth, detectedSettingsGroup.Height);
             this.Controls.Add(detectedSettingsGroup);
-
-            // Real-Time Advanced Statistics section
-            // Place directly below the tallest of the two top group boxes
             int topRowBottom = Math.Max(
                 gpuInfoGroup.Bottom,
                 detectedSettingsGroup.Bottom
             );
-            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth); // Match width to GPU info
+            var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth);
             this.Controls.Add(realTimeStatsGroup);
-
-            // Start polling for encoder frames dropped every 15 seconds
+            // Place Custom Settings under Detected Settings, matching its width
+            if (customSettings != null && customSettings.Count > 0)
+            {
+                int customSettingsY = detectedSettingsGroup.Bottom + 10;
+                var customSettingsGroup = CreateCustomSettingsGroup(new Point(detectedSettingsGroup.Left, customSettingsY));
+                customSettingsGroup.Size = new Size(groupWidth, customSettingsGroup.Height);
+                this.Controls.Add(customSettingsGroup);
+            }
             statsTimer = new System.Windows.Forms.Timer();
-            statsTimer.Interval = 15000; // 15 seconds
+            statsTimer.Interval = 15000;
             statsTimer.Tick += PollEncoderFramesDropped;
             statsTimer.Start();
         }
@@ -193,6 +198,32 @@ namespace Protocol_Analyzer
             return group;
         }
 
+        private GroupBox CreateCustomSettingsGroup(Point location)
+        {
+            var group = new GroupBox
+            {
+                Text = "Custom Settings",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                Size = new Size(370, 150),
+                Location = location
+            };
+            int y = 30;
+            foreach (var setting in customSettings!)
+            {
+                string display = CustomSettingsHelper.GetRegistryDisplay(setting);
+                var label = new Label
+                {
+                    Text = display,
+                    Location = new Point(15, y),
+                    AutoSize = true,
+                    Font = new Font("Segoe UI", 9)
+                };
+                group.Controls.Add(label);
+                y += 25;
+            }
+            return group;
+        }
+
         private void PollEncoderFramesDropped(object? sender, EventArgs e)
         {
             int framesDropped = RealTimeAdvancedStatistics.GetEncoderFramesDroppedFromWMI();
@@ -224,6 +255,7 @@ namespace Protocol_Analyzer
             };
         }
 
+        // Form overrides
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
@@ -239,8 +271,9 @@ namespace Protocol_Analyzer
                     maxY = Math.Max(maxY, ctrl.Bottom);
                 }
             }
-            int padding = 30; // Add some padding around the group boxes
-            this.ClientSize = new Size((maxX - minX) + padding, (maxY - minY) + padding);
+            int sidePadding = minX; // Use the left padding as the standard for both sides
+            int verticalPadding = 20; // Keep vertical padding as before
+            this.ClientSize = new Size((maxX - minX) + sidePadding * 2, (maxY - minY) + verticalPadding * 2);
             // Snap to bottom right of the primary screen's working area
             var workingArea = Screen.FromControl(this).WorkingArea;
             this.Location = new System.Drawing.Point(

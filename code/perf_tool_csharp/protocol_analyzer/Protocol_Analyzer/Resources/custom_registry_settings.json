@@ -1,0 +1,18 @@
+[
+  {
+    "registry_path": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services",
+    "value_name": "HEVCModePreferred",
+    "value_type": "REG_DWORD",
+    "expected_value": 1,
+    "friendly_name": "HEVC enabled",
+    "fallback_name": "HEVC not enabled"
+  },
+  {
+    "registry_path": "HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services",
+    "value_name": "bEnumerateHWBeforeSW",
+    "value_type": "REG_DWORD",
+    "expected_value": 1,
+    "friendly_name": "Harware before software",
+    "fallback_name": "Software before hardware"
+  }
+]
