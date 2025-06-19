@@ -1,6 +1,6 @@
 [versions]
 activityComposeVersion = "1.6.1"
-agp = "8.9.0"
+agp = "8.9.2"
 androidxUi = "1.3.3"
 coreSplashscreen = "1.0.1"
 kotlin = "2.0.21"
