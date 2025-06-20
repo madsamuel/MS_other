@@ -90,5 +90,25 @@ namespace Protocol_Analyzer
             }
             return false;
         }
+
+        public static int GetRefreshRate()
+        {
+            // Get display refresh rate for the main display
+            try
+            {
+                using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController"))
+                {
+                    foreach (ManagementObject obj in searcher.Get())
+                    {
+                        if (obj["CurrentRefreshRate"] != null)
+                        {
+                            return Convert.ToInt32(obj["CurrentRefreshRate"]);
+                        }
+                    }
+                }
+            }
+            catch { }
+            return -1; // Unknown
+        }
     }
 }

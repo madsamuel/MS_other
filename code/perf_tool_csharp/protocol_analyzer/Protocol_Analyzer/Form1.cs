@@ -129,24 +129,30 @@ namespace Protocol_Analyzer
             var visualQuality = CreateLabel("Visual Quality:", new Point(15, 30));
             var visualQualityLabel = CreateBoldLabel(visualQualityValue, new Point(150, 30));
 
+            // Get display refresh rate
+            var refreshRateValue = DetectedSettingsHelper.GetRefreshRate();
+            var refreshRate = CreateLabel("Display Refresh Rate:", new Point(15, 55));
+            var refreshRateLabel = CreateBoldLabel(refreshRateValue > 0 ? $"{refreshRateValue} Hz" : "Unknown", new Point(150, 55));
+
             // Get max FPS based on display refresh rate
             var maxFpsValue = DetectedSettingsHelper.GetMaxFPS();
-            var maxFps = CreateLabel("Max Frames p/s:", new Point(15, 55));
-            var maxFpsLabel = CreateBoldLabel(maxFpsValue.ToString(), new Point(150, 55));
+            var maxFps = CreateLabel("Max Frames p/s:", new Point(15, 80));
+            var maxFpsLabel = CreateBoldLabel(maxFpsValue.ToString(), new Point(150, 80));
 
             // Get encoder type based on system capabilities
             var encoderTypeValue = DetectedSettingsHelper.GetEncoderType();
-            var encoderType = CreateLabel("Encoder type:", new Point(15, 80));
-            var encoderTypeLabel = CreateBoldLabel(encoderTypeValue, new Point(150, 80));
+            var encoderType = CreateLabel("Encoder type:", new Point(15, 105));
+            var encoderTypeLabel = CreateBoldLabel(encoderTypeValue, new Point(150, 105));
 
             // Check hardware encoding capabilities
             var hwEncodeValue = DetectedSettingsHelper.IsHardwareEncodingSupported() ? "Active" : "Inactive";
-            var hwEncode = CreateLabel("Hardware Encode:", new Point(15, 105));
-            var hwEncodeLabel = CreateBoldLabel(hwEncodeValue, new Point(150, 105));
+            var hwEncode = CreateLabel("Hardware Encode:", new Point(15, 130));
+            var hwEncodeLabel = CreateBoldLabel(hwEncodeValue, new Point(150, 130));
 
             group.Controls.AddRange(new Control[]
             {
                 visualQuality, visualQualityLabel,
+                refreshRate, refreshRateLabel,
                 maxFps, maxFpsLabel,
                 encoderType, encoderTypeLabel,
                 hwEncode, hwEncodeLabel
