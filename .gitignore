@@ -43,3 +43,4 @@ code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-win
 /code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj/project.assets.json
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj/Protocol_Analyzer.csproj.nuget.dgspec.json
+/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
