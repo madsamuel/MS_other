@@ -23,24 +23,9 @@ code/perf_tools/camera work/camera_gui_phone_detection/yolov4.cfg
 code/ml_samples/.env
 code/azure/store_to_blob_storage/.env
 perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/readme.ignore
-code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/mscordaccore.dll
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/readme.ignore
-<<<<<<< Updated upstream
-code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/Protocol_Analyzer.exe
-code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/Protocol_Analyzer.exe
-code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/Protocol_Analyzer.dll
-code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin/Release/net9.0-windows/win-x64/publish/Protocol_Analyzer.pdb
-=======
 /code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
 /code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj
->>>>>>> Stashed changes
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj/project.assets.json
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj/Protocol_Analyzer.csproj.nuget.dgspec.json
-/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/bin
+
