@@ -29,3 +29,5 @@ code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/readme.ignore
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj/project.assets.json
 code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer/obj/Protocol_Analyzer.csproj.nuget.dgspec.json
 
+/code/perf_tool_csharp/Real-Time Statistics/bin
+/code/perf_tool_csharp/Real-Time Statistics/obj
