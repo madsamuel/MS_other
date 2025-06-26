@@ -5,6 +5,7 @@ using System.Management;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Runtime.Versioning;
 
 class Program
 {
@@ -61,6 +62,8 @@ class Program
         }
     }
 
+
+
     static float GetMemoryUsageMB()
     {
         using (var pc = new PerformanceCounter("Memory", "Committed Bytes"))
@@ -103,6 +106,7 @@ class Program
         return GetRdpRttMs();
     }
 
+    [SupportedOSPlatform("windows")]
     static float GetGpuUtilization()
     {
         try
