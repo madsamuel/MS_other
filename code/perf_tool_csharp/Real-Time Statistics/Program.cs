@@ -125,6 +125,8 @@ class Program
     static void DrawBar(float percent)
     {
         int width = 30;
+        // Clamp percent between 0 and 100
+        percent = Math.Max(0, Math.Min(100, percent));
         int filled = (int)(percent / 100 * width);
         Console.Write("[");
         Console.Write(new string('|', filled));
