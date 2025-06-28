@@ -1,5 +1,6 @@
 using System;
 using System.Management;
+using System.Runtime.InteropServices;
 
 namespace Protocol_Analyzer
 {
@@ -93,22 +94,113 @@ namespace Protocol_Analyzer
 
         public static int GetRefreshRate()
         {
-            // Get display refresh rate for the main display
+            // Use Win32 API to get display refresh rate for the main display
             try
             {
-                using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController"))
+                DEVMODE devMode = new DEVMODE();
+                devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
+                if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
                 {
-                    foreach (ManagementObject obj in searcher.Get())
-                    {
-                        if (obj["CurrentRefreshRate"] != null)
-                        {
-                            return Convert.ToInt32(obj["CurrentRefreshRate"]);
-                        }
-                    }
+                    return (int)devMode.dmDisplayFrequency;
                 }
             }
             catch { }
             return -1; // Unknown
         }
+
+        public static (int width, int height, int refreshRate) GetDisplayResolutionAndRefreshRate()
+        {
+            try
+            {
+                DisplayRefreshRateUtility.DEVMODE devMode = new DisplayRefreshRateUtility.DEVMODE
+                {
+                    dmDeviceName = string.Empty,
+                    dmFormName = string.Empty
+                };
+                devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DisplayRefreshRateUtility.DEVMODE));
+                if (DisplayRefreshRateUtility.EnumDisplaySettings(null, DisplayRefreshRateUtility.ENUM_CURRENT_SETTINGS, ref devMode))
+                {
+                    return ((int)devMode.dmPelsWidth, (int)devMode.dmPelsHeight, (int)devMode.dmDisplayFrequency);
+                }
+            }
+            catch { }
+            return (-1, -1, -1);
+        }
+
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        public struct DEVMODE
+        {
+            private const int CCHDEVICENAME = 32;
+            private const int CCHFORMNAME = 32;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
+            public string dmDeviceName;
+            public ushort dmSpecVersion;
+            public ushort dmDriverVersion;
+            public ushort dmSize;
+            public ushort dmDriverExtra;
+            public uint dmFields;
+            public int dmPositionX;
+            public int dmPositionY;
+            public uint dmDisplayOrientation;
+            public uint dmDisplayFixedOutput;
+            public short dmColor;
+            public short dmDuplex;
+            public short dmYResolution;
+            public short dmTTOption;
+            public short dmCollate;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHFORMNAME)]
+            public string dmFormName;
+            public ushort dmLogPixels;
+            public uint dmBitsPerPel;
+            public uint dmPelsWidth;
+            public uint dmPelsHeight;
+            public uint dmDisplayFlags;
+            public uint dmDisplayFrequency;
+            // Other fields omitted for brevity
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+        const int ENUM_CURRENT_SETTINGS = -1;
+    }
+
+    // Place this outside DetectedSettingsHelper
+    public static class DisplayRefreshRateUtility
+    {
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        public struct DEVMODE
+        {
+            private const int CCHDEVICENAME = 32;
+            private const int CCHFORMNAME = 32;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
+            public string dmDeviceName;
+            public ushort dmSpecVersion;
+            public ushort dmDriverVersion;
+            public ushort dmSize;
+            public ushort dmDriverExtra;
+            public uint dmFields;
+            public int dmPositionX;
+            public int dmPositionY;
+            public uint dmDisplayOrientation;
+            public uint dmDisplayFixedOutput;
+            public short dmColor;
+            public short dmDuplex;
+            public short dmYResolution;
+            public short dmTTOption;
+            public short dmCollate;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHFORMNAME)]
+            public string dmFormName;
+            public ushort dmLogPixels;
+            public uint dmBitsPerPel;
+            public uint dmPelsWidth;
+            public uint dmPelsHeight;
+            public uint dmDisplayFlags;
+            public uint dmDisplayFrequency;
+            // Other fields omitted for brevity
+        }
+
+        [DllImport("user32.dll")]
+        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+        public const int ENUM_CURRENT_SETTINGS = -1;
     }
 }

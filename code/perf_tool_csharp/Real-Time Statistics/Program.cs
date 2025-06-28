@@ -1,32 +1,57 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Management;
-using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Runtime.Versioning;
 
 class Program
 {
-    // Update interval in milliseconds (change as needed)
     static int updateIntervalMs = 1000;
+    static long prevInBytes = -1, prevOutBytes = -1;
+    static DateTime prevTime = DateTime.MinValue;
 
-    static float latestBandwidthOutputKbps = 0;
-    static float latestBandwidthInputKbps = 0;
-    static readonly object bandwidthLock = new object();
+    [DllImport("wtsapi32.dll", SetLastError = true)]
+    static extern bool WTSQuerySessionInformation(
+        IntPtr hServer,
+        int sessionId,
+        WTS_INFO_CLASS wtsInfoClass,
+        out IntPtr ppBuffer,
+        out int pBytesReturned);
+
+    [DllImport("wtsapi32.dll")]
+    static extern void WTSFreeMemory(IntPtr pointer);
+
+    static readonly IntPtr WTS_CURRENT_SERVER_HANDLE = IntPtr.Zero;
+
+    enum WTS_INFO_CLASS
+    {
+        WTSIncomingBytes = 0x19,
+        WTSOutgoingBytes = 0x1A,
+        WTSIncomingFrames = 0x1B,
+        WTSOutgoingFrames = 0x1C,
+    }
+
+    static long QuerySessionLong(WTS_INFO_CLASS infoClass)
+    {
+        IntPtr buffer;
+        int bytesReturned;
+        int sessionId = Process.GetCurrentProcess().SessionId;
+        if (WTSQuerySessionInformation(WTS_CURRENT_SERVER_HANDLE, sessionId, infoClass, out buffer, out bytesReturned) && bytesReturned == sizeof(long))
+        {
+            long value = Marshal.ReadInt64(buffer);
+            WTSFreeMemory(buffer);
+            return value;
+        }
+        if (buffer != IntPtr.Zero)
+            WTSFreeMemory(buffer);
+        return -1;
+    }
 
     [SupportedOSPlatform("windows")]
     static void Main(string[] args)
     {
         Console.Clear();
         Console.WriteLine("RDP Real-Time Statistics Monitor\n");
-        StartBandwidthSampler();
-        // if (!IsRdpSession())
-        // {
-        //     Console.WriteLine("Not running in an RDP session. Exiting.");
-        //     return;
-        // }
         while (true)
         {
             Console.SetCursorPosition(0, 2);
@@ -35,104 +60,13 @@ class Program
         }
     }
 
-    static void StartBandwidthSampler()
-    {
-        new Thread(() =>
-        {
-            while (true)
-            {
-                float outKbps, inKbps;
-                SampleBandwidthKbps(out outKbps, out inKbps);
-                lock (bandwidthLock)
-                {
-                    latestBandwidthOutputKbps = outKbps;
-                    latestBandwidthInputKbps = inKbps;
-                }
-                Thread.Sleep(200);
-            }
-        }) { IsBackground = true }.Start();
-    }
-
-    static float GetRdpBandwidthOutputKbps()
-    {
-        lock (bandwidthLock)
-        {
-            return latestBandwidthOutputKbps;
-        }
-    }
-    static float GetRdpBandwidthInputKbps()
-    {
-        lock (bandwidthLock)
-        {
-            return latestBandwidthInputKbps;
-        }
-    }
-
-    static NetworkInterface? cachedInterface = null;
-    static long prevBytesSent = 0;
-    static long prevBytesReceived = 0;
-    static DateTime prevTime = DateTime.MinValue;
-
-    static void SampleBandwidthKbps(out float outputKbps, out float inputKbps)
-    {
-        // Prefer interface with most traffic
-        var interfaces = NetworkInterface.GetAllNetworkInterfaces()
-            .Where(n => n.OperationalStatus == OperationalStatus.Up && n.NetworkInterfaceType != NetworkInterfaceType.Loopback)
-            .ToList();
-        NetworkInterface? ni = null;
-        long maxBytes = 0;
-        foreach (var iface in interfaces)
-        {
-            var stats = iface.GetIPv4Statistics();
-            long total = stats.BytesSent + stats.BytesReceived;
-            if (total > maxBytes)
-            {
-                maxBytes = total;
-                ni = iface;
-            }
-        }
-        if (ni == null)
-        {
-            cachedInterface = null;
-            prevBytesSent = 0;
-            prevBytesReceived = 0;
-            prevTime = DateTime.MinValue;
-            outputKbps = 0;
-            inputKbps = 0;
-            return;
-        }
-
-        var s = ni.GetIPv4Statistics();
-        long bytesSent = s.BytesSent;
-        long bytesReceived = s.BytesReceived;
-        DateTime now = DateTime.UtcNow;
-
-        outputKbps = 0;
-        inputKbps = 0;
-        if (cachedInterface?.Id == ni.Id && prevTime != DateTime.MinValue)
-        {
-            double seconds = (now - prevTime).TotalSeconds;
-            if (seconds > 0)
-            {
-                long deltaSent = bytesSent - prevBytesSent;
-                long deltaReceived = bytesReceived - prevBytesReceived;
-                outputKbps = (deltaSent * 8f) / 1000f / (float)seconds;
-                inputKbps = (deltaReceived * 8f) / 1000f / (float)seconds;
-            }
-        }
-        cachedInterface = ni;
-        prevBytesSent = bytesSent;
-        prevBytesReceived = bytesReceived;
-        prevTime = now;
-    }
-
     [SupportedOSPlatform("windows")]
     static void PrintStats()
     {
         float cpu = GetCpuUsage();
         float mem = GetMemoryUsageMB();
-        float bandwidthOut = GetRdpBandwidthOutputKbps();
-        float bandwidthIn = GetRdpBandwidthInputKbps();
+        double bandwidthOut = 0, bandwidthIn = 0;
+        GetRdpBandwidthKbps(out bandwidthOut, out bandwidthIn);
         int rtt = GetRdpRttMs();
         int latency = GetRdpLatencyMs();
         float gpu = GetGpuUtilization();
@@ -147,7 +81,28 @@ class Program
         DrawBar(gpu);
     }
 
-    static string FormatBandwidth(float kbps)
+    static void GetRdpBandwidthKbps(out double outKbps, out double inKbps)
+    {
+        long inBytes = QuerySessionLong(WTS_INFO_CLASS.WTSIncomingBytes);
+        long outBytes = QuerySessionLong(WTS_INFO_CLASS.WTSOutgoingBytes);
+        DateTime now = DateTime.UtcNow;
+        outKbps = 0;
+        inKbps = 0;
+        if (prevInBytes >= 0 && prevOutBytes >= 0 && prevTime != DateTime.MinValue)
+        {
+            double seconds = (now - prevTime).TotalSeconds;
+            if (seconds > 0)
+            {
+                outKbps = ((outBytes - prevOutBytes) * 8.0) / 1000.0 / seconds;
+                inKbps = ((inBytes - prevInBytes) * 8.0) / 1000.0 / seconds;
+            }
+        }
+        prevInBytes = inBytes;
+        prevOutBytes = outBytes;
+        prevTime = now;
+    }
+
+    static string FormatBandwidth(double kbps)
     {
         if (kbps >= 1000)
             return $"{kbps / 1000:F1} Mbps";
@@ -176,21 +131,19 @@ class Program
 
     static int GetRdpRttMs()
     {
-        // Approximate RTT to RDP server (gateway)
         string server = Environment.GetEnvironmentVariable("CLIENTNAME");
         if (string.IsNullOrEmpty(server)) return -1;
         try
         {
-            var ping = new Ping();
+            var ping = new System.Net.NetworkInformation.Ping();
             var reply = ping.Send(server, 500);
-            return reply.Status == IPStatus.Success ? (int)reply.RoundtripTime : -1;
+            return reply.Status == System.Net.NetworkInformation.IPStatus.Success ? (int)reply.RoundtripTime : -1;
         }
         catch { return -1; }
     }
 
     static int GetRdpLatencyMs()
     {
-        // Use RTT as a proxy for latency
         return GetRdpRttMs();
     }
 
@@ -199,7 +152,7 @@ class Program
     {
         try
         {
-            var searcher = new ManagementObjectSearcher("select * from Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine");
+            var searcher = new System.Management.ManagementObjectSearcher("select * from Win32_PerfFormattedData_GPUPerformanceCounters_GPUEngine");
             float total = 0;
             foreach (var obj in searcher.Get())
             {
@@ -215,7 +168,6 @@ class Program
     static void DrawBar(float percent)
     {
         int width = 30;
-        // Clamp percent between 0 and 100
         percent = Math.Max(0, Math.Min(100, percent));
         int filled = (int)(percent / 100 * width);
         Console.Write("[");

@@ -58,6 +58,12 @@ namespace Protocol_Analyzer
             );
             var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth);
             this.Controls.Add(realTimeStatsGroup);
+
+            // Add Session Info group below Real-Time Stats, spanning the full width
+            var sessionInfoGroup = CreateSessionInfoGroup(new Point(20, realTimeStatsGroup.Bottom + 10));
+            sessionInfoGroup.Size = new Size(groupWidth * 2 + 20, sessionInfoGroup.Height);
+            this.Controls.Add(sessionInfoGroup);
+
             // Place Custom Settings under Detected Settings, matching its width
             if (customSettings != null && customSettings.Count > 0)
             {
@@ -66,6 +72,7 @@ namespace Protocol_Analyzer
                 customSettingsGroup.Size = new Size(groupWidth, customSettingsGroup.Height);
                 this.Controls.Add(customSettingsGroup);
             }
+
             statsTimer = new System.Windows.Forms.Timer();
             statsTimer.Interval = 15000;
             statsTimer.Tick += PollEncoderFramesDropped;
@@ -231,6 +238,35 @@ namespace Protocol_Analyzer
                 group.Controls.Add(label);
                 y += 25;
             }
+            return group;
+        }
+
+        private GroupBox CreateSessionInfoGroup(Point location)
+        {
+            var group = new GroupBox
+            {
+                Text = "Session Info",
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Location = location
+            };
+
+            // Fetch session info from RdpNative
+            var stats = RdpStatsApp.RdpNative.GetRdpStatistics();
+            var sessionIdLabel = CreateLabel("Session Id:", new Point(15, 30));
+            var sessionIdValue = CreateBoldLabel(stats.SessionId.ToString(), new Point(150, 30));
+            var clientNameLabel = CreateLabel("Client Name:", new Point(15, 55));
+            var clientNameValue = CreateBoldLabel(stats.ClientName ?? "", new Point(150, 55));
+            var protocolVersionLabel = CreateLabel("Protocol Version:", new Point(15, 80));
+            var protocolVersionValue = CreateBoldLabel(stats.ProtocolVersion ?? "", new Point(150, 80));
+
+            group.Controls.Add(sessionIdLabel);
+            group.Controls.Add(sessionIdValue);
+            group.Controls.Add(clientNameLabel);
+            group.Controls.Add(clientNameValue);
+            group.Controls.Add(protocolVersionLabel);
+            group.Controls.Add(protocolVersionValue);
             return group;
         }
 
