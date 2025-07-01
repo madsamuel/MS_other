@@ -71,14 +71,14 @@ class Program
         int latency = GetRdpLatencyMs();
         float gpu = GetGpuUtilization();
 
-        Console.WriteLine($"CPU Usage: {cpu:F1}%");
-        Console.WriteLine($"Memory Usage: {mem:F0} MB");
-        Console.WriteLine($"RDP Bandwidth Output: {FormatBandwidth(bandwidthOut)}");
-        Console.WriteLine($"RDP Bandwidth Input: {FormatBandwidth(bandwidthIn)}");
-        Console.WriteLine($"RDP Round Trip Time (RTT): {rtt} ms");
-        Console.WriteLine($"RDP Network Latency: {latency} ms");
-        Console.WriteLine($"GPU Utilization: {gpu:F1}%");
-        DrawBar(gpu);
+        WriteStatLine(2, $"CPU Usage: {cpu:F1}%");
+        WriteStatLine(3, $"Memory Usage: {mem:F0} MB");
+        WriteStatLine(4, $"RDP Bandwidth Output: {FormatBandwidth(bandwidthOut)}");
+        WriteStatLine(5, $"RDP Bandwidth Input: {FormatBandwidth(bandwidthIn)}");
+        WriteStatLine(6, $"RDP Round Trip Time (RTT): {rtt} ms");
+        WriteStatLine(7, $"RDP Network Latency: {latency} ms");
+        WriteStatLine(8, $"GPU Utilization: {gpu:F1}%");
+        WriteStatLine(9, DrawBarString(gpu));
     }
 
     static void GetRdpBandwidthKbps(out double outKbps, out double inKbps)
@@ -174,5 +174,24 @@ class Program
         Console.Write(new string('|', filled));
         Console.Write(new string(' ', width - filled));
         Console.WriteLine("]");
+    }
+
+    static string DrawBarString(float percent)
+    {
+        int width = 30;
+        percent = Math.Max(0, Math.Min(100, percent));
+        int filled = (int)(percent / 100 * width);
+        string bar = "[";
+        bar += new string('|', filled);
+        bar += new string(' ', width - filled);
+        bar += "]";
+        return bar;
+    }
+
+    static void WriteStatLine(int line, string text)
+    {
+        int width = Console.WindowWidth - 1;
+        Console.SetCursorPosition(0, line);
+        Console.Write(text.PadRight(width));
     }
 }
