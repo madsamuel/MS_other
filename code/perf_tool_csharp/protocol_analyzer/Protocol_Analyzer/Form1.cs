@@ -56,12 +56,13 @@ namespace Protocol_Analyzer
                 gpuInfoGroup.Bottom,
                 detectedSettingsGroup.Bottom
             );
+            
             var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth);
             this.Controls.Add(realTimeStatsGroup);
 
-            // Add Session Info group below Real-Time Stats, spanning the full width
+            // Add Session Info group below Real-Time Stats, matching its width
             var sessionInfoGroup = CreateSessionInfoGroup(new Point(20, realTimeStatsGroup.Bottom + 10));
-            sessionInfoGroup.Size = new Size(groupWidth * 2 + 20, sessionInfoGroup.Height);
+            sessionInfoGroup.Size = new Size(groupWidth, sessionInfoGroup.Height); // <-- Match width
             this.Controls.Add(sessionInfoGroup);
 
             // Place Custom Settings under Detected Settings, matching its width
@@ -247,9 +248,9 @@ namespace Protocol_Analyzer
             {
                 Text = "Session Info",
                 Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Location = location
+                Location = location,
+                Size = new Size(370, 120), // Default, will be overridden in BuildUI
+                AutoSize = false
             };
 
             // Fetch session info from RdpNative
