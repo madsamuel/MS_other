@@ -13,10 +13,16 @@ namespace Protocol_Analyzer
             {
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    if (obj["PelsHeight"] != null && obj["PelsWidth"] != null)
+                    if (obj["PelsHeight"] is not null && obj["PelsWidth"] is not null)
                     {
-                        int height = Convert.ToInt32(obj["PelsHeight"]);
-                        int width = Convert.ToInt32(obj["PelsWidth"]);
+                        int height = 0;
+                        int width = 0;
+                        var pelsHeightObj = obj["PelsHeight"];
+                        var pelsWidthObj = obj["PelsWidth"];
+                        if (pelsHeightObj != null && int.TryParse(pelsHeightObj.ToString() ?? "0", out int h))
+                            height = h;
+                        if (pelsWidthObj != null && int.TryParse(pelsWidthObj.ToString() ?? "0", out int w))
+                            width = w;
                         if (height >= 2160 || width >= 3840) return "High";
                         if (height >= 1080 || width >= 1920) return "Medium";
                         return "Low";
@@ -33,9 +39,12 @@ namespace Protocol_Analyzer
             {
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    if (obj["CurrentRefreshRate"] != null)
+                    if (obj["CurrentRefreshRate"] is not null)
                     {
-                        int refreshRate = Convert.ToInt32(obj["CurrentRefreshRate"]);
+                        int refreshRate = 60;
+                        var refreshRateObj = obj["CurrentRefreshRate"];
+                        if (refreshRateObj != null && int.TryParse(refreshRateObj.ToString() ?? "60", out int rr))
+                            refreshRate = rr;
                         // Cap at 120 FPS as a reasonable maximum
                         return Math.Min(refreshRate, 120);
                     }
@@ -51,10 +60,13 @@ namespace Protocol_Analyzer
             {
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    if (obj["AdapterRAM"] != null)
+                    if (obj["AdapterRAM"] is not null)
                     {
                         // Modern GPUs with significant VRAM support hardware encoding
-                        long adapterRAM = Convert.ToInt64(obj["AdapterRAM"]);
+                        long adapterRAM = 0L;
+                        var adapterRamObj = obj["AdapterRAM"];
+                        if (adapterRamObj != null && long.TryParse(adapterRamObj.ToString() ?? "0", out long ram))
+                            adapterRAM = ram;
                         if (adapterRAM >= 1073741824) // 1GB VRAM
                         {
                             return "H265 (Hardware)";
@@ -73,9 +85,11 @@ namespace Protocol_Analyzer
                 {
                     foreach (ManagementObject obj in searcher.Get())
                     {
-                        if (obj["VideoProcessor"] != null)
+                        if (obj["VideoProcessor"] is not null)
                         {
-                            string processor = obj["VideoProcessor"]?.ToString()?.ToLower() ?? string.Empty;
+                            var videoProcessorObj = obj["VideoProcessor"];
+                            string processor = videoProcessorObj != null ? videoProcessorObj.ToString() ?? string.Empty : string.Empty;
+                            processor = processor.ToLowerInvariant();
                             // Check for common GPU vendors that support hardware encoding
                             if (processor.Contains("nvidia") || processor.Contains("amd") || processor.Contains("intel"))
                             {

@@ -74,14 +74,14 @@ namespace RdpStatsApp
                 {
                     if (buffer != IntPtr.Zero)
                     {
-                        string result = Marshal.PtrToStringAnsi(buffer);
+                        string result = Marshal.PtrToStringAnsi(buffer) ?? string.Empty;
                         WTSFreeMemory(buffer);
-                        return result ?? "";
+                        return result;
                     }
                 }
             }
             catch { }
-            return "";
+            return string.Empty;
         }
 
         private static ulong GetSessionUlong(int sessionId, int infoClass)
