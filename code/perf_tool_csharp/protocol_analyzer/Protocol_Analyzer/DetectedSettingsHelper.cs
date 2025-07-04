@@ -99,7 +99,7 @@ namespace Protocol_Analyzer
             {
                 DEVMODE devMode = new DEVMODE();
                 devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
-                if (EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode))
+                if (EnumDisplaySettings(string.Empty, ENUM_CURRENT_SETTINGS, ref devMode))
                 {
                     return (int)devMode.dmDisplayFrequency;
                 }
@@ -118,7 +118,7 @@ namespace Protocol_Analyzer
                     dmFormName = string.Empty
                 };
                 devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DisplayRefreshRateUtility.DEVMODE));
-                if (DisplayRefreshRateUtility.EnumDisplaySettings(null, DisplayRefreshRateUtility.ENUM_CURRENT_SETTINGS, ref devMode))
+                if (DisplayRefreshRateUtility.EnumDisplaySettings(string.Empty, DisplayRefreshRateUtility.ENUM_CURRENT_SETTINGS, ref devMode))
                 {
                     return ((int)devMode.dmPelsWidth, (int)devMode.dmPelsHeight, (int)devMode.dmDisplayFrequency);
                 }
@@ -200,7 +200,7 @@ namespace Protocol_Analyzer
         }
 
         [DllImport("user32.dll")]
-        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
+        public static extern bool EnumDisplaySettings(string? deviceName, int modeNum, ref DEVMODE devMode);
         public const int ENUM_CURRENT_SETTINGS = -1;
     }
 }
