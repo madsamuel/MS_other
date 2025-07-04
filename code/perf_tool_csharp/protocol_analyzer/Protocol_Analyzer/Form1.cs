@@ -258,9 +258,9 @@ namespace Protocol_Analyzer
             var sessionIdLabel = CreateLabel("Session Id:", new Point(15, 30));
             var sessionIdValue = CreateBoldLabel(stats.SessionId.ToString(), new Point(150, 30));
             var clientNameLabel = CreateLabel("Client Name:", new Point(15, 55));
-            var clientNameValue = CreateBoldLabel(stats.ClientName ?? "", new Point(150, 55));
+            var clientNameValue = CreateBoldLabel(stats.ClientName ?? string.Empty, new Point(150, 55));
             var protocolVersionLabel = CreateLabel("Protocol Version:", new Point(15, 80));
-            var protocolVersionValue = CreateBoldLabel(stats.ProtocolVersion ?? "", new Point(150, 80));
+            var protocolVersionValue = CreateBoldLabel(stats.ProtocolVersion ?? string.Empty, new Point(150, 80));
 
             group.Controls.Add(sessionIdLabel);
             group.Controls.Add(sessionIdValue);
