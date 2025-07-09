@@ -48,3 +48,6 @@ code/perf_tools/bandwidth_tool/build/bandwidth_tool/Analysis-00.toc
 code/perf_tools/bandwidth_tool/bandwidth_tool.spec
 /code/bandwidht_via_perfcounters/bandwidth_via_perfcounters/obj
 /code/bandwidht_via_perfcounters/bandwidth_via_perfcounters/bin
+/code/perf_tool_csharp/DisplayInfoUtil/bin
+/code/perf_tool_csharp/bandwidht_via_perfcounters/bandwidth_via_perfcounters/obj
+/code/perf_tool_csharp/DisplayInfoUtil/obj

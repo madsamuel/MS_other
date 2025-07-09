@@ -8,28 +8,19 @@ namespace Protocol_Analyzer
     {
         public static string GetVisualQuality()
         {
-            // Get system DPI to determine visual quality
-            using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_DisplayConfiguration"))
+             DEVMODE devMode = new DEVMODE();
+            devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
+            // Use EnumDisplaySettings to get the current display settings
+            
+            if (EnumDisplaySettings(string.Empty, ENUM_CURRENT_SETTINGS, ref devMode))
             {
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    if (obj["PelsHeight"] is not null && obj["PelsWidth"] is not null)
-                    {
-                        int height = 0;
-                        int width = 0;
-                        var pelsHeightObj = obj["PelsHeight"];
-                        var pelsWidthObj = obj["PelsWidth"];
-                        if (pelsHeightObj != null && int.TryParse(pelsHeightObj.ToString() ?? "0", out int h))
-                            height = h;
-                        if (pelsWidthObj != null && int.TryParse(pelsWidthObj.ToString() ?? "0", out int w))
-                            width = w;
-                        if (height >= 2160 || width >= 3840) return "High";
-                        if (height >= 1080 || width >= 1920) return "Medium";
-                        return "Low";
-                    }
-                }
+                int width = (int)devMode.dmPelsWidth;
+                int height = (int)devMode.dmPelsHeight;
+                if (height >= 2160 || width >= 3840) return "High";
+                if (height >= 1080 || width >= 1920) return "Medium";
+                return "Low";
             }
-            return "Medium";
+            return "Medium"; // fallback if API fails
         }
 
         public static int GetMaxFPS()
