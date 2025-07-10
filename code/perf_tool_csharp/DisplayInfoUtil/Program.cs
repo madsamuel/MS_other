@@ -61,6 +61,14 @@ namespace DisplayInfoUtil
             int width  = screen.Bounds.Width;
             int height = screen.Bounds.Height;
 
+            // Get scaling factor (DPI awareness)
+            float scalingFactor = 1.0f;
+            using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
+            {
+                float dpiX = g.DpiX;
+                scalingFactor = dpiX / 96.0f; // 96 DPI is 100%
+            }
+
             // 2) Get refresh rate via EnumDisplaySettings
             DEVMODE mode = new DEVMODE();
             mode.dmSize = (ushort)Marshal.SizeOf(mode);
@@ -68,6 +76,7 @@ namespace DisplayInfoUtil
 
             Console.WriteLine("Primary Display:");
             Console.WriteLine($"  Resolution : {width} x {height}");
+            Console.WriteLine($"  Scaling    : {scalingFactor * 100:F0}%");
             if (success && mode.dmDisplayFrequency > 0)
             {
                 Console.WriteLine($"  Refresh Rate: {mode.dmDisplayFrequency} Hz");
