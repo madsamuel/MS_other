@@ -53,20 +53,33 @@ namespace DisplayInfoUtil
             public uint   dmPanningHeight;
         }
 
+        [DllImport("user32.dll")]
+        private static extern bool SetProcessDPIAware();
+
+        [DllImport("gdi32.dll")]
+        private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+        private const int LOGPIXELSX = 88;
+
         [STAThread]
         static void Main()
         {
+            // Ensure process is DPI aware to get real DPI
+            SetProcessDPIAware();
+
             // 1) Get resolution via Screen.PrimaryScreen
             var screen = Screen.PrimaryScreen;
             int width  = screen.Bounds.Width;
             int height = screen.Bounds.Height;
 
-            // Get scaling factor (DPI awareness)
+            // Get scaling factor from system settings (not hardcoded)
             float scalingFactor = 1.0f;
             using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
             {
-                float dpiX = g.DpiX;
+                IntPtr hdc = g.GetHdc();
+                int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
                 scalingFactor = dpiX / 96.0f; // 96 DPI is 100%
+                g.ReleaseHdc(hdc);
             }
 
             // 2) Get refresh rate via EnumDisplaySettings
