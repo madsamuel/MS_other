@@ -8,7 +8,7 @@ namespace Protocol_Analyzer
     {
         public static string GetVisualQuality()
         {
-             DEVMODE devMode = new DEVMODE();
+            DEVMODE devMode = new DEVMODE();
             devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
             // Use EnumDisplaySettings to get the current display settings
             
@@ -117,16 +117,23 @@ namespace Protocol_Analyzer
         {
             try
             {
-                DisplayRefreshRateUtility.DEVMODE devMode = new DisplayRefreshRateUtility.DEVMODE
+                // Use System.Windows.Forms.Screen for resolution
+                int width = -1, height = -1, refreshRate = -1;
+                var screen = System.Windows.Forms.Screen.PrimaryScreen;
+                if (screen != null)
                 {
-                    dmDeviceName = string.Empty,
-                    dmFormName = string.Empty
-                };
-                devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DisplayRefreshRateUtility.DEVMODE));
-                if (DisplayRefreshRateUtility.EnumDisplaySettings(string.Empty, DisplayRefreshRateUtility.ENUM_CURRENT_SETTINGS, ref devMode))
-                {
-                    return ((int)devMode.dmPelsWidth, (int)devMode.dmPelsHeight, (int)devMode.dmDisplayFrequency);
+                    width = screen.Bounds.Width;
+                    height = screen.Bounds.Height;
                 }
+                // Use EnumDisplaySettings for refresh rate
+                DEVMODE devMode = new DEVMODE();
+                devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
+                if (EnumDisplaySettings(string.Empty, ENUM_CURRENT_SETTINGS, ref devMode))
+                {
+                    if (devMode.dmDisplayFrequency > 0)
+                        refreshRate = (int)devMode.dmDisplayFrequency;
+                }
+                return (width, height, refreshRate);
             }
             catch { }
             return (-1, -1, -1);
