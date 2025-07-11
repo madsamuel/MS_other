@@ -132,42 +132,46 @@ namespace Protocol_Analyzer
                 Location = location
             };
 
-            // Get display resolution and refresh rate
-            var (width, height, refreshRateValue) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
+            // Get display resolution, refresh rate, and scaling
+            var (width, height, refreshRateValue, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
             var resolutionLabel = CreateLabel("Display Resolution:", new Point(15, 30));
             var resolutionValue = CreateBoldLabel(width > 0 && height > 0 ? $"{width}x{height}" : "Unknown", new Point(150, 30));
 
             var refreshRate = CreateLabel("Display Refresh Rate:", new Point(15, 55));
             var refreshRateLabel = CreateBoldLabel(refreshRateValue > 0 ? $"{refreshRateValue} Hz" : "Unknown", new Point(150, 55));
 
+            var scalingLabel = CreateLabel("Scaling:", new Point(15, 80));
+            var scalingValue = CreateBoldLabel($"{scalingFactor * 100:F0}%", new Point(150, 80));
+
             // Get visual quality based on system DPI
             var visualQualityValue = DetectedSettingsHelper.GetVisualQuality();
-            var visualQuality = CreateLabel("Visual Quality:", new Point(15, 80));
-            var visualQualityLabel = CreateBoldLabel(visualQualityValue, new Point(150, 80));
+            var visualQuality = CreateLabel("Visual Quality:", new Point(15, 105));
+            var visualQualityLabel = CreateBoldLabel(visualQualityValue, new Point(150, 105));
 
             // Get max FPS based on display refresh rate
             var maxFpsValue = DetectedSettingsHelper.GetMaxFPS();
-            var maxFps = CreateLabel("Max Frames p/s:", new Point(15, 105));
-            var maxFpsLabel = CreateBoldLabel(maxFpsValue.ToString(), new Point(150, 105));
-
-            // Get encoder type based on system capabilities
-            var encoderTypeValue = DetectedSettingsHelper.GetEncoderType();
-            var encoderType = CreateLabel("Encoder type:", new Point(15, 130));
-            var encoderTypeLabel = CreateBoldLabel(encoderTypeValue, new Point(150, 130));
+            var maxFps = CreateLabel("Max Frames p/s:", new Point(15, 130));
+            var maxFpsLabel = CreateBoldLabel(maxFpsValue.ToString(), new Point(150, 130));
 
             // Check hardware encoding capabilities
             var hwEncodeValue = DetectedSettingsHelper.IsHardwareEncodingSupported() ? "Active" : "Inactive";
             var hwEncode = CreateLabel("Hardware Encode:", new Point(15, 155));
             var hwEncodeLabel = CreateBoldLabel(hwEncodeValue, new Point(150, 155));
 
+            // Get encoder type based on system capabilities (move to bottom)
+            var encoderTypeValue = DetectedSettingsHelper.GetEncoderType();
+            var encoderType = CreateLabel("Encoder type:", new Point(15, 180));
+            var encoderTypeLabel = CreateBoldLabel(encoderTypeValue, new Point(150, 180));
+
             group.Controls.AddRange(new Control[]
             {
                 resolutionLabel, resolutionValue,
                 refreshRate, refreshRateLabel,
+                scalingLabel, scalingValue,
                 visualQuality, visualQualityLabel,
                 maxFps, maxFpsLabel,
-                encoderType, encoderTypeLabel,
-                hwEncode, hwEncodeLabel
+                hwEncode, hwEncodeLabel,
+                encoderType, encoderTypeLabel
             });
 
             return group;

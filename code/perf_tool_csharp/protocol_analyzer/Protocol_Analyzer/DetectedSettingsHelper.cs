@@ -113,38 +113,58 @@ namespace Protocol_Analyzer
             return -1; // Unknown
         }
 
-        public static (int width, int height, int refreshRate) GetDisplayResolutionAndRefreshRate()
+        public static (int width, int height, int refreshRate, float scalingFactor) GetDisplayResolutionAndRefreshRate()
         {
             try
             {
-                // Use System.Windows.Forms.Screen for resolution
-                int width = -1, height = -1, refreshRate = -1;
+                // Ensure process is DPI aware
+                SetProcessDPIAware();
+
+                // 1) Get primary screen resolution
+                int width = -1, height = -1;
                 var screen = System.Windows.Forms.Screen.PrimaryScreen;
                 if (screen != null)
                 {
                     width = screen.Bounds.Width;
                     height = screen.Bounds.Height;
                 }
-                // Use EnumDisplaySettings for refresh rate
+
+                // 2) Get scaling factor (DPI awareness)
+                float scalingFactor = 1.0f;
+                try
+                {
+                    using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
+                    {
+                        IntPtr hdc = g.GetHdc();
+                        int dpiX = GetDeviceCaps(hdc, LOGPIXELSX); // Get horizontal DPI
+                        if (dpiX > 0)
+                        {
+                            scalingFactor = dpiX / 96.0f; // 96 DPI is 100% scaling
+                        }
+                        g.ReleaseHdc(hdc);
+                    }
+                }
+                catch { scalingFactor = 1.0f; }
+
+                // 3) Get refresh rate using EnumDisplaySettings
+                int refreshRate = -1;
                 DEVMODE devMode = new DEVMODE();
                 devMode.dmSize = (ushort)Marshal.SizeOf(typeof(DEVMODE));
-                if (EnumDisplaySettings(string.Empty, ENUM_CURRENT_SETTINGS, ref devMode))
+                bool success = EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref devMode);
+                if (success && devMode.dmDisplayFrequency > 0)
                 {
-                    if (devMode.dmDisplayFrequency > 0)
-                        refreshRate = (int)devMode.dmDisplayFrequency;
+                    refreshRate = (int)devMode.dmDisplayFrequency;
                 }
-                return (width, height, refreshRate);
+                return (width, height, refreshRate, scalingFactor);
             }
             catch { }
-            return (-1, -1, -1);
+            return (-1, -1, -1, 1.0f);
         }
 
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
         public struct DEVMODE
         {
-            private const int CCHDEVICENAME = 32;
-            private const int CCHFORMNAME = 32;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHDEVICENAME)]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
             public string dmDeviceName;
             public ushort dmSpecVersion;
             public ushort dmDriverVersion;
@@ -160,7 +180,7 @@ namespace Protocol_Analyzer
             public short dmYResolution;
             public short dmTTOption;
             public short dmCollate;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = CCHFORMNAME)]
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
             public string dmFormName;
             public ushort dmLogPixels;
             public uint dmBitsPerPel;
@@ -168,12 +188,24 @@ namespace Protocol_Analyzer
             public uint dmPelsHeight;
             public uint dmDisplayFlags;
             public uint dmDisplayFrequency;
-            // Other fields omitted for brevity
+            public uint dmICMMethod;
+            public uint dmICMIntent;
+            public uint dmMediaType;
+            public uint dmDitherType;
+            public uint dmReserved1;
+            public uint dmReserved2;
+            public uint dmPanningWidth;
+            public uint dmPanningHeight;
         }
 
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        public static extern bool EnumDisplaySettings(string? deviceName, int modeNum, ref DEVMODE devMode);
         [DllImport("user32.dll")]
-        public static extern bool EnumDisplaySettings(string deviceName, int modeNum, ref DEVMODE devMode);
-        const int ENUM_CURRENT_SETTINGS = -1;
+        public static extern bool SetProcessDPIAware();
+        [DllImport("gdi32.dll")]
+        public static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+        public const int ENUM_CURRENT_SETTINGS = -1;
+        public const int LOGPIXELSX = 88;
     }
 
     // Place this outside DetectedSettingsHelper
