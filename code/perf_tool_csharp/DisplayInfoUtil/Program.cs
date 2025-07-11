@@ -69,7 +69,7 @@ namespace DisplayInfoUtil
 
             // 1) Get resolution via Screen.PrimaryScreen
             var screen = Screen.PrimaryScreen;
-            int width  = screen.Bounds.Width;
+            int width = screen.Bounds.Width;
             int height = screen.Bounds.Height;
 
             // Get scaling factor from system settings (not hardcoded)
@@ -79,7 +79,7 @@ namespace DisplayInfoUtil
                 IntPtr hdc = g.GetHdc();
                 int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
                 scalingFactor = dpiX / 96.0f; // 96 DPI is 100%
-                g.ReleaseHdc(hdc);
+                g.ReleaseHdc(hdc);            
             }
 
             // 2) Get refresh rate via EnumDisplaySettings
@@ -90,6 +90,7 @@ namespace DisplayInfoUtil
             Console.WriteLine("Primary Display:");
             Console.WriteLine($"  Resolution : {width} x {height}");
             Console.WriteLine($"  Scaling    : {scalingFactor * 100:F0}%");
+            
             if (success && mode.dmDisplayFrequency > 0)
             {
                 Console.WriteLine($"  Refresh Rate: {mode.dmDisplayFrequency} Hz");
