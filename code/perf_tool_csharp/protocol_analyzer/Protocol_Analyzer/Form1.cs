@@ -41,7 +41,7 @@ namespace Protocol_Analyzer
 
         private void BuildUI()
         {
-            this.Text = "Session Perf";
+            this.Text = "Phil's Session Perf";
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
@@ -58,11 +58,11 @@ namespace Protocol_Analyzer
             );
             
             var realTimeStatsGroup = CreateRealTimeStatsGroup(new Point(20, topRowBottom + 10), groupWidth);
+            realTimeStatsGroup.Size = new Size(groupWidth, realTimeStatsGroup.Height);
             this.Controls.Add(realTimeStatsGroup);
 
             // Add Session Info group below Real-Time Stats, matching its width
-            var sessionInfoGroup = CreateSessionInfoGroup(new Point(20, realTimeStatsGroup.Bottom + 10));
-            sessionInfoGroup.Size = new Size(groupWidth, sessionInfoGroup.Height); // <-- Match width
+            var sessionInfoGroup = CreateSessionInfoGroup(new Point(20, realTimeStatsGroup.Bottom + 10));            
             this.Controls.Add(sessionInfoGroup);
 
             // Place Custom Settings under Detected Settings, matching its width
@@ -127,8 +127,11 @@ namespace Protocol_Analyzer
             var group = new GroupBox
             {
                 Text = "Detected settings",
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),                
-                Size = new Size(370, 150),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                // Size = new Size(370, 150),
+                // Location = location
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Location = location
             };
 
