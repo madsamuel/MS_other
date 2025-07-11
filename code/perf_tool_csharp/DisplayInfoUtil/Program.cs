@@ -74,30 +74,54 @@ namespace DisplayInfoUtil
 
             // Get scaling factor from system settings (not hardcoded)
             float scalingFactor = 1.0f;
-            using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
+            try
             {
-                IntPtr hdc = g.GetHdc();
-                int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
-                scalingFactor = dpiX / 96.0f; // 96 DPI is 100%
-                g.ReleaseHdc(hdc);            
+                using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
+                {
+                    IntPtr hdc = g.GetHdc();
+                    int dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+                    if (dpiX > 0)
+                    {
+                        scalingFactor = dpiX / 96.0f; // 96 DPI is 100%
+                    }
+                    else
+                    {
+                        Console.WriteLine("Warning: Unable to retrieve DPI. Defaulting to 100% scaling.");
+                    }
+                    g.ReleaseHdc(hdc);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving DPI: {ex.Message}");
+                scalingFactor = 1.0f;
             }
 
             // 2) Get refresh rate via EnumDisplaySettings
-            DEVMODE mode = new DEVMODE();
-            mode.dmSize = (ushort)Marshal.SizeOf(mode);
-            bool success = EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref mode);
+            int refreshRate = -1;
+            try
+            {
+                DEVMODE mode = new DEVMODE();
+                mode.dmSize = (ushort)Marshal.SizeOf(mode);
+                bool success = EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref mode);
 
-            Console.WriteLine("Primary Display:");
-            Console.WriteLine($"  Resolution : {width} x {height}");
-            Console.WriteLine($"  Scaling    : {scalingFactor * 100:F0}%");
-            
-            if (success && mode.dmDisplayFrequency > 0)
-            {
-                Console.WriteLine($"  Refresh Rate: {mode.dmDisplayFrequency} Hz");
+                Console.WriteLine("Primary Display:");
+                Console.WriteLine($"  Resolution : {width} x {height}");
+                Console.WriteLine($"  Scaling    : {scalingFactor * 100:F0}%");
+
+                if (success && mode.dmDisplayFrequency > 0)
+                {
+                    refreshRate = (int)mode.dmDisplayFrequency;
+                    Console.WriteLine($"  Refresh Rate: {refreshRate} Hz");
+                }
+                else
+                {
+                    Console.WriteLine("  Refresh Rate: Unable to retrieve");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("  Refresh Rate: Unable to retrieve");
+                Console.WriteLine($"Error retrieving refresh rate: {ex.Message}");
             }
         }
     }
