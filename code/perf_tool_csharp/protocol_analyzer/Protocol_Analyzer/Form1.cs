@@ -34,7 +34,6 @@ namespace Protocol_Analyzer
             trayIcon.Icon = new Icon("Resources/banana.ico");
             trayIcon.Text = "Session Perf";
             trayIcon.Visible = true;
-            // Optional: Add a context menu for exiting
             var contextMenu = new ContextMenuStrip();
             var exitItem = new ToolStripMenuItem("Exit");
             exitItem.Click += (s, e) => { this.Close(); };
@@ -49,7 +48,6 @@ namespace Protocol_Analyzer
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            // Create the main TableLayoutPanel
             var mainTable = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -65,223 +63,117 @@ namespace Protocol_Analyzer
             mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
             mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 34F));
 
-            // Create and add each group in the desired grid position
-            var gpuInfoGroup = CreateGpuInfoGroup(Point.Empty);
-            gpuInfoGroup.Dock = DockStyle.Fill;
+            var gpuInfoGroup = CreateGpuInfoGroup();
             mainTable.Controls.Add(gpuInfoGroup, 0, 0);
 
-            var detectedSettingsGroup = CreateDetectedSettingsGroup(Point.Empty);
-            detectedSettingsGroup.Dock = DockStyle.Fill;
+            var detectedSettingsGroup = CreateDetectedSettingsGroup();
             mainTable.Controls.Add(detectedSettingsGroup, 1, 0);
 
-            var realTimeStatsGroup = CreateRealTimeStatsGroup(Point.Empty);
-            realTimeStatsGroup.Dock = DockStyle.Fill;
+            var realTimeStatsGroup = CreateRealTimeStatsGroup();
             mainTable.Controls.Add(realTimeStatsGroup, 0, 1);
 
-            var customSettingsGroup = CreateCustomSettingsGroup(Point.Empty);
-            customSettingsGroup.Dock = DockStyle.Fill;
+            var customSettingsGroup = CreateCustomSettingsGroup();
             mainTable.Controls.Add(customSettingsGroup, 1, 1);
 
-            var sessionInfoGroup = CreateSessionInfoGroup(Point.Empty);
-            sessionInfoGroup.Dock = DockStyle.Fill;
+            var sessionInfoGroup = CreateSessionInfoGroup();
             mainTable.Controls.Add(sessionInfoGroup, 0, 2);
             mainTable.SetColumnSpan(sessionInfoGroup, 2);
 
-            // Clear any existing controls and add the main table
             this.Controls.Clear();
             this.Controls.Add(mainTable);
 
-            // Timer for stats (if needed)
             statsTimer = new System.Windows.Forms.Timer();
             statsTimer.Interval = 15000;
             statsTimer.Tick += PollEncoderFramesDropped;
             statsTimer.Start();
         }
 
-        private GroupBox CreateGpuInfoGroup(Point location)
+        private GroupBox CreateGpuInfoGroup()
         {
-            var group = new GroupBox
-            {
-                Text = "GPU Information",
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Location = location
-            };
+            var table = CreateStandardTable();
+            var group = CreateGroupBox("GPU Information", table);
 
             var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
-            var resolutionLabel = CreateLabel("Main Display Resolution:", new Point(15, 30));
-            var resolutionValue = CreateBoldLabel($"{resolution.Width}x{resolution.Height}", new Point(150, 30));
-            var dpiLabel = CreateLabel("DPI Scale:", new Point(15, 55));
-            var dpiValue = CreateBoldLabel($"{dpiScale * 100:F0} %", new Point(150, 55));
+            AddRow(table, "Main Display Resolution:", $"{resolution.Width}x{resolution.Height}");
+            AddRow(table, "DPI Scale:", $"{dpiScale * 100:F0} %");
 
             var (sessionType, gpuType, encoderType, hwEncode) = GraphicsProfileHelper.GetGraphicsProfileDetails();
-            var sessionTypeLabel = CreateLabel("Session Type:", new Point(15, 80));
-            var sessionTypeValue = CreateBoldLabel(sessionType, new Point(150, 80));
-            var gpuTypeLabel = CreateLabel("GPU Type:", new Point(15, 105));
-            var gpuTypeValue = CreateBoldLabel(gpuType, new Point(150, 105));
-            var encoderTypeLabel = CreateLabel("Encoding:", new Point(15, 130));
-            var encoderTypeValue = CreateBoldLabel(encoderType, new Point(150, 130));
-            var hwEncodeLabel = CreateLabel("HW Encode:", new Point(15, 155));
-            var hwEncodeValue = CreateBoldLabel(hwEncode, new Point(150, 155));
+            AddRow(table, "Session Type:", sessionType);
+            AddRow(table, "GPU Type:", gpuType);
+            AddRow(table, "Encoding:", encoderType);
+            AddRow(table, "HW Encode:", hwEncode);
 
-            group.Controls.Add(resolutionLabel);
-            group.Controls.Add(resolutionValue);
-            group.Controls.Add(dpiLabel);
-            group.Controls.Add(dpiValue);
-            group.Controls.Add(sessionTypeLabel);
-            group.Controls.Add(sessionTypeValue);
-            group.Controls.Add(gpuTypeLabel);
-            group.Controls.Add(gpuTypeValue);
-            group.Controls.Add(encoderTypeLabel);
-            group.Controls.Add(encoderTypeValue);
-            group.Controls.Add(hwEncodeLabel);
-            group.Controls.Add(hwEncodeValue);
             return group;
         }
 
-        private GroupBox CreateDetectedSettingsGroup(Point location)
+        private GroupBox CreateDetectedSettingsGroup()
         {
-            var group = new GroupBox
-            {
-                Text = "Detected settings",
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                // Size = new Size(370, 150),
-                // Location = location
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Location = location
-            };
+            var table = CreateStandardTable();
+            var group = CreateGroupBox("Detected settings", table);
 
-            // Get display resolution, refresh rate, and scaling
             var (width, height, refreshRateValue, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
-            var resolutionLabel = CreateLabel("Display Resolution:", new Point(15, 30));
-            var resolutionValue = CreateBoldLabel(width > 0 && height > 0 ? $"{width}x{height}" : "Unknown", new Point(150, 30));
-
-            var refreshRate = CreateLabel("Display Refresh Rate:", new Point(15, 55));
-            var refreshRateLabel = CreateBoldLabel(refreshRateValue > 0 ? $"{refreshRateValue} Hz" : "Unknown", new Point(150, 55));
-
-            var scalingLabel = CreateLabel("Scaling:", new Point(15, 80));
-            var scalingValue = CreateBoldLabel($"{scalingFactor * 100:F0}%", new Point(150, 80));
-
-            // Get visual quality based on system DPI
-            var visualQualityValue = DetectedSettingsHelper.GetVisualQuality();
-            var visualQuality = CreateLabel("Visual Quality:", new Point(15, 105));
-            var visualQualityLabel = CreateBoldLabel(visualQualityValue, new Point(150, 105));
-
-            // Get max FPS based on display refresh rate
-            var maxFpsValue = DetectedSettingsHelper.GetMaxFPS();
-            var maxFps = CreateLabel("Max Frames p/s:", new Point(15, 130));
-            var maxFpsLabel = CreateBoldLabel(maxFpsValue.ToString(), new Point(150, 130));
-
-            // Check hardware encoding capabilities
-            var hwEncodeValue = DetectedSettingsHelper.IsHardwareEncodingSupported() ? "Active" : "Inactive";
-            var hwEncode = CreateLabel("Hardware Encode:", new Point(15, 155));
-            var hwEncodeLabel = CreateBoldLabel(hwEncodeValue, new Point(150, 155));
-
-            // Get encoder type based on system capabilities (move to bottom)
-            var encoderTypeValue = DetectedSettingsHelper.GetEncoderType();
-            var encoderType = CreateLabel("Encoder type:", new Point(15, 180));
-            var encoderTypeLabel = CreateBoldLabel(encoderTypeValue, new Point(150, 180));
-
-            group.Controls.AddRange(new Control[]
-            {
-                resolutionLabel, resolutionValue,
-                refreshRate, refreshRateLabel,
-                scalingLabel, scalingValue,
-                visualQuality, visualQualityLabel,
-                maxFps, maxFpsLabel,
-                hwEncode, hwEncodeLabel,
-                encoderType, encoderTypeLabel
-            });
+            AddRow(table, "Display Resolution:", width > 0 && height > 0 ? $"{width}x{height}" : "Unknown");
+            AddRow(table, "Display Refresh Rate:", refreshRateValue > 0 ? $"{refreshRateValue} Hz" : "Unknown");
+            AddRow(table, "Scaling:", $"{scalingFactor * 100:F0}%");
+            AddRow(table, "Visual Quality:", DetectedSettingsHelper.GetVisualQuality());
+            AddRow(table, "Max Frames p/s:", DetectedSettingsHelper.GetMaxFPS().ToString());
+            AddRow(table, "Hardware Encode:", DetectedSettingsHelper.IsHardwareEncodingSupported() ? "Active" : "Inactive");
+            AddRow(table, "Encoder type:", DetectedSettingsHelper.GetEncoderType());
 
             return group;
         }
 
-        private GroupBox CreateRealTimeStatsGroup(Point location)
+        private GroupBox CreateRealTimeStatsGroup()
         {
-            var group = new GroupBox
+            var table = new TableLayoutPanel
             {
-                Text = "Real-Time Advanced Statistics",
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                ColumnCount = 1,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 Dock = DockStyle.Fill
             };
+            var group = CreateGroupBox("Real-Time Advanced Statistics", table);
 
-            statsLabel = new Label
-            {
-                Text = "Encoder Frames Dropped: (waiting for data)",
-                Location = new Point(15, 30),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9)
-            };
+            statsLabel = CreateValueLabel("Encoder Frames Dropped: (waiting for data)");
+            fpsLabel = CreateValueLabel("Input Frames Per Second: (waiting for data)");
 
-            fpsLabel = new Label
-            {
-                Text = "Input Frames Per Second: (waiting for data)",
-                Location = new Point(15, 55),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9)
-            };
+            table.Controls.Add(statsLabel);
+            table.Controls.Add(fpsLabel);
 
-            group.Controls.Add(statsLabel!);
-            group.Controls.Add(fpsLabel!);
             return group;
         }
-
-        private GroupBox CreateCustomSettingsGroup(Point location)
+        private GroupBox CreateCustomSettingsGroup()
         {
-            var group = new GroupBox
+            var table = new TableLayoutPanel
             {
-                Text = "Custom Settings",
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Size = new Size(370, 150),
-                Location = location
+                ColumnCount = 1,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Fill
             };
-            int y = 30;
+            var group = CreateGroupBox("Custom Settings", table);
+
             foreach (var setting in customSettings!)
             {
                 string display = CustomSettingsHelper.GetRegistryDisplay(setting);
-                var label = new Label
-                {
-                    Text = display,
-                    Location = new Point(15, y),
-                    AutoSize = true,
-                    Font = new Font("Segoe UI", 9)
-                };
-                group.Controls.Add(label);
-                y += 25;
+                var label = CreateValueLabel(display);
+                table.Controls.Add(label);
             }
+
             return group;
         }
 
-        private GroupBox CreateSessionInfoGroup(Point location)
+
+        private GroupBox CreateSessionInfoGroup()
         {
-            var group = new GroupBox
-            {
-                Text = "Session Info",
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                Location = location,
-                Size = new Size(370, 120), // Default, will be overridden in BuildUI
-                AutoSize = false
-            };
+            var table = CreateStandardTable();
+            var group = CreateGroupBox("Session Info", table);
 
-            // Fetch session info from RdpNative
             var stats = RdpStatsApp.RdpNative.GetRdpStatistics();
-            var sessionIdLabel = CreateLabel("Session Id:", new Point(15, 30));
-            var sessionIdValue = CreateBoldLabel(stats.SessionId.ToString(), new Point(150, 30));
-            var clientNameLabel = CreateLabel("Client Name:", new Point(15, 55));
-            var clientNameValue = CreateBoldLabel(stats.ClientName ?? string.Empty, new Point(150, 55));
-            var protocolVersionLabel = CreateLabel("Protocol Version:", new Point(15, 80));
-            var protocolVersionValue = CreateBoldLabel(stats.ProtocolVersion ?? string.Empty, new Point(150, 80));
+            AddRow(table, "Session Id:", stats.SessionId.ToString());
+            AddRow(table, "Client Name:", stats.ClientName ?? string.Empty);
+            AddRow(table, "Protocol Version:", stats.ProtocolVersion ?? string.Empty);
 
-            group.Controls.Add(sessionIdLabel);
-            group.Controls.Add(sessionIdValue);
-            group.Controls.Add(clientNameLabel);
-            group.Controls.Add(clientNameValue);
-            group.Controls.Add(protocolVersionLabel);
-            group.Controls.Add(protocolVersionValue);
             return group;
         }
 
@@ -293,54 +185,47 @@ namespace Protocol_Analyzer
             fpsLabel.Text = $"Input Frames Per Second: {(inputFps >= 0 ? inputFps.ToString() : "Unavailable")}";
         }
 
-        // UI helper methods
-        private Label CreateLabel(string text, Point location)
+        private TableLayoutPanel CreateStandardTable()
+        {
+            return new TableLayoutPanel
+            {
+                ColumnCount = 2,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Fill
+            };
+        }
+
+        private GroupBox CreateGroupBox(string title, Control content)
+        {
+            return new GroupBox
+            {
+                Text = title,
+                Font = new Font("Segoe UI", 10, FontStyle.Bold),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Fill,
+                Controls = { content }
+            };
+        }
+
+        private void AddRow(TableLayoutPanel table, string labelText, string valueText)
+        {
+            var label = new Label { Text = labelText, Font = new Font("Segoe UI", 9), AutoSize = true };
+            var value = new Label { Text = valueText, Font = new Font("Segoe UI", 9, FontStyle.Bold), AutoSize = true };
+            table.Controls.Add(label);
+            table.Controls.Add(value);
+        }
+
+        private Label CreateValueLabel(string text)
         {
             return new Label
             {
                 Text = text,
-                Location = location,
+                Font = new Font("Segoe UI", 9),
                 AutoSize = true,
-                Font = new Font("Segoe UI", 9)
+                Dock = DockStyle.Top
             };
-        }
-
-        private Label CreateBoldLabel(string text, Point location)
-        {
-            return new Label
-            {
-                Text = text,
-                Location = location,
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9, FontStyle.Bold)                
-            };
-        }
-
-        // Form overrides
-        protected override void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
-            // Dynamically size the form to fit all group boxes
-            int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
-            foreach (Control ctrl in this.Controls)
-            {
-                if (ctrl is GroupBox)
-                {
-                    minX = Math.Min(minX, ctrl.Left);
-                    minY = Math.Min(minY, ctrl.Top);
-                    maxX = Math.Max(maxX, ctrl.Right);
-                    maxY = Math.Max(maxY, ctrl.Bottom);
-                }
-            }
-            int sidePadding = minX; // Use the left padding as the standard for both sides
-            int verticalPadding = 20; // Keep vertical padding as before
-            this.ClientSize = new Size((maxX - minX) + sidePadding * 2, (maxY - minY) + verticalPadding * 2);
-            // Snap to bottom right of the primary screen's working area
-            var workingArea = Screen.FromControl(this).WorkingArea;
-            this.Location = new System.Drawing.Point(
-                workingArea.Right - this.Width,
-                workingArea.Bottom - this.Height
-            );
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
