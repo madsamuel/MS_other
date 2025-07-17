@@ -54,7 +54,7 @@ namespace Protocol_Analyzer
                 ColumnCount = 2,
                 RowCount = 3,
                 AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                AutoSizeMode = AutoSizeMode.GrowOnly,
                 Padding = new Padding(10),
             };
             mainTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
@@ -92,6 +92,15 @@ namespace Protocol_Analyzer
         {
             var table = CreateStandardTable();
             var group = CreateGroupBox("GPU Information", table);
+
+            table.AutoSize = false;
+            table.Dock = DockStyle.Fill;
+
+            // Set a fixed or minimum size for the GroupBox
+            group.AutoSize = false;
+            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
+            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
+            group.Size = new Size(320, 155);
 
             var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
             AddRow(table, "Main Display Resolution:", $"{resolution.Width}x{resolution.Height}");
