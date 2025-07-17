@@ -23,9 +23,11 @@ namespace Protocol_Analyzer
             InitializeTrayIcon();
             customSettings = CustomSettingsHelper.LoadCustomSettings("Resources/custom_registry_settings.json");
             BuildUI();
-            this.AutoSize = true;
+            this.AutoSize = false;
             this.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             this.Padding = new Padding(10);
+            this.Size = new Size(700, 800);           
+            this.MinimumSize = new Size(700, 800); 
         }
 
         private void InitializeTrayIcon()
@@ -95,8 +97,7 @@ namespace Protocol_Analyzer
 
             table.AutoSize = false;
             table.Dock = DockStyle.Fill;
-
-            // Set a fixed or minimum size for the GroupBox
+        
             group.AutoSize = false;
             group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
             group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
@@ -119,6 +120,14 @@ namespace Protocol_Analyzer
         {
             var table = CreateStandardTable();
             var group = CreateGroupBox("Detected settings", table);
+
+            table.AutoSize = false;
+            table.Dock = DockStyle.Fill;
+        
+            group.AutoSize = false;
+            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
+            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
+            group.Size = new Size(320, 155);
 
             var (width, height, refreshRateValue, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
             AddRow(table, "Display Resolution:", width > 0 && height > 0 ? $"{width}x{height}" : "Unknown");
