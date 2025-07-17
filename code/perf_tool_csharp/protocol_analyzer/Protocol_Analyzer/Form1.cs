@@ -26,8 +26,8 @@ namespace Protocol_Analyzer
             this.AutoSize = false;
             this.AutoSizeMode = AutoSizeMode.GrowAndShrink;
             this.Padding = new Padding(10);
-            this.Size = new Size(700, 800);           
-            this.MinimumSize = new Size(700, 800); 
+            this.Size = new Size(700, 535);           
+            this.MinimumSize = new Size(700, 535); 
         }
 
         private void InitializeTrayIcon()
@@ -143,14 +143,16 @@ namespace Protocol_Analyzer
 
         private GroupBox CreateRealTimeStatsGroup()
         {
-            var table = new TableLayoutPanel
-            {
-                ColumnCount = 1,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill
-            };
+            var table = CreateStandardTable();
             var group = CreateGroupBox("Real-Time Advanced Statistics", table);
+
+            table.AutoSize = false;
+            table.Dock = DockStyle.Fill;
+        
+            group.AutoSize = false;
+            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
+            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
+            group.Size = new Size(320, 155);
 
             statsLabel = CreateValueLabel("Encoder Frames Dropped: (waiting for data)");
             fpsLabel = CreateValueLabel("Input Frames Per Second: (waiting for data)");
@@ -162,14 +164,16 @@ namespace Protocol_Analyzer
         }
         private GroupBox CreateCustomSettingsGroup()
         {
-            var table = new TableLayoutPanel
-            {
-                ColumnCount = 1,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill
-            };
+            var table = CreateStandardTable();
             var group = CreateGroupBox("Custom Settings", table);
+
+            table.AutoSize = false;
+            table.Dock = DockStyle.Fill;
+        
+            group.AutoSize = false;
+            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
+            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
+            group.Size = new Size(320, 155);
 
             foreach (var setting in customSettings!)
             {
@@ -186,6 +190,14 @@ namespace Protocol_Analyzer
         {
             var table = CreateStandardTable();
             var group = CreateGroupBox("Session Info", table);
+
+            table.AutoSize = false;
+            table.Dock = DockStyle.Fill;
+        
+            group.AutoSize = false;
+            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
+            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
+            group.Size = new Size(320, 155);
 
             var stats = RdpStatsApp.RdpNative.GetRdpStatistics();
             AddRow(table, "Session Id:", stats.SessionId.ToString());
