@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Management;
@@ -19,21 +20,33 @@ namespace Protocol_Analyzer
 
         public Form1()
         {
-            this.Icon = new Icon("Resources/banana.ico");
+            try
+            {
+                this.Icon = new Icon("Resources/banana.ico");
+                customSettings = CustomSettingsHelper.LoadCustomSettings("Resources/custom_registry_settings.json");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading resources: {ex.Message}", "Initialization Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
             InitializeTrayIcon();
-            customSettings = CustomSettingsHelper.LoadCustomSettings("Resources/custom_registry_settings.json");
             BuildUI();
-            this.AutoSize = false;
+
             this.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            this.Padding = new Padding(10);
-            this.Size = new Size(700, 535);           
-            this.MinimumSize = new Size(700, 535); 
         }
 
         private void InitializeTrayIcon()
         {
             trayIcon = new NotifyIcon();
-            trayIcon.Icon = new Icon("Resources/banana.ico");
+            try
+            {
+                trayIcon.Icon = new Icon("Resources/banana.ico");
+            }
+            catch
+            {
+                trayIcon.Icon = SystemIcons.Application;
+            }
             trayIcon.Text = "Session Perf";
             trayIcon.Visible = true;
             var contextMenu = new ContextMenuStrip();
@@ -49,34 +62,29 @@ namespace Protocol_Analyzer
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.StartPosition = FormStartPosition.CenterScreen;
+            this.Size = new Size(900, 700);
+            this.MinimumSize = new Size(900, 700);
+            this.BackColor = SystemColors.Control;
 
             var mainTable = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 3,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowOnly,
-                Padding = new Padding(10),
+                Padding = new Padding(15),
             };
+
             mainTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             mainTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
-            mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
-            mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 34F));
+            mainTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            mainTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            mainTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            var gpuInfoGroup = CreateGpuInfoGroup();
-            mainTable.Controls.Add(gpuInfoGroup, 0, 0);
-
-            var detectedSettingsGroup = CreateDetectedSettingsGroup();
-            mainTable.Controls.Add(detectedSettingsGroup, 1, 0);
-
-            var realTimeStatsGroup = CreateRealTimeStatsGroup();
-            mainTable.Controls.Add(realTimeStatsGroup, 0, 1);
-
-            var customSettingsGroup = CreateCustomSettingsGroup();
-            mainTable.Controls.Add(customSettingsGroup, 1, 1);
-
+            mainTable.Controls.Add(CreateGpuInfoGroup(), 0, 0);
+            mainTable.Controls.Add(CreateDetectedSettingsGroup(), 1, 0);
+            mainTable.Controls.Add(CreateRealTimeStatsGroup(), 0, 1);
+            mainTable.Controls.Add(CreateCustomSettingsGroup(), 1, 1);
+            
             var sessionInfoGroup = CreateSessionInfoGroup();
             mainTable.Controls.Add(sessionInfoGroup, 0, 2);
             mainTable.SetColumnSpan(sessionInfoGroup, 2);
@@ -85,9 +93,10 @@ namespace Protocol_Analyzer
             this.Controls.Add(mainTable);
 
             statsTimer = new System.Windows.Forms.Timer();
-            statsTimer.Interval = 15000;
-            statsTimer.Tick += PollEncoderFramesDropped;
+            statsTimer.Interval = 5000;
+            statsTimer.Tick += PollStats;
             statsTimer.Start();
+            PollStats(null, EventArgs.Empty);
         }
 
         private GroupBox CreateGpuInfoGroup()
@@ -95,17 +104,9 @@ namespace Protocol_Analyzer
             var table = CreateStandardTable();
             var group = CreateGroupBox("GPU Information", table);
 
-            table.AutoSize = false;
-            table.Dock = DockStyle.Fill;
-        
-            group.AutoSize = false;
-            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
-            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
-            group.Size = new Size(320, 155);
-
             var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
             AddRow(table, "Main Display Resolution:", $"{resolution.Width}x{resolution.Height}");
-            AddRow(table, "DPI Scale:", $"{dpiScale * 100:F0} %");
+            AddRow(table, "DPI Scale:", $"{dpiScale * 100:F0}%");
 
             var (sessionType, gpuType, encoderType, hwEncode) = GraphicsProfileHelper.GetGraphicsProfileDetails();
             AddRow(table, "Session Type:", sessionType);
@@ -120,14 +121,6 @@ namespace Protocol_Analyzer
         {
             var table = CreateStandardTable();
             var group = CreateGroupBox("Detected settings", table);
-
-            table.AutoSize = false;
-            table.Dock = DockStyle.Fill;
-        
-            group.AutoSize = false;
-            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
-            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
-            group.Size = new Size(320, 155);
 
             var (width, height, refreshRateValue, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
             AddRow(table, "Display Resolution:", width > 0 && height > 0 ? $"{width}x{height}" : "Unknown");
@@ -146,84 +139,67 @@ namespace Protocol_Analyzer
             var table = CreateStandardTable();
             var group = CreateGroupBox("Real-Time Advanced Statistics", table);
 
-            table.AutoSize = false;
-            table.Dock = DockStyle.Fill;
-        
-            group.AutoSize = false;
-            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
-            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
-            group.Size = new Size(320, 155);
-
-            statsLabel = CreateValueLabel("Encoder Frames Dropped: (waiting for data)");
-            fpsLabel = CreateValueLabel("Input Frames Per Second: (waiting for data)");
-
-            table.Controls.Add(statsLabel);
-            table.Controls.Add(fpsLabel);
+            statsLabel = AddRow(table, "Encoder Frames Dropped:", "(waiting for data)");
+            fpsLabel = AddRow(table, "Input Frames Per Second:", "(waiting for data)");
 
             return group;
         }
+
         private GroupBox CreateCustomSettingsGroup()
         {
             var table = CreateStandardTable();
             var group = CreateGroupBox("Custom Settings", table);
 
-            table.AutoSize = false;
-            table.Dock = DockStyle.Fill;
-        
-            group.AutoSize = false;
-            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
-            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
-            group.Size = new Size(320, 155);
-
-            foreach (var setting in customSettings!)
+            if (customSettings != null && customSettings.Count > 0)
             {
-                string display = CustomSettingsHelper.GetRegistryDisplay(setting);
-                var label = CreateValueLabel(display);
-                table.Controls.Add(label);
+                foreach (var setting in customSettings)
+                {
+                    string display = CustomSettingsHelper.GetRegistryDisplay(setting);
+                    AddRow(table, setting.ToString(), display);
+                }
+            }
+            else
+            {
+                AddRow(table, "No custom settings found.", "");
             }
 
             return group;
         }
-
 
         private GroupBox CreateSessionInfoGroup()
         {
             var table = CreateStandardTable();
             var group = CreateGroupBox("Session Info", table);
 
-            table.AutoSize = false;
-            table.Dock = DockStyle.Fill;
-        
-            group.AutoSize = false;
-            group.MinimumSize = new Size(320, 155);   // Adjust size as needed to fit all labels
-            group.MaximumSize = new Size(320, 155);   // Optional: locks the size so it never grows/shrinks
-            group.Size = new Size(320, 155);
-
             var stats = RdpStatsApp.RdpNative.GetRdpStatistics();
             AddRow(table, "Session Id:", stats.SessionId.ToString());
-            AddRow(table, "Client Name:", stats.ClientName ?? string.Empty);
-            AddRow(table, "Protocol Version:", stats.ProtocolVersion ?? string.Empty);
+            AddRow(table, "Client Name:", stats.ClientName ?? "N/A");
+            AddRow(table, "Protocol Version:", stats.ProtocolVersion ?? "N/A");
 
             return group;
         }
 
-        private void PollEncoderFramesDropped(object? sender, EventArgs e)
+        private void PollStats(object? sender, EventArgs e)
         {
             int framesDropped = RealTimeAdvancedStatistics.GetEncoderFramesDroppedFromWMI();
-            statsLabel.Text = $"Encoder Frames Dropped: {(framesDropped >= 0 ? framesDropped.ToString() : "Unavailable")}";
+            statsLabel.Text = framesDropped >= 0 ? framesDropped.ToString() : "Unavailable";
+
             int inputFps = RealTimeAdvancedStatistics.GetInputFramesPerSecondFromWMI();
-            fpsLabel.Text = $"Input Frames Per Second: {(inputFps >= 0 ? inputFps.ToString() : "Unavailable")}";
+            fpsLabel.Text = inputFps >= 0 ? inputFps.ToString() : "Unavailable";
         }
 
         private TableLayoutPanel CreateStandardTable()
         {
-            return new TableLayoutPanel
+            var table = new TableLayoutPanel
             {
                 ColumnCount = 2,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill
+                Dock = DockStyle.Top, 
             };
+            table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            return table;
         }
 
         private GroupBox CreateGroupBox(string title, Control content)
@@ -231,42 +207,40 @@ namespace Protocol_Analyzer
             return new GroupBox
             {
                 Text = title,
-                Font = new Font("Segoe UI", 10, FontStyle.Bold),
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Font = new Font("Segoe UI", 9.75F, FontStyle.Bold),
+                AutoSize = false,
                 Dock = DockStyle.Fill,
+                Padding = new Padding(15, 10, 15, 10), 
                 Controls = { content }
             };
         }
 
-        private void AddRow(TableLayoutPanel table, string labelText, string valueText)
+        private Label AddRow(TableLayoutPanel table, string labelText, string valueText)
         {
-            var label = new Label { Text = labelText, Font = new Font("Segoe UI", 9), AutoSize = true };
-            var value = new Label { Text = valueText, Font = new Font("Segoe UI", 9, FontStyle.Bold), AutoSize = true };
-            table.Controls.Add(label);
-            table.Controls.Add(value);
-        }
+            var label = new Label { Text = labelText, Font = new Font("Segoe UI", 9F, FontStyle.Bold), AutoSize = true };
+            var value = new Label { Text = valueText, Font = new Font("Segoe UI", 9F), AutoSize = true, Margin = new Padding(3, 0, 0, 0) };
+            
+            table.RowCount++;
+            table.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
+            table.Controls.Add(label, 0, table.RowCount - 1);
+            table.Controls.Add(value, 1, table.RowCount - 1);
 
-        private Label CreateValueLabel(string text)
-        {
-            return new Label
-            {
-                Text = text,
-                Font = new Font("Segoe UI", 9),
-                AutoSize = true,
-                Dock = DockStyle.Top
-            };
+            label.Anchor = AnchorStyles.Left;
+            value.Anchor = AnchorStyles.Left;
+
+            return value;
         }
 
         protected override void OnFormClosed(FormClosedEventArgs e)
         {
             base.OnFormClosed(e);
             statsTimer?.Stop();
+            statsTimer?.Dispose();
             if (trayIcon != null)
             {
                 trayIcon.Visible = false;
                 trayIcon.Dispose();
             }
-        }
+        }    
     }
 }
