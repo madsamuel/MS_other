@@ -6,8 +6,7 @@
     xmlns:local="clr-namespace:PProtocolAnalyzer"
     Title="PProtocolAnalyzer">
 
-    <ShellContent
-        Title="Home"
+    <ShellContent        
         ContentTemplate="{DataTemplate local:MainPage}"
         Route="MainPage" />
 
