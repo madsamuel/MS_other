@@ -9,6 +9,16 @@
                 <ResourceDictionary Source="Resources/Styles/Colors.xaml" />
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Updated Dark Theme Styles -->
+            <Style TargetType="Label">
+                <Setter Property="TextColor" Value="{DynamicResource DarkText}" />
+            </Style>
+
+            <Style TargetType="Border">
+                <Setter Property="BackgroundColor" Value="{DynamicResource DarkFrameBackground}" />
+                <Setter Property="Stroke" Value="{DynamicResource DarkFrameBorder}" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

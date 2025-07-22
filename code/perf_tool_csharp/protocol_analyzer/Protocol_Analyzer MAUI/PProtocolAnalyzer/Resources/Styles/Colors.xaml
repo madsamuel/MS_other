@@ -42,4 +42,11 @@
     <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
     <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
     <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+
+    <!-- Updated Dark Theme Colors -->
+    <Color x:Key="DarkBackground">#1F1F1F</Color>
+    <Color x:Key="DarkText">#FFFFFF</Color>
+    <Color x:Key="DarkFrameBorder">#404040</Color>
+    <Color x:Key="DarkFrameBackground">#1F1F1F</Color>
+
 </ResourceDictionary>
