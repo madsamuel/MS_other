@@ -15,57 +15,57 @@
             </Grid.ColumnDefinitions>
 
             <!-- GPU Information -->
-            <Border Grid.Row="0" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="0" Grid.Column="0" Padding="8" Stroke="{DynamicResource LightFrameBorder}" BackgroundColor="{DynamicResource LightFrameBackground}">
                 <VerticalStackLayout>
-                    <Label Text="GPU Information" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Main Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="DPI Scale: 100 %" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Session Type: Local Session" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="GPU Type: iGPU" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Encoding: H265 (Hardware)" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="HW Encode: Yes" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="GPU Information" FontAttributes="Bold" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Main Display Resolution: 4096x1152" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="DPI Scale: 100 %" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Session Type: Local Session" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="GPU Type: iGPU" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Encoding: H265 (Hardware)" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="HW Encode: Yes" TextColor="{DynamicResource LightText}"/>
                 </VerticalStackLayout>
             </Border>
 
             <!-- Detected settings -->
-            <Border Grid.Row="0" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="0" Grid.Column="1" Padding="8" Stroke="{DynamicResource LightFrameBorder}" BackgroundColor="{DynamicResource LightFrameBackground}">
                 <VerticalStackLayout>
-                    <Label Text="Detected settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Display Refresh Rate: 120 Hz" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Scaling: 125%" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Visual Quality: Medium" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Max Frames p/s: 59" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Hardware Encode: Active" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Encoder type: H265 (Hardware)" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Detected settings" FontAttributes="Bold" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Display Resolution: 4096x1152" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Display Refresh Rate: 120 Hz" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Scaling: 125%" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Visual Quality: Medium" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Max Frames p/s: 59" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Hardware Encode: Active" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Encoder type: H265 (Hardware)" TextColor="{DynamicResource LightText}"/>
                 </VerticalStackLayout>
             </Border>
 
             <!-- Real-Time Advanced Statistics -->
-            <Border Grid.Row="1" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="1" Grid.Column="0" Padding="8" Stroke="{DynamicResource LightFrameBorder}" BackgroundColor="{DynamicResource LightFrameBackground}">
                 <VerticalStackLayout>
-                    <Label Text="Real-Time Advanced Statistics" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Encoder Frames Dropped: (waiting for data)" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Input Frames Per Second: (waiting for data)" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Real-Time Advanced Statistics" FontAttributes="Bold" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Encoder Frames Dropped: (waiting for data)" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Input Frames Per Second: (waiting for data)" TextColor="{DynamicResource LightText}"/>
                 </VerticalStackLayout>
             </Border>
 
             <!-- Session Info -->
-            <Border Grid.Row="1" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="1" Grid.Column="1" Padding="8" Stroke="{DynamicResource LightFrameBorder}" BackgroundColor="{DynamicResource LightFrameBackground}">
                 <VerticalStackLayout>
-                    <Label Text="Session Info" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Session Id: 1" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Client Name:" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Protocol Version: RDP 8.1+" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Session Info" FontAttributes="Bold" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Session Id: 1" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Client Name:" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Protocol Version: RDP 8.1+" TextColor="{DynamicResource LightText}"/>
                 </VerticalStackLayout>
             </Border>
 
             <!-- Custom Settings (spans both columns) -->
-            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Padding="8" Stroke="{DynamicResource LightFrameBorder}" BackgroundColor="{DynamicResource LightFrameBackground}">
                 <VerticalStackLayout>
-                    <Label Text="Custom Settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="HEVC not enabled" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Software before hardware" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Custom Settings" FontAttributes="Bold" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="HEVC not enabled" TextColor="{DynamicResource LightText}"/>
+                    <Label Text="Software before hardware" TextColor="{DynamicResource LightText}"/>
                 </VerticalStackLayout>
             </Border>
         </Grid>

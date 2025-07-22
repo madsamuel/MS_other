@@ -49,4 +49,10 @@
     <Color x:Key="DarkFrameBorder">#404040</Color>
     <Color x:Key="DarkFrameBackground">#1F1F1F</Color>
 
+    <!-- Light Theme Colors -->
+    <Color x:Key="LightBackground">#FFFFFF</Color>
+    <Color x:Key="LightText">#000000</Color>
+    <Color x:Key="LightFrameBorder">#E1E1E1</Color>
+    <Color x:Key="LightFrameBackground">#FFFFFF</Color>
+
 </ResourceDictionary>
