@@ -47,7 +47,7 @@ namespace Protocol_Analyzer
             {
                 trayIcon.Icon = SystemIcons.Application;
             }
-            trayIcon.Text = "Session Perf";
+            trayIcon.Text = "Phil's Session Perf";
             trayIcon.Visible = true;
             var contextMenu = new ContextMenuStrip();
             var exitItem = new ToolStripMenuItem("Exit");
@@ -58,12 +58,12 @@ namespace Protocol_Analyzer
 
         private void BuildUI()
         {
+            this.components = new System.ComponentModel.Container();
+            this.AutoScaleMode = AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(1000, 700);
             this.Text = "Phil's Session Perf";
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
-            this.MaximizeBox = false;
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.Size = new Size(900, 700);
-            this.MinimumSize = new Size(900, 700);
+            this.MaximizeBox = false;                
             this.BackColor = SystemColors.Control;
 
             var mainTable = new TableLayoutPanel
@@ -73,23 +73,33 @@ namespace Protocol_Analyzer
                 RowCount = 3,
                 Padding = new Padding(15),
             };
-
+            
+            // TableLayoutPanel for main layout
+            mainTable = new TableLayoutPanel();
+            mainTable.Dock = DockStyle.Fill;
+            mainTable.ColumnCount = 2;
+            mainTable.RowCount = 3;
+            mainTable.Padding = new Padding(10);
             mainTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             mainTable.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            mainTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            mainTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            mainTable.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 30F));
+            mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 30F));
+            mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
 
+            // Top row
             mainTable.Controls.Add(CreateGpuInfoGroup(), 0, 0);
             mainTable.Controls.Add(CreateDetectedSettingsGroup(), 1, 0);
-            mainTable.Controls.Add(CreateRealTimeStatsGroup(), 0, 1);
-            mainTable.Controls.Add(CreateCustomSettingsGroup(), 1, 1);
-            
-            var sessionInfoGroup = CreateSessionInfoGroup();
-            mainTable.Controls.Add(sessionInfoGroup, 0, 2);
-            mainTable.SetColumnSpan(sessionInfoGroup, 2);
 
-            this.Controls.Clear();
+            // Middle row
+            mainTable.Controls.Add(CreateRealTimeStatsGroup(), 0, 1);
+            mainTable.Controls.Add(CreateSessionInfoGroup(), 1, 1);
+
+            // Bottom row
+            var customGroup = CreateCustomSettingsGroup();
+            mainTable.Controls.Add(customGroup, 0, 2);
+            mainTable.SetColumnSpan(customGroup, 2);
+
+            // this.Controls.Clear();
             this.Controls.Add(mainTable);
 
             statsTimer = new System.Windows.Forms.Timer();
@@ -123,6 +133,7 @@ namespace Protocol_Analyzer
             var group = CreateGroupBox("Detected settings", table);
 
             var (width, height, refreshRateValue, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
+           
             AddRow(table, "Display Resolution:", width > 0 && height > 0 ? $"{width}x{height}" : "Unknown");
             AddRow(table, "Display Refresh Rate:", refreshRateValue > 0 ? $"{refreshRateValue} Hz" : "Unknown");
             AddRow(table, "Scaling:", $"{scalingFactor * 100:F0}%");
@@ -192,13 +203,10 @@ namespace Protocol_Analyzer
         {
             var table = new TableLayoutPanel
             {
-                ColumnCount = 2,
-                AutoSize = true,
-                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                ColumnCount = 2,                           
                 Dock = DockStyle.Top, 
             };
-            table.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
-            table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
             return table;
         }
 
@@ -208,7 +216,7 @@ namespace Protocol_Analyzer
             {
                 Text = title,
                 Font = new Font("Segoe UI", 9.75F, FontStyle.Bold),
-                AutoSize = false,
+                AutoSize = true,
                 Dock = DockStyle.Fill,
                 Padding = new Padding(15, 10, 15, 10), 
                 Controls = { content }
