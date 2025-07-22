@@ -57,3 +57,5 @@ code/perf_tools/bandwidth_tool/bandwidth_tool.spec
 experiments/modernUI/ModernUI/Resources/UIColors.xaml
 /experiments/modernUI
 /code/perf_tool_csharp/protocol_analyzer/demoUI
+/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer MAUI/PProtocolAnalyzer/bin
+/code/perf_tool_csharp/protocol_analyzer/Protocol_Analyzer MAUI/PProtocolAnalyzer/obj

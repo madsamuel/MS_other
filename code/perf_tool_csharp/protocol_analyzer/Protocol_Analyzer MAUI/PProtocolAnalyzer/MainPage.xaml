@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PProtocolAnalyzer.MainPage"
+             Title="Dashboard Demo UI">
+    <ScrollView>
+        <Grid RowSpacing="12" ColumnSpacing="12" Padding="12">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- GPU Information -->
+            <Frame Grid.Row="0" Grid.Column="0" Padding="8" BorderColor="Gray">
+                <VerticalStackLayout>
+                    <Label Text="GPU Information" FontAttributes="Bold"/>
+                    <Label Text="Main Display Resolution: 4096x1152"/>
+                    <Label Text="DPI Scale: 100 %"/>
+                    <Label Text="Session Type: Local Session"/>
+                    <Label Text="GPU Type: iGPU"/>
+                    <Label Text="Encoding: H265 (Hardware)"/>
+                    <Label Text="HW Encode: Yes"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Detected settings -->
+            <Frame Grid.Row="0" Grid.Column="1" Padding="8" BorderColor="Gray">
+                <VerticalStackLayout>
+                    <Label Text="Detected settings" FontAttributes="Bold"/>
+                    <Label Text="Display Resolution: 4096x1152"/>
+                    <Label Text="Display Refresh Rate: 120 Hz"/>
+                    <Label Text="Scaling: 125%"/>
+                    <Label Text="Visual Quality: Medium"/>
+                    <Label Text="Max Frames p/s: 59"/>
+                    <Label Text="Hardware Encode: Active"/>
+                    <Label Text="Encoder type: H265 (Hardware)"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Real-Time Advanced Statistics -->
+            <Frame Grid.Row="1" Grid.Column="0" Padding="8" BorderColor="Gray">
+                <VerticalStackLayout>
+                    <Label Text="Real-Time Advanced Statistics" FontAttributes="Bold"/>
+                    <Label Text="Encoder Frames Dropped: (waiting for data)"/>
+                    <Label Text="Input Frames Per Second: (waiting for data)"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Session Info -->
+            <Frame Grid.Row="1" Grid.Column="1" Padding="8" BorderColor="Gray">
+                <VerticalStackLayout>
+                    <Label Text="Session Info" FontAttributes="Bold"/>
+                    <Label Text="Session Id: 1"/>
+                    <Label Text="Client Name:"/>
+                    <Label Text="Protocol Version: RDP 8.1+"/>
+                </VerticalStackLayout>
+            </Frame>
+
+            <!-- Custom Settings (spans both columns) -->
+            <Frame Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Padding="8" BorderColor="Gray">
+                <VerticalStackLayout>
+                    <Label Text="Custom Settings" FontAttributes="Bold"/>
+                    <Label Text="HEVC not enabled"/>
+                    <Label Text="Software before hardware"/>
+                </VerticalStackLayout>
+            </Frame>
+        </Grid>
+    </ScrollView>
+</ContentPage>
