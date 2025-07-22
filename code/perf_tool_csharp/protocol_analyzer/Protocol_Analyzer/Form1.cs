@@ -69,9 +69,10 @@ namespace Protocol_Analyzer
             var mainTable = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
+                
                 ColumnCount = 2,
                 RowCount = 3,
-                Padding = new Padding(15),
+                Padding = new Padding(15),                
             };
             
             // TableLayoutPanel for main layout
@@ -86,16 +87,71 @@ namespace Protocol_Analyzer
             mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 30F));
             mainTable.RowStyles.Add(new RowStyle(SizeType.Percent, 40F));
 
-            // Top row
-            mainTable.Controls.Add(CreateGpuInfoGroup(), 0, 0);
-            mainTable.Controls.Add(CreateDetectedSettingsGroup(), 1, 0);
 
-            // Middle row
-            mainTable.Controls.Add(CreateRealTimeStatsGroup(), 0, 1);
-            mainTable.Controls.Add(CreateSessionInfoGroup(), 1, 1);
+            // GPU Information
+            var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
+            var (sessionType, gpuType, encoderType, hwEncode) = GraphicsProfileHelper.GetGraphicsProfileDetails();
+            var gpuRows = new List<(string, string)>
+            {
+                ("Main Display Resolution:", $"{resolution.Width}x{resolution.Height}"),
+                ("DPI Scale:", $"{dpiScale * 100:F0}%"),
+                ("Session Type:", sessionType),
+                ("GPU Type:", gpuType),
+                ("Encoding:", encoderType),
+                ("HW Encode:", hwEncode)
+            };
+            mainTable.Controls.Add(CreateInfoGroup("GPU Information", gpuRows), 0, 0);
 
-            // Bottom row
-            var customGroup = CreateCustomSettingsGroup();
+            // Detected Settings
+            var (width, height, refreshRateValue, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
+            var detectedRows = new List<(string, string)>
+            {
+                ("Display Resolution:", width > 0 && height > 0 ? $"{width}x{height}" : "Unknown"),
+                ("Display Refresh Rate:", refreshRateValue > 0 ? $"{refreshRateValue} Hz" : "Unknown"),
+                ("Scaling:", $"{scalingFactor * 100:F0}%"),
+                ("Visual Quality:", DetectedSettingsHelper.GetVisualQuality()),
+                ("Max Frames p/s:", DetectedSettingsHelper.GetMaxFPS().ToString()),
+                ("Hardware Encode:", DetectedSettingsHelper.IsHardwareEncodingSupported() ? "Active" : "Inactive"),
+                ("Encoder type:", DetectedSettingsHelper.GetEncoderType())
+            };
+            mainTable.Controls.Add(CreateInfoGroup("Detected settings", detectedRows), 1, 0);
+
+            // Real-Time Advanced Statistics
+            var statsRows = new List<(string, string)>
+            {
+                ("Encoder Frames Dropped:", "(waiting for data)"),
+                ("Input Frames Per Second:", "(waiting for data)")
+            };
+            var statsGroup = CreateInfoGroup("Real-Time Advanced Statistics", statsRows);
+            mainTable.Controls.Add(statsGroup, 0, 1);
+            // Save references for updating
+            statsLabel = (Label)statsGroup.Controls[0].Controls[1];
+            fpsLabel = (Label)statsGroup.Controls[0].Controls[3];
+
+            // Session Info
+            var sessionStats = RdpStatsApp.RdpNative.GetRdpStatistics();
+            var sessionRows = new List<(string, string)>
+            {
+                ("Session Id:", sessionStats.SessionId.ToString()),
+                ("Client Name:", sessionStats.ClientName ?? "N/A"),
+                ("Protocol Version:", sessionStats.ProtocolVersion ?? "N/A")
+            };
+            mainTable.Controls.Add(CreateInfoGroup("Session Info", sessionRows), 1, 1);
+
+            // Custom Settings
+            var customRows = new List<(string, string)>();
+            if (customSettings != null && customSettings.Count > 0)
+            {
+                foreach (var setting in customSettings)
+                {
+                    customRows.Add((setting.ToString(), CustomSettingsHelper.GetRegistryDisplay(setting)));
+                }
+            }
+            else
+            {
+                customRows.Add(("No custom settings found.", ""));
+            }
+            var customGroup = CreateInfoGroup("Custom Settings", customRows);
             mainTable.Controls.Add(customGroup, 0, 2);
             mainTable.SetColumnSpan(customGroup, 2);
 
@@ -109,85 +165,35 @@ namespace Protocol_Analyzer
             PollStats(null, EventArgs.Empty);
         }
 
-        private GroupBox CreateGpuInfoGroup()
+
+        private GroupBox CreateInfoGroup(string title, List<(string, string)> rows)
         {
-            var table = CreateStandardTable();
-            var group = CreateGroupBox("GPU Information", table);
-
-            var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
-            AddRow(table, "Main Display Resolution:", $"{resolution.Width}x{resolution.Height}");
-            AddRow(table, "DPI Scale:", $"{dpiScale * 100:F0}%");
-
-            var (sessionType, gpuType, encoderType, hwEncode) = GraphicsProfileHelper.GetGraphicsProfileDetails();
-            AddRow(table, "Session Type:", sessionType);
-            AddRow(table, "GPU Type:", gpuType);
-            AddRow(table, "Encoding:", encoderType);
-            AddRow(table, "HW Encode:", hwEncode);
-
-            return group;
-        }
-
-        private GroupBox CreateDetectedSettingsGroup()
-        {
-            var table = CreateStandardTable();
-            var group = CreateGroupBox("Detected settings", table);
-
-            var (width, height, refreshRateValue, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
-           
-            AddRow(table, "Display Resolution:", width > 0 && height > 0 ? $"{width}x{height}" : "Unknown");
-            AddRow(table, "Display Refresh Rate:", refreshRateValue > 0 ? $"{refreshRateValue} Hz" : "Unknown");
-            AddRow(table, "Scaling:", $"{scalingFactor * 100:F0}%");
-            AddRow(table, "Visual Quality:", DetectedSettingsHelper.GetVisualQuality());
-            AddRow(table, "Max Frames p/s:", DetectedSettingsHelper.GetMaxFPS().ToString());
-            AddRow(table, "Hardware Encode:", DetectedSettingsHelper.IsHardwareEncodingSupported() ? "Active" : "Inactive");
-            AddRow(table, "Encoder type:", DetectedSettingsHelper.GetEncoderType());
-
-            return group;
-        }
-
-        private GroupBox CreateRealTimeStatsGroup()
-        {
-            var table = CreateStandardTable();
-            var group = CreateGroupBox("Real-Time Advanced Statistics", table);
-
-            statsLabel = AddRow(table, "Encoder Frames Dropped:", "(waiting for data)");
-            fpsLabel = AddRow(table, "Input Frames Per Second:", "(waiting for data)");
-
-            return group;
-        }
-
-        private GroupBox CreateCustomSettingsGroup()
-        {
-            var table = CreateStandardTable();
-            var group = CreateGroupBox("Custom Settings", table);
-
-            if (customSettings != null && customSettings.Count > 0)
+            var table = new TableLayoutPanel
             {
-                foreach (var setting in customSettings)
-                {
-                    string display = CustomSettingsHelper.GetRegistryDisplay(setting);
-                    AddRow(table, setting.ToString(), display);
-                }
-            }
-            else
+                ColumnCount = 2,
+                Dock = DockStyle.Fill,
+                AutoSize = true
+            };
+            foreach (var (labelText, valueText) in rows)
             {
-                AddRow(table, "No custom settings found.", "");
+                var label = new Label { Text = labelText, Font = new Font("Segoe UI", 9F, FontStyle.Bold), AutoSize = true };
+                var value = new Label { Text = valueText, Font = new Font("Segoe UI", 9F), AutoSize = true, Margin = new Padding(3, 0, 0, 0) };
+                int row = table.RowCount++;
+                table.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
+                table.Controls.Add(label, 0, row);
+                table.Controls.Add(value, 1, row);
+                label.Anchor = AnchorStyles.Left;
+                value.Anchor = AnchorStyles.Left;
             }
-
-            return group;
-        }
-
-        private GroupBox CreateSessionInfoGroup()
-        {
-            var table = CreateStandardTable();
-            var group = CreateGroupBox("Session Info", table);
-
-            var stats = RdpStatsApp.RdpNative.GetRdpStatistics();
-            AddRow(table, "Session Id:", stats.SessionId.ToString());
-            AddRow(table, "Client Name:", stats.ClientName ?? "N/A");
-            AddRow(table, "Protocol Version:", stats.ProtocolVersion ?? "N/A");
-
-            return group;
+            return new GroupBox
+            {
+                Text = title,
+                Font = new Font("Segoe UI", 9.75F, FontStyle.Bold),
+                AutoSize = true,
+                Dock = DockStyle.Fill,
+                Padding = new Padding(15, 10, 15, 10),
+                Controls = { table }
+            };
         }
 
         private void PollStats(object? sender, EventArgs e)
