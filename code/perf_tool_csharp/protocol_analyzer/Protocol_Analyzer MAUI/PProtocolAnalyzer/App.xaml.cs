@@ -1,5 +1,6 @@
 ﻿using Microsoft.Maui;
 using Microsoft.Maui.Controls;
+using System.Runtime.InteropServices;
 
 #if WINDOWS
 using Microsoft.UI;
@@ -46,4 +47,30 @@ public partial class App : Application
 		#endif
 		return window;
 	}
+}
+
+public partial class MainWindow : Microsoft.UI.Xaml.Window
+{
+    public MainWindow()
+    {
+        IntPtr hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        IntPtr hIcon = LoadIcon("Resources\\Icons\\YourIcon.ico");
+
+        // Set the small and large icons
+        SendMessage(hWnd, WM_SETICON, (IntPtr)ICON_SMALL, hIcon);
+        SendMessage(hWnd, WM_SETICON, (IntPtr)ICON_BIG, hIcon);
+    }
+
+    private IntPtr LoadIcon(string iconPath)
+    {
+        // Load the icon from the file
+        return Marshal.AllocHGlobal(0); // Replace with actual icon loading logic
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    private const uint WM_SETICON = 0x0080;
+    private const int ICON_SMALL = 0;
+    private const int ICON_BIG = 1;
 }
