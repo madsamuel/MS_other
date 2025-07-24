@@ -31,7 +31,7 @@
             <Border Grid.Row="0" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
                 <VerticalStackLayout>
                     <Label Text="Detected settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="DisplayResolutionLabel" Text="Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}" />
                     <Label Text="Display Refresh Rate: 120 Hz" TextColor="{DynamicResource DarkText}"/>
                     <Label Text="Scaling: 125%" TextColor="{DynamicResource DarkText}"/>
                     <Label Text="Visual Quality: Medium" TextColor="{DynamicResource DarkText}"/>
