@@ -74,5 +74,24 @@ namespace PProtocolAnalyzer.Helpers
 
             return (width, height);
         }
+
+        public static double GetDisplayRefreshRate()
+        {
+            SetProcessDPIAware();
+
+            double refreshRate = 0.0; // 
+
+            try
+            {
+                var screen = DeviceDisplay.MainDisplayInfo;
+                refreshRate = screen.RefreshRate;
+            }
+            catch
+            {
+                // Handle errors gracefully
+            }
+
+            return refreshRate;
+        }
     }
 }

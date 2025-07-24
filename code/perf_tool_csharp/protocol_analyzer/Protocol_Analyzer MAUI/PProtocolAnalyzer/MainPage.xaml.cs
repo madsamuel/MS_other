@@ -10,8 +10,10 @@ public partial class MainPage : ContentPage
 
 		// Fetch display resolution dynamically
 		var (width, height) = DisplayInfoHelper.GetDisplayResolution();
-
-		// Update the UI
 		DisplayResolutionLabel.Text = $"Display Resolution: {width} x {height}";
+
+		// Fetch display refresh rate dynamically
+		var refreshRate = DisplayInfoHelper.GetDisplayRefreshRate();
+		RefreshRateLabel.Text = $"Display Refresh Rate: {refreshRate} Hz";
 	}
 }
