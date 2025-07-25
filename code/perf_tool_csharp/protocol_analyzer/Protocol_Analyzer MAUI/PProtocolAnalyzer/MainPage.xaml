@@ -33,7 +33,7 @@
                     <Label Text="Detected settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
                     <Label x:Name="DisplayResolutionLabel" Text="Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}" />
                     <Label x:Name="RefreshRateLabel" Text="Display Refresh Rate: 60 Hz" TextColor="{DynamicResource DarkText}" />
-                    <Label Text="Scaling: 125%" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="ScalingFactorLabel" Text="Scaling: 100%" TextColor="{DynamicResource DarkText}" />
                     <Label Text="Visual Quality: Medium" TextColor="{DynamicResource DarkText}"/>
                     <Label Text="Max Frames p/s: 59" TextColor="{DynamicResource DarkText}"/>
                     <Label Text="Hardware Encode: Active" TextColor="{DynamicResource DarkText}"/>

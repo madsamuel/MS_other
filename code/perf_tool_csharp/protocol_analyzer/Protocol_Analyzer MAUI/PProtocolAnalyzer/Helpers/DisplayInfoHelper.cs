@@ -93,5 +93,24 @@ namespace PProtocolAnalyzer.Helpers
 
             return refreshRate;
         }
+
+        public static double GetScalingFactor()
+        {
+            SetProcessDPIAware();
+            
+            double scalingFactor = 0.0; // Default fallback
+
+            try
+            {
+                var screen = DeviceDisplay.MainDisplayInfo;
+                scalingFactor = screen.Density;
+            }
+            catch
+            {
+                // Handle errors gracefully
+            }
+
+            return scalingFactor;
+        }
     }
 }
