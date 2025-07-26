@@ -18,12 +18,12 @@
             <Border Grid.Row="0" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
                 <VerticalStackLayout>
                     <Label Text="GPU Information" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Main Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="DPI Scale: 100 %" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Session Type: Local Session" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="GPU Type: iGPU" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Encoding: H265 (Hardware)" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="HW Encode: Yes" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="MainDisplayResolutionLabel" Text="Main Display Resolution: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="DpiScaleLabel" Text="DPI Scale: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="SessionTypeLabel" Text="Session Type: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="GpuTypeLabel" Text="GPU Type: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="EncodingLabel" Text="Encoding: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="HwEncodeLabel" Text="HW Encode: Loading..." TextColor="{DynamicResource DarkText}"/>
                 </VerticalStackLayout>
             </Border>
 
