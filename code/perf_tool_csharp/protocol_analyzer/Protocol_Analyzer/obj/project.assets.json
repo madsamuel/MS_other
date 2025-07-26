@@ -115,11 +115,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
+      "projectUniqueName": "C:\\code\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
       "projectName": "Protocol_Analyzer",
-      "projectPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
+      "projectPath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\Protocol_Analyzer.csproj",
       "packagesPath": "C:\\Users\\madsa\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\obj\\",
+      "outputPath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\protocol_analyzer\\Protocol_Analyzer\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\madsa\\AppData\\Roaming\\NuGet\\NuGet.Config"
