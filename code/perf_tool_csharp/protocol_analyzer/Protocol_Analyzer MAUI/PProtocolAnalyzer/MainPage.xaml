@@ -34,10 +34,10 @@
                     <Label x:Name="DisplayResolutionLabel" Text="Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}" />
                     <Label x:Name="RefreshRateLabel" Text="Display Refresh Rate: 60 Hz" TextColor="{DynamicResource DarkText}" />
                     <Label x:Name="ScalingFactorLabel" Text="Scaling: 100%" TextColor="{DynamicResource DarkText}" />
-                    <Label Text="Visual Quality: Medium" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Max Frames p/s: 59" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Hardware Encode: Active" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Encoder type: H265 (Hardware)" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="VisualQualityLabel" Text="Visual Quality: Medium" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="MaxFramesLabel" Text="Max Frames p/s: 59" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="HardwareEncodeStatusLabel" Text="Hardware Encode: Active" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="EncoderTypeLabel" Text="Encoder type: H265 (Hardware)" TextColor="{DynamicResource DarkText}"/>
                 </VerticalStackLayout>
             </Border>
 
@@ -54,9 +54,9 @@
             <Border Grid.Row="1" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
                 <VerticalStackLayout>
                     <Label Text="Session Info" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Session Id: 1" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Client Name:" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Protocol Version: RDP 8.1+" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="SessionIdLabel" Text="Session Id: 1" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="ClientNameLabel" Text="Client Name:" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="ProtocolVersionLabel" Text="Protocol Version: RDP 8.1+" TextColor="{DynamicResource DarkText}"/>
                 </VerticalStackLayout>
             </Border>
 

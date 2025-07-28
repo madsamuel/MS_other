@@ -13,6 +13,9 @@ public partial class MainPage : ContentPage
 
 		// Load Detected Settings dynamically (existing working code)
 		LoadDetectedSettings();
+
+		// Load Session Information dynamically
+		LoadSessionInformation();
 	}
 
 	private void LoadGpuInformation()
@@ -67,10 +70,47 @@ public partial class MainPage : ContentPage
 			// Fetch scaling factor dynamically (existing working code)
 			var scalingFactor = DisplayInfoHelper.GetScalingFactor();
 			ScalingFactorLabel.Text = $"Scaling: {scalingFactor * 100:F0}%";
+
+			// NEW: Fetch Visual Quality dynamically using enhanced DetectedSettingsHelper
+			var visualQuality = DetectedSettingsHelper.GetVisualQuality();
+			VisualQualityLabel.Text = $"Visual Quality: {visualQuality}";
+
+			// NEW: Fetch Max Frames dynamically using enhanced DetectedSettingsHelper
+			var maxFps = DetectedSettingsHelper.GetMaxFPS();
+			MaxFramesLabel.Text = $"Max Frames p/s: {maxFps}";
+
+			// NEW: Fetch Hardware Encoding status dynamically
+			var hwEncodeSupported = DetectedSettingsHelper.IsHardwareEncodingSupported();
+			HardwareEncodeStatusLabel.Text = $"Hardware Encode: {(hwEncodeSupported ? "Active" : "Inactive")}";
+
+			// NEW: Fetch Encoder Type dynamically
+			var encoderType = DetectedSettingsHelper.GetEncoderType();
+			EncoderTypeLabel.Text = $"Encoder type: {encoderType}";
 		}
 		catch (System.Exception ex)
 		{
 			System.Diagnostics.Debug.WriteLine($"Error loading detected settings: {ex.Message}");
+		}
+	}
+
+	private void LoadSessionInformation()
+	{
+		try
+		{
+			// NEW: Fetch Session Information dynamically using SessionInfoHelper
+			var (sessionId, clientName, protocolVersion) = SessionInfoHelper.GetSessionInfo();
+			
+			SessionIdLabel.Text = $"Session Id: {sessionId}";
+			ClientNameLabel.Text = $"Client Name: {clientName}";
+			ProtocolVersionLabel.Text = $"Protocol Version: {protocolVersion}";
+		}
+		catch (System.Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Error loading session information: {ex.Message}");
+			// Set fallback values
+			SessionIdLabel.Text = "Session Id: Unknown";
+			ClientNameLabel.Text = "Client Name: Unknown";
+			ProtocolVersionLabel.Text = "Protocol Version: Unknown";
 		}
 	}
 }
