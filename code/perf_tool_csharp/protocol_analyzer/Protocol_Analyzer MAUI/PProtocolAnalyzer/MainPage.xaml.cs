@@ -1,4 +1,5 @@
 ﻿using PProtocolAnalyzer.Helpers;
+using System.Linq;
 
 namespace PProtocolAnalyzer;
 
@@ -6,16 +7,21 @@ public partial class MainPage : ContentPage
 {
 	public MainPage()
 	{
-		InitializeComponent();
+		try
+		{
+			InitializeComponent();
 
-		// Load GPU Information dynamically using the GPUInformation helper
-		LoadGpuInformation();
-
-		// Load Detected Settings dynamically (existing working code)
-		LoadDetectedSettings();
-
-		// Load Session Information dynamically
-		LoadSessionInformation();
+			// Load dynamic data for all sections
+			LoadGpuInformation();
+			LoadDetectedSettings();
+			LoadSessionInformation();
+			LoadCustomSettings();
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Error in MainPage constructor: {ex.Message}");
+			System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+		}
 	}
 
 	private void LoadGpuInformation()
@@ -111,6 +117,77 @@ public partial class MainPage : ContentPage
 			SessionIdLabel.Text = "Session Id: Unknown";
 			ClientNameLabel.Text = "Client Name: Unknown";
 			ProtocolVersionLabel.Text = "Protocol Version: Unknown";
+		}
+	}
+
+	private void LoadCustomSettings()
+	{
+		try
+		{
+			System.Diagnostics.Debug.WriteLine("LoadCustomSettings: Starting...");
+			
+			// Clear any existing custom settings labels (except the header)
+			var childrenToRemove = CustomSettingsContainer.Children
+				.Where(child => child is Label label && label.Text != "Custom Settings")
+				.ToList();
+			
+			foreach (var child in childrenToRemove)
+			{
+				CustomSettingsContainer.Children.Remove(child);
+			}
+
+			System.Diagnostics.Debug.WriteLine("LoadCustomSettings: Cleared existing labels");
+
+			// Add a test label to verify this method is being called
+			var testLabel = new Label
+			{
+				Text = "LoadCustomSettings method called successfully!",
+				TextColor = (Color)Resources["DarkText"]
+			};
+			CustomSettingsContainer.Children.Add(testLabel);
+
+			// NEW: Fetch Custom Settings dynamically using CustomSettingsHelper
+			var customSettings = CustomSettingsHelper.GetAllCustomSettings();
+			
+			System.Diagnostics.Debug.WriteLine($"LoadCustomSettings: Got {customSettings?.Count ?? 0} custom settings");
+			
+			// Add each custom setting as a separate label
+			if (customSettings != null)
+			{
+				foreach (var setting in customSettings)
+				{
+					System.Diagnostics.Debug.WriteLine($"LoadCustomSettings: Adding setting: {setting}");
+					var label = new Label
+					{
+						Text = setting,
+						TextColor = (Color)Resources["DarkText"]
+					};
+					CustomSettingsContainer.Children.Add(label);
+				}
+			}
+			else
+			{
+				System.Diagnostics.Debug.WriteLine("LoadCustomSettings: customSettings is null");
+				// Add a debug label to show that we tried but failed
+				var debugLabel = new Label
+				{
+					Text = "Custom settings could not be loaded - customSettings is null",
+					TextColor = (Color)Resources["DarkText"]
+				};
+				CustomSettingsContainer.Children.Add(debugLabel);
+			}
+		}
+		catch (System.Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Error loading custom settings: {ex.Message}");
+			System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+			// Add fallback label
+			var fallbackLabel = new Label
+			{
+				Text = $"Error loading custom settings: {ex.Message}",
+				TextColor = (Color)Resources["DarkText"]
+			};
+			CustomSettingsContainer.Children.Add(fallbackLabel);
 		}
 	}
 }

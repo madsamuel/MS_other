@@ -62,10 +62,9 @@
 
             <!-- Custom Settings (spans both columns) -->
             <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
-                <VerticalStackLayout>
+                <VerticalStackLayout x:Name="CustomSettingsContainer">
                     <Label Text="Custom Settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="HEVC not enabled" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Software before hardware" TextColor="{DynamicResource DarkText}"/>
+                    <!-- Dynamic custom settings labels will be added here programmatically -->
                 </VerticalStackLayout>
             </Border>
         </Grid>

@@ -59,8 +59,8 @@ namespace PProtocolAnalyzer.Helpers
             try
             {
                 // Check if running in a remote session
-                return !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SESSIONNAME")) &&
-                       Environment.GetEnvironmentVariable("SESSIONNAME").StartsWith("RDP-");
+                var sessionName = Environment.GetEnvironmentVariable("SESSIONNAME");
+                return !string.IsNullOrEmpty(sessionName) && sessionName.StartsWith("RDP-");
             }
             catch
             {
