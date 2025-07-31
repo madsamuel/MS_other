@@ -5,97 +5,101 @@ namespace PProtocolAnalyzer;
 
 public partial class MainPage : ContentPage
 {
+	private const string CUSTOM_SETTINGS_HEADER = "Custom Settings";
+	private readonly Color _primaryTextColor = Colors.White;
+	private readonly Color _errorTextColor = Colors.Red;
+
 	public MainPage()
 	{
 		try
 		{
 			InitializeComponent();
-
-			// Load dynamic data for all sections
-			LoadGpuInformation();
-			LoadDetectedSettings();
-			LoadSessionInformation();
-			LoadCustomSettings();
+			LoadAllSections();
 		}
 		catch (Exception ex)
 		{
-			System.Diagnostics.Debug.WriteLine($"Error in MainPage constructor: {ex.Message}");
-			System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+			LogError("MainPage constructor", ex);
 		}
+	}
+
+	private void LoadAllSections()
+	{
+		LoadGpuInformation();
+		LoadDetectedSettings();
+		LoadSessionInformation();
+		LoadCustomSettings();
+	}
+
+	private static void LogError(string context, Exception ex)
+	{
+		var message = $"Error in {context}: {ex.Message}";
+		Console.WriteLine(message);
+		System.Diagnostics.Debug.WriteLine(message);
 	}
 
 	private void LoadGpuInformation()
 	{
 		try
 		{
-			// Fetch GPU information using the helper (similar to WinForms pattern)
 			var (resolution, dpiScale) = GPUInformation.GetMainDisplayInfo();
 			var (sessionType, gpuType, encoderType, hwEncode) = GPUInformation.GetGraphicsProfileDetails();
 
-			// Update labels with dynamic data - handle unknown values properly
-			if (resolution.Width > 0 && resolution.Height > 0)
-				MainDisplayResolutionLabel.Text = $"Main Display Resolution: {resolution.Width}x{resolution.Height}";
-			else
-				MainDisplayResolutionLabel.Text = "Main Display Resolution: Unknown";
-
-			if (dpiScale > 0)
-				DpiScaleLabel.Text = $"DPI Scale: {dpiScale * 100:F0} %";
-			else
-				DpiScaleLabel.Text = "DPI Scale: Unknown";
-
-			SessionTypeLabel.Text = $"Session Type: {sessionType}";
-			GpuTypeLabel.Text = $"GPU Type: {gpuType}";
-			EncodingLabel.Text = $"Encoding: {encoderType}";
-			HwEncodeLabel.Text = $"HW Encode: {hwEncode}";
+			SetLabelText(MainDisplayResolutionLabel, "Main Display Resolution", 
+				resolution.Width > 0 && resolution.Height > 0 ? $"{resolution.Width}x{resolution.Height}" : "Unknown");
+			
+			SetLabelText(DpiScaleLabel, "DPI Scale", 
+				dpiScale > 0 ? $"{dpiScale * 100:F0} %" : "Unknown");
+			
+			SetLabelText(SessionTypeLabel, "Session Type", sessionType);
+			SetLabelText(GpuTypeLabel, "GPU Type", gpuType);
+			SetLabelText(EncodingLabel, "Encoding", encoderType);
+			SetLabelText(HwEncodeLabel, "HW Encode", hwEncode);
 		}
-		catch (System.Exception ex)
+		catch (Exception ex)
 		{
-			System.Diagnostics.Debug.WriteLine($"Error loading GPU information: {ex.Message}");
-			// Set fallback values
-			MainDisplayResolutionLabel.Text = "Main Display Resolution: Unknown";
-			DpiScaleLabel.Text = "DPI Scale: Unknown";
-			SessionTypeLabel.Text = "Session Type: Unknown";
-			GpuTypeLabel.Text = "GPU Type: Unknown";
-			EncodingLabel.Text = "Encoding: Unknown";
-			HwEncodeLabel.Text = "HW Encode: Unknown";
+			LogError("LoadGpuInformation", ex);
+			SetGpuInformationFallbackValues();
 		}
+	}
+
+	private void SetGpuInformationFallbackValues()
+	{
+		SetLabelText(MainDisplayResolutionLabel, "Main Display Resolution", "Unknown");
+		SetLabelText(DpiScaleLabel, "DPI Scale", "Unknown");
+		SetLabelText(SessionTypeLabel, "Session Type", "Unknown");
+		SetLabelText(GpuTypeLabel, "GPU Type", "Unknown");
+		SetLabelText(EncodingLabel, "Encoding", "Unknown");
+		SetLabelText(HwEncodeLabel, "HW Encode", "Unknown");
+	}
+
+	private static void SetLabelText(Label label, string prefix, string value)
+	{
+		label.Text = $"{prefix}: {value}";
 	}
 
 	private void LoadDetectedSettings()
 	{
 		try
 		{
-			// Fetch display resolution dynamically (existing working code)
 			var (width, height) = DisplayInfoHelper.GetDisplayResolution();
-			DisplayResolutionLabel.Text = $"Display Resolution: {width} x {height}";
-
-			// Fetch display refresh rate dynamically (existing working code)
 			var refreshRate = DisplayInfoHelper.GetDisplayRefreshRate();
-			RefreshRateLabel.Text = $"Display Refresh Rate: {refreshRate} Hz";
-
-			// Fetch scaling factor dynamically (existing working code)
 			var scalingFactor = DisplayInfoHelper.GetScalingFactor();
-			ScalingFactorLabel.Text = $"Scaling: {scalingFactor * 100:F0}%";
-
-			// NEW: Fetch Visual Quality dynamically using enhanced DetectedSettingsHelper
 			var visualQuality = DetectedSettingsHelper.GetVisualQuality();
-			VisualQualityLabel.Text = $"Visual Quality: {visualQuality}";
-
-			// NEW: Fetch Max Frames dynamically using enhanced DetectedSettingsHelper
 			var maxFps = DetectedSettingsHelper.GetMaxFPS();
-			MaxFramesLabel.Text = $"Max Frames p/s: {maxFps}";
-
-			// NEW: Fetch Hardware Encoding status dynamically
 			var hwEncodeSupported = DetectedSettingsHelper.IsHardwareEncodingSupported();
-			HardwareEncodeStatusLabel.Text = $"Hardware Encode: {(hwEncodeSupported ? "Active" : "Inactive")}";
-
-			// NEW: Fetch Encoder Type dynamically
 			var encoderType = DetectedSettingsHelper.GetEncoderType();
-			EncoderTypeLabel.Text = $"Encoder type: {encoderType}";
+
+			SetLabelText(DisplayResolutionLabel, "Display Resolution", $"{width} x {height}");
+			SetLabelText(RefreshRateLabel, "Display Refresh Rate", $"{refreshRate} Hz");
+			SetLabelText(ScalingFactorLabel, "Scaling", $"{scalingFactor * 100:F0}%");
+			SetLabelText(VisualQualityLabel, "Visual Quality", visualQuality);
+			SetLabelText(MaxFramesLabel, "Max Frames p/s", maxFps.ToString());
+			SetLabelText(HardwareEncodeStatusLabel, "Hardware Encode", hwEncodeSupported ? "Active" : "Inactive");
+			SetLabelText(EncoderTypeLabel, "Encoder type", encoderType);
 		}
-		catch (System.Exception ex)
+		catch (Exception ex)
 		{
-			System.Diagnostics.Debug.WriteLine($"Error loading detected settings: {ex.Message}");
+			LogError("LoadDetectedSettings", ex);
 		}
 	}
 
@@ -103,91 +107,89 @@ public partial class MainPage : ContentPage
 	{
 		try
 		{
-			// NEW: Fetch Session Information dynamically using SessionInfoHelper
 			var (sessionId, clientName, protocolVersion) = SessionInfoHelper.GetSessionInfo();
 			
-			SessionIdLabel.Text = $"Session Id: {sessionId}";
-			ClientNameLabel.Text = $"Client Name: {clientName}";
-			ProtocolVersionLabel.Text = $"Protocol Version: {protocolVersion}";
+			SetLabelText(SessionIdLabel, "Session Id", sessionId);
+			SetLabelText(ClientNameLabel, "Client Name", clientName);
+			SetLabelText(ProtocolVersionLabel, "Protocol Version", protocolVersion);
 		}
-		catch (System.Exception ex)
+		catch (Exception ex)
 		{
-			System.Diagnostics.Debug.WriteLine($"Error loading session information: {ex.Message}");
-			// Set fallback values
-			SessionIdLabel.Text = "Session Id: Unknown";
-			ClientNameLabel.Text = "Client Name: Unknown";
-			ProtocolVersionLabel.Text = "Protocol Version: Unknown";
+			LogError("LoadSessionInformation", ex);
+			SetSessionInformationFallbackValues();
 		}
+	}
+
+	private void SetSessionInformationFallbackValues()
+	{
+		SetLabelText(SessionIdLabel, "Session Id", "Unknown");
+		SetLabelText(ClientNameLabel, "Client Name", "Unknown");
+		SetLabelText(ProtocolVersionLabel, "Protocol Version", "Unknown");
 	}
 
 	private void LoadCustomSettings()
 	{
 		try
 		{
-			System.Diagnostics.Debug.WriteLine("LoadCustomSettings: Starting...");
-			
-			// Clear any existing custom settings labels (except the header)
-			var childrenToRemove = CustomSettingsContainer.Children
-				.Where(child => child is Label label && label.Text != "Custom Settings")
-				.ToList();
-			
-			foreach (var child in childrenToRemove)
-			{
-				CustomSettingsContainer.Children.Remove(child);
-			}
-
-			System.Diagnostics.Debug.WriteLine("LoadCustomSettings: Cleared existing labels");
-
-			// Add a test label to verify this method is being called
-			var testLabel = new Label
-			{
-				Text = "LoadCustomSettings method called successfully!",
-				TextColor = (Color)Resources["DarkText"]
-			};
-			CustomSettingsContainer.Children.Add(testLabel);
-
-			// NEW: Fetch Custom Settings dynamically using CustomSettingsHelper
+			ClearExistingCustomSettings();
 			var customSettings = CustomSettingsHelper.GetAllCustomSettings();
 			
-			System.Diagnostics.Debug.WriteLine($"LoadCustomSettings: Got {customSettings?.Count ?? 0} custom settings");
-			
-			// Add each custom setting as a separate label
-			if (customSettings != null)
+			if (customSettings?.Any() == true)
 			{
-				foreach (var setting in customSettings)
-				{
-					System.Diagnostics.Debug.WriteLine($"LoadCustomSettings: Adding setting: {setting}");
-					var label = new Label
-					{
-						Text = setting,
-						TextColor = (Color)Resources["DarkText"]
-					};
-					CustomSettingsContainer.Children.Add(label);
-				}
+				AddCustomSettingsToUI(customSettings);
 			}
 			else
 			{
-				System.Diagnostics.Debug.WriteLine("LoadCustomSettings: customSettings is null");
-				// Add a debug label to show that we tried but failed
-				var debugLabel = new Label
-				{
-					Text = "Custom settings could not be loaded - customSettings is null",
-					TextColor = (Color)Resources["DarkText"]
-				};
-				CustomSettingsContainer.Children.Add(debugLabel);
+				AddNoSettingsMessage();
 			}
 		}
-		catch (System.Exception ex)
+		catch (Exception ex)
 		{
-			System.Diagnostics.Debug.WriteLine($"Error loading custom settings: {ex.Message}");
-			System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-			// Add fallback label
-			var fallbackLabel = new Label
-			{
-				Text = $"Error loading custom settings: {ex.Message}",
-				TextColor = (Color)Resources["DarkText"]
-			};
-			CustomSettingsContainer.Children.Add(fallbackLabel);
+			LogError("LoadCustomSettings", ex);
+			AddErrorMessage($"Error loading custom settings: {ex.Message}");
 		}
+	}
+
+	private void ClearExistingCustomSettings()
+	{
+		var itemsToRemove = CustomSettingsContainer.Children
+			.OfType<Label>()
+			.Where(label => label.Text != CUSTOM_SETTINGS_HEADER)
+			.ToList();
+		
+		foreach (var item in itemsToRemove)
+		{
+			CustomSettingsContainer.Children.Remove(item);
+		}
+	}
+
+	private void AddCustomSettingsToUI(IEnumerable<string> settings)
+	{
+		foreach (var setting in settings)
+		{
+			var label = CreateStyledLabel(setting, _primaryTextColor);
+			CustomSettingsContainer.Children.Add(label);
+		}
+	}
+
+	private void AddNoSettingsMessage()
+	{
+		var message = CreateStyledLabel("No custom settings configured", _primaryTextColor);
+		CustomSettingsContainer.Children.Add(message);
+	}
+
+	private void AddErrorMessage(string errorText)
+	{
+		var errorLabel = CreateStyledLabel(errorText, _errorTextColor);
+		CustomSettingsContainer.Children.Add(errorLabel);
+	}
+
+	private static Label CreateStyledLabel(string text, Color textColor)
+	{
+		return new Label
+		{
+			Text = text,
+			TextColor = textColor
+		};
 	}
 }
