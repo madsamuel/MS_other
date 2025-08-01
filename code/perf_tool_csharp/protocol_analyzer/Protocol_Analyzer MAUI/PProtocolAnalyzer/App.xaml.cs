@@ -16,11 +16,10 @@ public partial class App : Application
 		{
 			Title = "Protocol Analyzer",
 			Width = 900,
-			Height = 600,
-			MinimumWidth = 900,
-			MinimumHeight = 600,
-			MaximumWidth = 900,
-			MaximumHeight = 600
+			MinimumWidth = 800,
+			MaximumWidth = 1200,
+			MinimumHeight = 400
+			// Removed fixed Height and MaximumHeight to allow auto-sizing
 		};
 
 #if WINDOWS
@@ -32,7 +31,7 @@ public partial class App : Application
 			var screenHeight = displayInfo.Height / displayInfo.Density;
 			
 			window.X = (int)(screenWidth - 900);
-			window.Y = (int)(screenHeight - 600);
+			window.Y = (int)(screenHeight - 650); // Approximate position, will adjust with content
 		};
 #endif
 
