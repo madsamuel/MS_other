@@ -15,11 +15,12 @@ public partial class App : Application
 		var window = new Window(new AppShell())
 		{
 			Title = "Protocol Analyzer",
-			Width = 900,
-			MinimumWidth = 800,
-			MaximumWidth = 1200,
-			MinimumHeight = 400
-			// Removed fixed Height and MaximumHeight to allow auto-sizing
+			Width = 700,
+			Height = 480,  // Set to a height that better fits the content
+			MinimumWidth = 700,
+			MaximumWidth = 700,
+			MinimumHeight = 400,
+			MaximumHeight = 480  // Lock height to prevent resizing
 		};
 
 #if WINDOWS
@@ -30,8 +31,8 @@ public partial class App : Application
 			var screenWidth = displayInfo.Width / displayInfo.Density;
 			var screenHeight = displayInfo.Height / displayInfo.Density;
 			
-			window.X = (int)(screenWidth - 900);
-			window.Y = (int)(screenHeight - 650); // Approximate position, will adjust with content
+			window.X = (int)(screenWidth - 700 - 50); // Corrected for 700px width + 50px margin
+			window.Y = (int)(screenHeight - 480 - 50); // Position based on new 480px height
 		};
 #endif
 
