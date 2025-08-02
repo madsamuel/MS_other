@@ -19,8 +19,8 @@ public partial class App : Application
 			Height = 480,  // Set to a height that better fits the content
 			MinimumWidth = 700,
 			MaximumWidth = 700,
-			MinimumHeight = 400,
-			MaximumHeight = 480  // Lock height to prevent resizing
+			MinimumHeight = 480,  // Same as Height to prevent shrinking
+			MaximumHeight = 480   // Same as Height to prevent growing
 		};
 
 #if WINDOWS
