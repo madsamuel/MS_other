@@ -1,5 +1,6 @@
 ﻿using Microsoft.Maui;
 using Microsoft.Maui.Controls;
+using PProtocolAnalyzer.Services;
 #if WINDOWS
 using System.Runtime.InteropServices;
 #endif
@@ -14,11 +15,26 @@ public partial class App : Application
 	private const int WS_MINIMIZEBOX = 0x20000;
 	private const int WS_MAXIMIZEBOX = 0x10000;
 	
+	// Delegate for window procedure
+	private delegate IntPtr WndProcDelegate(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+	
+	private TrayIcon? _trayIcon;
+	private Microsoft.UI.Xaml.Window? _winUIWindow;
+	private WndProcDelegate? _wndProcDelegate;
+	
 	[DllImport("user32.dll", SetLastError = true)]
 	private static extern int GetWindowLong(IntPtr hWnd, int nIndex);
 	
 	[DllImport("user32.dll", SetLastError = true)]
 	private static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
+	[DllImport("user32.dll", SetLastError = true)]
+	private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+	[DllImport("user32.dll")]
+	private static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+	private IntPtr _originalWndProc = IntPtr.Zero;
 	
 	private static void SetWindowStyle(IntPtr hwnd)
 	{
@@ -28,6 +44,24 @@ public partial class App : Application
 		style &= ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
 		// Apply new style
 		SetWindowLong(hwnd, GWL_STYLE, style);
+	}
+
+	private IntPtr WindowProc(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam)
+	{
+		// Handle tray icon messages
+		if (_trayIcon != null && msg == 0x8000) // WM_TRAYICON
+		{
+			_trayIcon.HandleMessage((int)msg, lParam);
+		}
+
+		// Call original window procedure
+		return CallWindowProc(_originalWndProc, hWnd, msg, wParam, lParam);
+	}
+
+	private void OnExitRequested()
+	{
+		// Close the application
+		Current?.Quit();
 	}
 #endif
 
@@ -63,8 +97,20 @@ public partial class App : Application
 			// Remove minimize and maximize buttons (Windows only)
 			if (window.Handler?.PlatformView is Microsoft.UI.Xaml.Window winUIWindow)
 			{
+				_winUIWindow = winUIWindow;
 				var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(winUIWindow);
 				SetWindowStyle(hwnd);
+				
+				// Set up custom window procedure to handle tray icon messages
+				const int GWLP_WNDPROC = -4;
+				_wndProcDelegate = WindowProc;
+				_originalWndProc = SetWindowLongPtr(hwnd, GWLP_WNDPROC, 
+					Marshal.GetFunctionPointerForDelegate(_wndProcDelegate));
+				
+				// Create and show tray icon
+				_trayIcon = new TrayIcon(hwnd);
+				_trayIcon.ExitRequested += OnExitRequested;
+				_trayIcon.Show("Protocol Analyzer - Right-click for options");
 			}
 		};
 #endif
