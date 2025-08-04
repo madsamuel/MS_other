@@ -1,138 +1,132 @@
-﻿using System;
+﻿using System.Drawing;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
 
+namespace DisplayInfoUtil;
 
-namespace DisplayInfoUtil
+internal static class Program
 {
-    class Program
+    private const int ENUM_CURRENT_SETTINGS = -1;
+    private const int LOGPIXELSX = 88;
+    private const float DEFAULT_DPI = 96.0f;
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern bool EnumDisplaySettings(string? lpszDeviceName, int iModeNum, ref DevMode lpDevMode);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetProcessDPIAware();
+
+    [DllImport("gdi32.dll")]
+    private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+    private struct DevMode
     {
-        // P/Invoke declaration
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern bool EnumDisplaySettings(
-            string lpszDeviceName,
-            int iModeNum,
-            ref DEVMODE lpDevMode);
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmDeviceName;
+        public ushort dmSpecVersion;
+        public ushort dmDriverVersion;
+        public ushort dmSize;
+        public ushort dmDriverExtra;
+        public uint dmFields;
+        public int dmPositionX;
+        public int dmPositionY;
+        public uint dmDisplayOrientation;
+        public uint dmDisplayFixedOutput;
+        public short dmColor;
+        public short dmDuplex;
+        public short dmYResolution;
+        public short dmTTOption;
+        public short dmCollate;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string dmFormName;
+        public ushort dmLogPixels;
+        public uint dmBitsPerPel;
+        public uint dmPelsWidth;
+        public uint dmPelsHeight;
+        public uint dmDisplayFlags;
+        public uint dmDisplayFrequency;
+        public uint dmICMMethod;
+        public uint dmICMIntent;
+        public uint dmMediaType;
+        public uint dmDitherType;
+        public uint dmReserved1;
+        public uint dmReserved2;
+        public uint dmPanningWidth;
+        public uint dmPanningHeight;
 
-        private const int ENUM_CURRENT_SETTINGS = -1;
+        public static DevMode Create() => new() { dmSize = (ushort)Marshal.SizeOf<DevMode>() };
+    }
 
-        // Only fields we need; the rest can be omitted or left as padding
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
-        private struct DEVMODE
+    [STAThread]
+    private static void Main()
+    {
+        SetProcessDPIAware();
+
+        var displayInfo = GetDisplayInformation();
+        PrintDisplayInformation(displayInfo);
+    }
+
+    private static DisplayInformation GetDisplayInformation()
+    {
+        var primaryScreen = Screen.PrimaryScreen;
+        if (primaryScreen == null)
+            throw new InvalidOperationException("No primary screen found.");
+
+        var resolution = (primaryScreen.Bounds.Width, primaryScreen.Bounds.Height);
+        var scalingFactor = GetScalingFactor();
+        var refreshRate = GetRefreshRate();
+
+        return new DisplayInformation(resolution, scalingFactor, refreshRate);
+    }
+
+    private static float GetScalingFactor()
+    {
+        try
         {
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-            public string dmDeviceName;
-            public ushort dmSpecVersion;
-            public ushort dmDriverVersion;
-            public ushort dmSize;
-            public ushort dmDriverExtra;
-            public uint   dmFields;
-            public int    dmPositionX;
-            public int    dmPositionY;
-            public uint   dmDisplayOrientation;
-            public uint   dmDisplayFixedOutput;
-            public short  dmColor;
-            public short  dmDuplex;
-            public short  dmYResolution;
-            public short  dmTTOption;
-            public short  dmCollate;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-            public string dmFormName;
-            public ushort dmLogPixels;
-            public uint   dmBitsPerPel;
-            public uint   dmPelsWidth;
-            public uint   dmPelsHeight;
-            public uint   dmDisplayFlags;
-            public uint   dmDisplayFrequency;
-            public uint   dmICMMethod;
-            public uint   dmICMIntent;
-            public uint   dmMediaType;
-            public uint   dmDitherType;
-            public uint   dmReserved1;
-            public uint   dmReserved2;
-            public uint   dmPanningWidth;
-            public uint   dmPanningHeight;
+            using var graphics = Graphics.FromHwnd(IntPtr.Zero);
+            var hdc = graphics.GetHdc();
+            try
+            {
+                var dpiX = GetDeviceCaps(hdc, LOGPIXELSX);
+                return dpiX > 0 ? dpiX / DEFAULT_DPI : 1.0f;
+            }
+            finally
+            {
+                graphics.ReleaseHdc(hdc);
+            }
         }
-
-        [DllImport("user32.dll")]
-        private static extern bool SetProcessDPIAware();
-
-        [DllImport("gdi32.dll")]
-        private static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
-
-        private const int LOGPIXELSX = 88;
-
-        [STAThread]
-        static void Main()
+        catch
         {
-
-            // Ensure process is DPI aware to get real DPI (prevents Windows DPI virtualization)
-            SetProcessDPIAware();
-
-
-            // 1) Get primary screen resolution
-            var screen = Screen.PrimaryScreen;
-            int width = screen.Bounds.Width;
-            int height = screen.Bounds.Height;
-
-
-            // 2) Get scaling factor (DPI awareness)
-            // This uses the device context to get the actual DPI for the primary monitor
-            float scalingFactor = 1.0f;
-            try
-            {
-                using (var g = System.Drawing.Graphics.FromHwnd(IntPtr.Zero))
-                {
-                    IntPtr hdc = g.GetHdc();
-                    int dpiX = GetDeviceCaps(hdc, LOGPIXELSX); // Get horizontal DPI
-                    if (dpiX > 0)
-                    {
-                        scalingFactor = dpiX / 96.0f; // 96 DPI is 100% scaling
-                    }
-                    else
-                    {
-                        // Fallback if DPI could not be retrieved
-                        Console.WriteLine("Warning: Unable to retrieve DPI. Defaulting to 100% scaling.");
-                    }
-                    g.ReleaseHdc(hdc);
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle any errors in DPI retrieval
-                Console.WriteLine($"Error retrieving DPI: {ex.Message}");
-                scalingFactor = 1.0f;
-            }
-
-
-            // 3) Get refresh rate using EnumDisplaySettings
-            int refreshRate = -1;
-            try
-            {
-                DEVMODE mode = new DEVMODE();
-                mode.dmSize = (ushort)Marshal.SizeOf(mode);
-                bool success = EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref mode); // Query current display mode
-
-                // Output display information
-                Console.WriteLine("Primary Display:");
-                Console.WriteLine($"  Resolution : {width} x {height}");
-                Console.WriteLine($"  Scaling    : {scalingFactor * 100:F0}%");
-
-                if (success && mode.dmDisplayFrequency > 0)
-                {
-                    refreshRate = (int)mode.dmDisplayFrequency;
-                    Console.WriteLine($"  Refresh Rate: {refreshRate} Hz");
-                }
-                else
-                {
-                    // Fallback if refresh rate could not be retrieved
-                    Console.WriteLine("  Refresh Rate: Unable to retrieve");
-                }
-            }
-            catch (Exception ex)
-            {
-                // Handle any errors in refresh rate retrieval
-                Console.WriteLine($"Error retrieving refresh rate: {ex.Message}");
-            }
+            return 1.0f; // Fallback to 100% scaling
         }
     }
+
+    private static int? GetRefreshRate()
+    {
+        try
+        {
+            var mode = DevMode.Create();
+            return EnumDisplaySettings(null, ENUM_CURRENT_SETTINGS, ref mode) && mode.dmDisplayFrequency > 0
+                ? (int)mode.dmDisplayFrequency
+                : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static void PrintDisplayInformation(DisplayInformation info)
+    {
+        Console.WriteLine("Primary Display:");
+        Console.WriteLine($"  Resolution   : {info.Resolution.Width} x {info.Resolution.Height}");
+        Console.WriteLine($"  Scaling      : {info.ScalingFactor * 100:F0}%");
+        Console.WriteLine($"  Refresh Rate : {(info.RefreshRate?.ToString() ?? "Unknown")} Hz");
+    }
+
+    private readonly record struct DisplayInformation(
+        (int Width, int Height) Resolution,
+        float ScalingFactor,
+        int? RefreshRate);
 }
