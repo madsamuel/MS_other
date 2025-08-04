@@ -554,11 +554,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\SmartConnectAdvisor.csproj",
+      "projectUniqueName": "C:\\code\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\SmartConnectAdvisor.csproj",
       "projectName": "SmartConnectAdvisor",
-      "projectPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\SmartConnectAdvisor.csproj",
+      "projectPath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\SmartConnectAdvisor.csproj",
       "packagesPath": "C:\\Users\\madsa\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\obj\\",
+      "outputPath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\madsa\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -567,6 +567,7 @@
         "net9.0-windows10.0.19041.0"
       ],
       "sources": {
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "rh294DRThFY=",
+  "dgSpecHash": "kL6UMpLeVWo=",
   "success": true,
-  "projectFilePath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\SmartConnectAdvisor.csproj",
+  "projectFilePath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\custom_notifications\\SmartConnectAdvisor\\SmartConnectAdvisor.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\madsa\\.nuget\\packages\\communitytoolkit.winui.notifications\\7.1.2\\communitytoolkit.winui.notifications.7.1.2.nupkg.sha512",
     "C:\\Users\\madsa\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",

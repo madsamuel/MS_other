@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "FWyQdaZkXmI=",
+  "dgSpecHash": "ki6OHnnNr6g=",
   "success": true,
-  "projectFilePath": "C:\\Users\\madsa\\OneDrive\\code repo 2023\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
+  "projectFilePath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\madsa\\.nuget\\packages\\system.configuration.configurationmanager\\9.0.6\\system.configuration.configurationmanager.9.0.6.nupkg.sha512",
     "C:\\Users\\madsa\\.nuget\\packages\\system.diagnostics.eventlog\\9.0.6\\system.diagnostics.eventlog.9.0.6.nupkg.sha512",
