@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("bandwidth_via_perfcounters")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+92150b94780bbc2d4e535c5ab94a30c96b608905")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51743ee9be2d593803509dbca5bb27f085d909c5")]
 [assembly: System.Reflection.AssemblyProductAttribute("bandwidth_via_perfcounters")]
 [assembly: System.Reflection.AssemblyTitleAttribute("bandwidth_via_perfcounters")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

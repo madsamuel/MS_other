@@ -16,7 +16,7 @@ class Program
             return;
         }
 
-        // Perf counter definitions
+        // 1) Perf counter definitions
         const string cat = "RemoteFX Network";
         const string sentCn = "UDP Sent Rate";
         const string recvCn = "UDP Received Rate";
@@ -54,17 +54,14 @@ class Program
         // 3) Sampling loop
         while (true)
         {
-            float sentPackets = udpSentCounters.Sum(c => c.NextValue());
-            float recvPackets = udpRecvCounters.Sum(c => c.NextValue());
-            // Assume 1472 bytes per UDP packet (typical for Ethernet, adjust as needed)
-            const float bytesPerPacket = 1472f;
-            float sentKbps = (sentPackets * bytesPerPacket * 8) / 1024f;
-            float recvKbps = (recvPackets * bytesPerPacket * 8) / 1024f;
+            // These counters are already in bits per second (bps)
+            float sentBps = udpSentCounters.Sum(c => c.NextValue());
+            float recvBps = udpRecvCounters.Sum(c => c.NextValue());
 
-            string sentRateStr = sentKbps >= 1024f ? $"{sentKbps / 1024f:F2} Mbps" : $"{sentKbps:F1} kbps";
-            string recvRateStr = recvKbps >= 1024f ? $"{recvKbps / 1024f:F2} Mbps" : $"{recvKbps:F1} kbps";
+            string sentRateStr = sentBps >= 1_000_000 ? $"{sentBps / 1_000_000:F2} Mbps" : $"{sentBps / 1000:F1} kbps";
+            string recvRateStr = recvBps >= 1_000_000 ? $"{recvBps / 1_000_000:F2} Mbps" : $"{recvBps / 1000:F1} kbps";
 
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] UDP Sent Rate: {sentRateStr}   UDP Recv Rate: {recvRateStr}");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] UDP Sent Rate / Bandwidth Output: {sentRateStr}   UDP Recv Rate / Bandwidth Input: {recvRateStr}");
 
             for (int i = 0; i < instances.Length; i++)
             {
