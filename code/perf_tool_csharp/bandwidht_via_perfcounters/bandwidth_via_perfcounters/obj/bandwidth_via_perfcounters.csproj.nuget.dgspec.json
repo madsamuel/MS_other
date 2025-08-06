@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\code\\MS_other\\code\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj": {}
+    "C:\\code\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj": {}
   },
   "projects": {
-    "C:\\code\\MS_other\\code\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj": {
+    "C:\\code\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\code\\MS_other\\code\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
+        "projectUniqueName": "C:\\code\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
         "projectName": "bandwidth_via_perfcounters",
-        "projectPath": "C:\\code\\MS_other\\code\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
+        "projectPath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
         "packagesPath": "C:\\Users\\madsa\\.nuget\\packages\\",
-        "outputPath": "C:\\code\\MS_other\\code\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\obj\\",
+        "outputPath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\madsa\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -45,12 +45,6 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
-            "Microsoft.NET.ILLink.Tasks": {
-              "suppressParent": "All",
-              "target": "Package",
-              "version": "[9.0.2, )",
-              "autoReferenced": true
-            },
             "System.Diagnostics.PerformanceCounter": {
               "target": "Package",
               "version": "[9.0.6, )"
@@ -67,31 +61,12 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
-              "version": "[9.0.2, 9.0.2]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Runtime.win-x64",
-              "version": "[9.0.2, 9.0.2]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
-              "version": "[9.0.2, 9.0.2]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.NETCore.App": {
               "privateAssets": "all"
             }
           },
           "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
-        }
-      },
-      "runtimes": {
-        "win-x64": {
-          "#import": []
         }
       }
     }

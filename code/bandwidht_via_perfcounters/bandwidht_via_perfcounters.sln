@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "bandwidth_via_perfcounters", "bandwidth_via_perfcounters\bandwidth_via_perfcounters.csproj", "{D8DAB353-493D-E05A-FDAA-A907E93DECDF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D8DAB353-493D-E05A-FDAA-A907E93DECDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8DAB353-493D-E05A-FDAA-A907E93DECDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8DAB353-493D-E05A-FDAA-A907E93DECDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8DAB353-493D-E05A-FDAA-A907E93DECDF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {06687ECE-7E94-4B6F-B45F-5E28077C81D7}
+	EndGlobalSection
+EndGlobal

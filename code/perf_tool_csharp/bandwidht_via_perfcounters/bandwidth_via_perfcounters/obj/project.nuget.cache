@@ -1,17 +1,13 @@
 {
   "version": 2,
-  "dgSpecHash": "V2FdcUu/lAA=",
+  "dgSpecHash": "ki6OHnnNr6g=",
   "success": true,
-  "projectFilePath": "C:\\code\\MS_other\\code\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
+  "projectFilePath": "C:\\code\\MS_other\\code\\perf_tool_csharp\\bandwidht_via_perfcounters\\bandwidth_via_perfcounters\\bandwidth_via_perfcounters.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\madsa\\.nuget\\packages\\microsoft.net.illink.tasks\\9.0.2\\microsoft.net.illink.tasks.9.0.2.nupkg.sha512",
     "C:\\Users\\madsa\\.nuget\\packages\\system.configuration.configurationmanager\\9.0.6\\system.configuration.configurationmanager.9.0.6.nupkg.sha512",
     "C:\\Users\\madsa\\.nuget\\packages\\system.diagnostics.eventlog\\9.0.6\\system.diagnostics.eventlog.9.0.6.nupkg.sha512",
     "C:\\Users\\madsa\\.nuget\\packages\\system.diagnostics.performancecounter\\9.0.6\\system.diagnostics.performancecounter.9.0.6.nupkg.sha512",
-    "C:\\Users\\madsa\\.nuget\\packages\\system.security.cryptography.protecteddata\\9.0.6\\system.security.cryptography.protecteddata.9.0.6.nupkg.sha512",
-    "C:\\Users\\madsa\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\9.0.2\\microsoft.netcore.app.runtime.win-x64.9.0.2.nupkg.sha512",
-    "C:\\Users\\madsa\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\9.0.2\\microsoft.windowsdesktop.app.runtime.win-x64.9.0.2.nupkg.sha512",
-    "C:\\Users\\madsa\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\9.0.2\\microsoft.aspnetcore.app.runtime.win-x64.9.0.2.nupkg.sha512"
+    "C:\\Users\\madsa\\.nuget\\packages\\system.security.cryptography.protecteddata\\9.0.6\\system.security.cryptography.protecteddata.9.0.6.nupkg.sha512"
   ],
   "logs": []
 }

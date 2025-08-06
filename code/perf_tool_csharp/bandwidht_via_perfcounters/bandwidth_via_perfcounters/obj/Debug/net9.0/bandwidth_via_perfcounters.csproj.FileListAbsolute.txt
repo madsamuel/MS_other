@@ -1,24 +1,48 @@
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.exe
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.deps.json
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.runtimeconfig.json
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.pdb
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Configuration.ConfigurationManager.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Diagnostics.EventLog.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Diagnostics.PerformanceCounter.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Security.Cryptography.ProtectedData.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.Messages.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.PerformanceCounter.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.csproj.AssemblyReference.cache
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.GeneratedMSBuildEditorConfig.editorconfig
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.AssemblyInfoInputs.cache
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.AssemblyInfo.cs
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.csproj.CoreCompileInputs.cache
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.sourcelink.json
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidt.91359B57.Up2Date
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\refint\bandwidth_via_perfcounters.dll
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.pdb
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.genruntimeconfig.cache
-C:\code\MS_other\code\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\ref\bandwidth_via_perfcounters.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.AssemblyInfoInputs.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.AssemblyInfo.cs
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.csproj.CoreCompileInputs.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.sourcelink.json
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.exe
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.deps.json
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.runtimeconfig.json
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.pdb
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Configuration.ConfigurationManager.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Diagnostics.EventLog.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Diagnostics.PerformanceCounter.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Security.Cryptography.ProtectedData.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.Messages.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.PerformanceCounter.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.csproj.AssemblyReference.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidt.91359B57.Up2Date
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\refint\bandwidth_via_perfcounters.dll
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.pdb
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.genruntimeconfig.cache
+C:\Users\madsa\OneDrive\code repo 2023\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\ref\bandwidth_via_perfcounters.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.exe
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.deps.json
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.runtimeconfig.json
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\bandwidth_via_perfcounters.pdb
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Configuration.ConfigurationManager.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Diagnostics.EventLog.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Diagnostics.PerformanceCounter.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\System.Security.Cryptography.ProtectedData.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.Messages.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.EventLog.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\bin\Debug\net9.0\runtimes\win\lib\net9.0\System.Diagnostics.PerformanceCounter.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.csproj.AssemblyReference.cache
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.GeneratedMSBuildEditorConfig.editorconfig
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.AssemblyInfoInputs.cache
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.AssemblyInfo.cs
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.csproj.CoreCompileInputs.cache
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.sourcelink.json
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidt.91359B57.Up2Date
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\refint\bandwidth_via_perfcounters.dll
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.pdb
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\bandwidth_via_perfcounters.genruntimeconfig.cache
+C:\code\MS_other\code\perf_tool_csharp\bandwidht_via_perfcounters\bandwidth_via_perfcounters\obj\Debug\net9.0\ref\bandwidth_via_perfcounters.dll
