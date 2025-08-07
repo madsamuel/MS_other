@@ -8,6 +8,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -41,8 +42,20 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Real-Time Advanced Statistics -->
+            <!-- Real-Time Statistics -->
             <Border Grid.Row="1" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+                <VerticalStackLayout>
+                    <Label Text="Real-Time Statistics" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="UdpSentRateLabel" Text="UDP Sent Rate: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="UdpRecvRateLabel" Text="UDP Recv Rate: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <VerticalStackLayout x:Name="SessionStatsContainer">
+                        <!-- Session statistics will be added dynamically -->
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <!-- Real-Time Advanced Statistics -->
+            <Border Grid.Row="1" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
                 <VerticalStackLayout>
                     <Label Text="Real-Time Advanced Statistics" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
                     <Label Text="Encoder Frames Dropped: (waiting for data)" TextColor="{DynamicResource DarkText}"/>
@@ -50,8 +63,8 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Session Info -->
-            <Border Grid.Row="1" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <!-- Session Info (Left) and Custom Settings (Right) -->
+            <Border Grid.Row="2" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
                 <VerticalStackLayout>
                     <Label Text="Session Info" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
                     <Label x:Name="SessionIdLabel" Text="Session Id: 1" TextColor="{DynamicResource DarkText}"/>
@@ -60,8 +73,7 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- Custom Settings (spans both columns) -->
-            <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="2" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
                 <VerticalStackLayout x:Name="CustomSettingsContainer">
                     <Label Text="Custom Settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
                     <!-- Dynamic custom settings labels will be added here programmatically -->

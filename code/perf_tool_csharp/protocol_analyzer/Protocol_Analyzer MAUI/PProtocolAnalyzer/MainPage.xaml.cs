@@ -1,5 +1,6 @@
 ﻿using PProtocolAnalyzer.Helpers;
 using System.Linq;
+using System.Runtime.Versioning;
 
 namespace PProtocolAnalyzer;
 
@@ -8,6 +9,7 @@ public partial class MainPage : ContentPage
 	private const string CUSTOM_SETTINGS_HEADER = "Custom Settings";
 	private readonly Color _primaryTextColor = Colors.White;
 	private readonly Color _errorTextColor = Colors.Red;
+	private System.Timers.Timer? _realTimeStatsTimer;
 
 	public MainPage()
 	{
@@ -15,11 +17,135 @@ public partial class MainPage : ContentPage
 		{
 			InitializeComponent();
 			LoadAllSections();
+			InitializeRealTimeStats();
 		}
 		catch (Exception ex)
 		{
 			LogError("MainPage constructor", ex);
 		}
+	}
+
+	[SupportedOSPlatform("windows")]
+	private void InitializeRealTimeStats()
+	{
+		try
+		{
+			if (OperatingSystem.IsWindows())
+			{
+				// Initialize RemoteFX counters
+				RealTimeStatisticsHelper.InitializeRemoteFXCounters();
+				
+				// Set up timer for real-time updates
+				_realTimeStatsTimer = new System.Timers.Timer(1000); // Update every second
+				_realTimeStatsTimer.Elapsed += OnRealTimeStatsTimerElapsed;
+				_realTimeStatsTimer.AutoReset = true;
+				_realTimeStatsTimer.Start();
+			}
+			else
+			{
+				// Set placeholder values for non-Windows platforms
+				SetRealTimeStatsPlaceholder();
+			}
+		}
+		catch (Exception ex)
+		{
+			LogError("InitializeRealTimeStats", ex);
+			SetRealTimeStatsPlaceholder();
+		}
+	}
+
+	[SupportedOSPlatform("windows")]
+	private void OnRealTimeStatsTimerElapsed(object? sender, System.Timers.ElapsedEventArgs e)
+	{
+		try
+		{
+			if (OperatingSystem.IsWindows())
+			{
+				var stats = RealTimeStatisticsHelper.GetRemoteFXStats();
+				
+				// Update UI on main thread
+				Dispatcher.Dispatch(() => UpdateRealTimeStatsUI(stats));
+			}
+		}
+		catch (Exception ex)
+		{
+			LogError("OnRealTimeStatsTimerElapsed", ex);
+		}
+	}
+
+	private void UpdateRealTimeStatsUI(RemoteFXNetworkStats stats)
+	{
+		try
+		{
+			if (stats.IsAvailable)
+			{
+				UdpSentRateLabel.Text = $"UDP Sent Rate: {stats.UdpSentRateFormatted}";
+				UdpRecvRateLabel.Text = $"UDP Recv Rate: {stats.UdpRecvRateFormatted}";
+				
+				// Clear existing session stats
+				SessionStatsContainer.Children.Clear();
+				
+				// Add session statistics
+				if (stats.Sessions.Length > 0)
+				{
+					foreach (var session in stats.Sessions)
+					{
+						var sessionLabel = CreateStyledLabel(
+							$"Session '{session.InstanceName}': UDP BW = {session.BandwidthMBps:F2} MB/s   RTT = {session.RttMs:F0} ms",
+							_primaryTextColor);
+						SessionStatsContainer.Children.Add(sessionLabel);
+					}
+				}
+				else
+				{
+					var noSessionsLabel = CreateStyledLabel("No active RemoteFX sessions", _primaryTextColor);
+					SessionStatsContainer.Children.Add(noSessionsLabel);
+				}
+			}
+			else
+			{
+				UdpSentRateLabel.Text = $"UDP Sent Rate: {stats.ErrorMessage}";
+				UdpRecvRateLabel.Text = "UDP Recv Rate: Not available";
+				
+				SessionStatsContainer.Children.Clear();
+				var errorLabel = CreateStyledLabel($"RemoteFX counters not available: {stats.ErrorMessage}", _errorTextColor);
+				SessionStatsContainer.Children.Add(errorLabel);
+			}
+		}
+		catch (Exception ex)
+		{
+			LogError("UpdateRealTimeStatsUI", ex);
+		}
+	}
+
+	private void SetRealTimeStatsPlaceholder()
+	{
+		UdpSentRateLabel.Text = "UDP Sent Rate: Not available on this platform";
+		UdpRecvRateLabel.Text = "UDP Recv Rate: Not available on this platform";
+		
+		SessionStatsContainer.Children.Clear();
+		var placeholderLabel = CreateStyledLabel("RemoteFX statistics only available on Windows", _primaryTextColor);
+		SessionStatsContainer.Children.Add(placeholderLabel);
+	}
+
+	protected override void OnDisappearing()
+	{
+		try
+		{
+			_realTimeStatsTimer?.Stop();
+			_realTimeStatsTimer?.Dispose();
+			
+			if (OperatingSystem.IsWindows())
+			{
+				RealTimeStatisticsHelper.Dispose();
+			}
+		}
+		catch (Exception ex)
+		{
+			LogError("OnDisappearing", ex);
+		}
+		
+		base.OnDisappearing();
 	}
 
 	private void LoadAllSections()
