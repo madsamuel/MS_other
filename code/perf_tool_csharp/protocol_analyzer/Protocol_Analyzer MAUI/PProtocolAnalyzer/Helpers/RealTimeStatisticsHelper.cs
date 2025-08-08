@@ -115,19 +115,19 @@ namespace PProtocolAnalyzer.Helpers
 
             try
             {
-                // Get UDP packet rates
-                float sentPackets = _udpSentCounters.Sum(c => c.NextValue());
-                float recvPackets = _udpRecvCounters.Sum(c => c.NextValue());
+                // Get UDP rates from performance counters
+                float sentValue = _udpSentCounters.Sum(c => c.NextValue());
+                float recvValue = _udpRecvCounters.Sum(c => c.NextValue());
 
-                // Convert to bandwidth (assume 1472 bytes per UDP packet for Ethernet)
-                const float bytesPerPacket = 1472f;
-                float sentKbps = (sentPackets * bytesPerPacket * 8) / 1024f;
-                float recvKbps = (recvPackets * bytesPerPacket * 8) / 1024f;
+                // RemoteFX "UDP Sent Rate" and "UDP Received Rate" counters return bits per second
+                // Convert to Kbps (kilobits per second)
+                float sentKbps = sentValue / 1024f; // Convert bits/sec to Kbps
+                float recvKbps = recvValue / 1024f; // Convert bits/sec to Kbps
 
                 stats.UdpSentRate = sentKbps;
                 stats.UdpRecvRate = recvKbps;
-                stats.UdpSentRateFormatted = $"{sentKbps:F1} kbps";
-                stats.UdpRecvRateFormatted = $"{recvKbps:F1} kbps";
+                stats.UdpSentRateFormatted = $"{sentKbps:F1} Kbps";
+                stats.UdpRecvRateFormatted = $"{recvKbps:F1} Kbps";
 
                 // Get per-session statistics
                 var sessionList = new System.Collections.Generic.List<SessionStats>();
