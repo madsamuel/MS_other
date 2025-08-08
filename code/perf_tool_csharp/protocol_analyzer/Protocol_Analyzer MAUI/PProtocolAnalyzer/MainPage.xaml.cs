@@ -96,7 +96,7 @@ public partial class MainPage : ContentPage
 						SessionStatsContainer.Children.Add(bandwidthLabel);
 						
 						var rttLabel = CreateStyledLabel(
-							$"RTT: {session.RttMs:F0} ms",
+							$"Round Trip Latency: {session.RttMs:F0} ms",
 							_primaryTextColor);
 						SessionStatsContainer.Children.Add(rttLabel);
 					}

@@ -126,8 +126,8 @@ namespace PProtocolAnalyzer.Helpers
 
                 stats.UdpSentRate = sentKbps;
                 stats.UdpRecvRate = recvKbps;
-                stats.UdpSentRateFormatted = sentKbps >= 1024f ? $"{sentKbps / 1024f:F2} Mbps" : $"{sentKbps:F1} kbps";
-                stats.UdpRecvRateFormatted = recvKbps >= 1024f ? $"{recvKbps / 1024f:F2} Mbps" : $"{recvKbps:F1} kbps";
+                stats.UdpSentRateFormatted = $"{sentKbps:F1} kbps";
+                stats.UdpRecvRateFormatted = $"{recvKbps:F1} kbps";
 
                 // Get per-session statistics
                 var sessionList = new System.Collections.Generic.List<SessionStats>();

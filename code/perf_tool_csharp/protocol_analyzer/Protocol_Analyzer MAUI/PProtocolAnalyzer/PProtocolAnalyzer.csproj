@@ -35,6 +35,10 @@
 
 		<SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
 		<TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+		
+		<!-- Exclude non-English satellite assemblies to reduce package size -->
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+		<ExcludeNonEnglishResourceFiles>true</ExcludeNonEnglishResourceFiles>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -57,8 +61,8 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Maui.Controls" Version="$(MauiVersion)" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
-		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
 		<PackageReference Include="System.Management" Version="9.0.7" />
+		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.7" />
 	</ItemGroup>
 
 	<!-- Copy configuration file to output directory for user editing -->
@@ -67,5 +71,22 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
+
+	<!-- Exclude non-English localization folders -->
+	<ItemGroup>
+		<Content Remove="$(OutputPath)**\*.mui" Condition="!$([System.String]::new('%(Identity)').Contains('en-us'))" />
+	</ItemGroup>
+
+	<!-- Post-build event to remove non-English language folders -->
+	<Target Name="RemoveNonEnglishLanguageFolders" AfterTargets="Build">
+		<PropertyGroup>
+			<LanguageFoldersToRemove>af-ZA;am-ET;ar;ar-SA;as-IN;az-Latn-AZ;bg-BG;bn-IN;bs-Latn-BA;ca;ca-ES;ca-Es-VALENCIA;cs;cs-CZ;cy-GB;da;da-DK;de;de-DE;el;el-GR;en-GB;es;es-ES;es-MX;et-EE;eu-ES;fa-IR;fi;fi-FI;fil-PH;fr;fr-CA;fr-FR;ga-IE;gd-gb;gl-ES;gu-IN;he;he-IL;hi;hi-IN;hr;hr-HR;hu;hu-HU;hy-AM;id;id-ID;is-IS;it;it-IT;ja;ja-JP;ka-GE;kk-KZ;km-KH;kn-IN;ko;ko-KR;kok-IN;lb-LU;lo-LA;lt-LT;lv-LV;mi-NZ;mk-MK;ml-IN;mr-IN;ms;ms-MY;mt-MT;nb;nb-NO;ne-NP;nl;nl-NL;nn-NO;or-IN;pa-IN;pl;pl-PL;pt;pt-BR;pt-PT;quz-PE;ro;ro-RO;ru;ru-RU;sk;sk-SK;sl-SI;sq-AL;sr-Cyrl-BA;sr-Cyrl-RS;sr-Latn-RS;sv;sv-SE;ta-IN;te-IN;th;th-TH;tr;tr-TR;tt-RU;ug-CN;uk;uk-UA;ur-PK;uz-Latn-UZ;vi;vi-VN;zh-CN;zh-Hans;zh-Hant;zh-HK;zh-TW</LanguageFoldersToRemove>
+		</PropertyGroup>
+		<ItemGroup>
+			<LanguageFoldersToDelete Include="$(LanguageFoldersToRemove)" />
+		</ItemGroup>
+		<RemoveDir Directories="@(LanguageFoldersToDelete->'$(OutputPath)%(Identity)')" ContinueOnError="true" />
+		<Message Text="Removed non-English language folders from output directory" Importance="high" />
+	</Target>
 
 </Project>
