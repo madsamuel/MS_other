@@ -90,10 +90,15 @@ public partial class MainPage : ContentPage
 				{
 					foreach (var session in stats.Sessions)
 					{
-						var sessionLabel = CreateStyledLabel(
-							$"Session '{session.InstanceName}': UDP BW = {session.BandwidthMBps:F2} MB/s   RTT = {session.RttMs:F0} ms",
+						var bandwidthLabel = CreateStyledLabel(
+							$"UDP BW: {session.BandwidthMBps:F2} MB/s",
 							_primaryTextColor);
-						SessionStatsContainer.Children.Add(sessionLabel);
+						SessionStatsContainer.Children.Add(bandwidthLabel);
+						
+						var rttLabel = CreateStyledLabel(
+							$"RTT: {session.RttMs:F0} ms",
+							_primaryTextColor);
+						SessionStatsContainer.Children.Add(rttLabel);
 					}
 				}
 				else
