@@ -115,33 +115,46 @@ namespace PProtocolAnalyzer.Helpers
 
             try
             {
-                // Get UDP rates from performance counters
-                float sentValue = _udpSentCounters.Sum(c => c.NextValue());
-                float recvValue = _udpRecvCounters.Sum(c => c.NextValue());
+                // Use Current UDP Bandwidth for accurate measurement (bits per second)
+                float totalBandwidthBitsPerSec = _rfxBwCounters.Sum(c => c.NextValue());
+                float totalBandwidthMbps = totalBandwidthBitsPerSec / 1000000f; // Convert to Mbps (SI units)
 
-                // RemoteFX "UDP Sent Rate" and "UDP Received Rate" counters return bits per second
-                // Convert to Kbps (kilobits per second)
-                float sentKbps = sentValue / 1024f; // Convert bits/sec to Kbps
-                float recvKbps = recvValue / 1024f; // Convert bits/sec to Kbps
+                // Get packet rates to determine sent/received traffic split
+                float sentPacketsPerSec = _udpSentCounters.Sum(c => c.NextValue());
+                float recvPacketsPerSec = _udpRecvCounters.Sum(c => c.NextValue());
+                float totalPacketsPerSec = sentPacketsPerSec + recvPacketsPerSec;
 
-                stats.UdpSentRate = sentKbps;
-                stats.UdpRecvRate = recvKbps;
-                stats.UdpSentRateFormatted = $"{sentKbps:F1} Kbps";
-                stats.UdpRecvRateFormatted = $"{recvKbps:F1} Kbps";
+                // Split total bandwidth based on packet ratios
+                float sentMbps, recvMbps;
+                if (totalPacketsPerSec > 0)
+                {
+                    sentMbps = totalBandwidthMbps * (sentPacketsPerSec / totalPacketsPerSec);
+                    recvMbps = totalBandwidthMbps * (recvPacketsPerSec / totalPacketsPerSec);
+                }
+                else
+                {
+                    // No traffic - split equally or show zero
+                    sentMbps = recvMbps = totalBandwidthMbps / 2f;
+                }
+
+                stats.UdpSentRate = sentMbps;
+                stats.UdpRecvRate = recvMbps;
+                stats.UdpSentRateFormatted = $"{sentMbps:F3} Mbps";
+                stats.UdpRecvRateFormatted = $"{recvMbps:F3} Mbps";
 
                 // Get per-session statistics
                 var sessionList = new System.Collections.Generic.List<SessionStats>();
                 for (int i = 0; i < _instances.Length; i++)
                 {
-                    float bwBits = _rfxBwCounters[i].NextValue();
-                    float bwMB = (bwBits / 8f) / (1024f * 1024f);
-                    float rtt = _rfxRttCounters[i].NextValue();
+                    float bwBitsPerSec = _rfxBwCounters[i].NextValue();
+                    float bwMbps = bwBitsPerSec / 1000000f; // Convert to Mbps for consistency
+                    float rttMs = _rfxRttCounters[i].NextValue();
                     
                     sessionList.Add(new SessionStats
                     {
                         InstanceName = _instances[i],
-                        BandwidthMBps = bwMB,
-                        RttMs = rtt
+                        BandwidthMBps = bwMbps, // Already in Mbps
+                        RttMs = rttMs
                     });
                 }
                 stats.Sessions = sessionList.ToArray();
