@@ -115,30 +115,41 @@ namespace PProtocolAnalyzer.Helpers
 
             try
             {
-                // Get UDP packet rates from performance counters (packets per second)
-                float sentPacketsPerSec = _udpSentCounters.Sum(c => c.NextValue());
-                float recvPacketsPerSec = _udpRecvCounters.Sum(c => c.NextValue());
-
-                // RemoteFX "UDP Sent Rate" and "UDP Received Rate" counters return packets per second
-                // Convert to Kbps by estimating bandwidth with average UDP payload size
-                const float avgUdpPayloadBytes = 1472f; // Typical UDP payload with 1500 MTU (1500 - 20 IP - 8 UDP = 1472)
-                float sentKbps = (sentPacketsPerSec * avgUdpPayloadBytes * 8f) / 1000f; // Convert to Kbps (SI units)
-                float recvKbps = (recvPacketsPerSec * avgUdpPayloadBytes * 8f) / 1000f; // Convert to Kbps (SI units)
-
-                // Use packet-based calculation for sent/recv rates displayed in Kbps
-                stats.UdpSentRate = sentKbps;
-                stats.UdpRecvRate = recvKbps;
-                stats.UdpSentRateFormatted = $"{sentKbps:F1} Kbps";
-                stats.UdpRecvRateFormatted = $"{recvKbps:F1} Kbps";
-
-                // Alternative: Use Current UDP Bandwidth for comparison (bits per second)
+                // Use Current UDP Bandwidth for accurate measurement (bits per second)
                 float totalBandwidthBitsPerSec = _rfxBwCounters.Sum(c => c.NextValue());
                 float totalBandwidthKbps = totalBandwidthBitsPerSec / 1000f; // Convert bits/sec to Kbps
 
-                // Debug output to compare packet-based vs bandwidth-based calculations
-                System.Diagnostics.Debug.WriteLine($"Packet-based: Sent {sentKbps:F1} Kbps, Recv {recvKbps:F1} Kbps");
-                System.Diagnostics.Debug.WriteLine($"Bandwidth-based: Total {totalBandwidthKbps:F1} Kbps");
-                System.Diagnostics.Debug.WriteLine($"Raw packets: Sent {sentPacketsPerSec:F1} pps, Recv {recvPacketsPerSec:F1} pps");
+                // Get packet rates to determine sent/received traffic split
+                float sentPacketsPerSec = _udpSentCounters.Sum(c => c.NextValue());
+                float recvPacketsPerSec = _udpRecvCounters.Sum(c => c.NextValue());
+                float totalPacketsPerSec = sentPacketsPerSec + recvPacketsPerSec;
+
+                // Split total bandwidth based on packet ratios
+                float sentKbps, recvKbps;
+                if (totalPacketsPerSec > 0)
+                {
+                    sentKbps = totalBandwidthKbps * (sentPacketsPerSec / totalPacketsPerSec);
+                    recvKbps = totalBandwidthKbps * (recvPacketsPerSec / totalPacketsPerSec);
+                }
+                else
+                {
+                    // No traffic - show zero
+                    sentKbps = recvKbps = 0f;
+                }
+
+                // Convert to integers for display (no decimal points)
+                int sentKbpsInt = (int)Math.Round(sentKbps);
+                int recvKbpsInt = (int)Math.Round(recvKbps);
+
+                stats.UdpSentRate = sentKbpsInt;
+                stats.UdpRecvRate = recvKbpsInt;
+                stats.UdpSentRateFormatted = $"{sentKbpsInt} Kbps";
+                stats.UdpRecvRateFormatted = $"{recvKbpsInt} Kbps";
+
+                // Debug output for troubleshooting
+                System.Diagnostics.Debug.WriteLine($"Total bandwidth: {totalBandwidthKbps:F1} Kbps");
+                System.Diagnostics.Debug.WriteLine($"Packet rates - Sent: {sentPacketsPerSec:F1} pps, Recv: {recvPacketsPerSec:F1} pps");
+                System.Diagnostics.Debug.WriteLine($"Final rates - Sent: {sentKbpsInt} Kbps, Recv: {recvKbpsInt} Kbps");
 
                 // Get per-session statistics
                 var sessionList = new System.Collections.Generic.List<SessionStats>();
