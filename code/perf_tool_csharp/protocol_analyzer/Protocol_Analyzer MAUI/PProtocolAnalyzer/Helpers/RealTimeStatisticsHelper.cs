@@ -115,46 +115,44 @@ namespace PProtocolAnalyzer.Helpers
 
             try
             {
-                // Use Current UDP Bandwidth for accurate measurement (bits per second)
-                float totalBandwidthBitsPerSec = _rfxBwCounters.Sum(c => c.NextValue());
-                float totalBandwidthMbps = totalBandwidthBitsPerSec / 1000000f; // Convert to Mbps (SI units)
-
-                // Get packet rates to determine sent/received traffic split
+                // Get UDP packet rates from performance counters (packets per second)
                 float sentPacketsPerSec = _udpSentCounters.Sum(c => c.NextValue());
                 float recvPacketsPerSec = _udpRecvCounters.Sum(c => c.NextValue());
-                float totalPacketsPerSec = sentPacketsPerSec + recvPacketsPerSec;
 
-                // Split total bandwidth based on packet ratios
-                float sentMbps, recvMbps;
-                if (totalPacketsPerSec > 0)
-                {
-                    sentMbps = totalBandwidthMbps * (sentPacketsPerSec / totalPacketsPerSec);
-                    recvMbps = totalBandwidthMbps * (recvPacketsPerSec / totalPacketsPerSec);
-                }
-                else
-                {
-                    // No traffic - split equally or show zero
-                    sentMbps = recvMbps = totalBandwidthMbps / 2f;
-                }
+                // RemoteFX "UDP Sent Rate" and "UDP Received Rate" counters return packets per second
+                // Convert to Kbps by estimating bandwidth with average UDP payload size
+                const float avgUdpPayloadBytes = 1472f; // Typical UDP payload with 1500 MTU (1500 - 20 IP - 8 UDP = 1472)
+                float sentKbps = (sentPacketsPerSec * avgUdpPayloadBytes * 8f) / 1000f; // Convert to Kbps (SI units)
+                float recvKbps = (recvPacketsPerSec * avgUdpPayloadBytes * 8f) / 1000f; // Convert to Kbps (SI units)
 
-                stats.UdpSentRate = sentMbps;
-                stats.UdpRecvRate = recvMbps;
-                stats.UdpSentRateFormatted = $"{sentMbps:F3} Mbps";
-                stats.UdpRecvRateFormatted = $"{recvMbps:F3} Mbps";
+                // Use packet-based calculation for sent/recv rates displayed in Kbps
+                stats.UdpSentRate = sentKbps;
+                stats.UdpRecvRate = recvKbps;
+                stats.UdpSentRateFormatted = $"{sentKbps:F1} Kbps";
+                stats.UdpRecvRateFormatted = $"{recvKbps:F1} Kbps";
+
+                // Alternative: Use Current UDP Bandwidth for comparison (bits per second)
+                float totalBandwidthBitsPerSec = _rfxBwCounters.Sum(c => c.NextValue());
+                float totalBandwidthKbps = totalBandwidthBitsPerSec / 1000f; // Convert bits/sec to Kbps
+
+                // Debug output to compare packet-based vs bandwidth-based calculations
+                System.Diagnostics.Debug.WriteLine($"Packet-based: Sent {sentKbps:F1} Kbps, Recv {recvKbps:F1} Kbps");
+                System.Diagnostics.Debug.WriteLine($"Bandwidth-based: Total {totalBandwidthKbps:F1} Kbps");
+                System.Diagnostics.Debug.WriteLine($"Raw packets: Sent {sentPacketsPerSec:F1} pps, Recv {recvPacketsPerSec:F1} pps");
 
                 // Get per-session statistics
                 var sessionList = new System.Collections.Generic.List<SessionStats>();
                 for (int i = 0; i < _instances.Length; i++)
                 {
-                    float bwBitsPerSec = _rfxBwCounters[i].NextValue();
-                    float bwMbps = bwBitsPerSec / 1000000f; // Convert to Mbps for consistency
-                    float rttMs = _rfxRttCounters[i].NextValue();
+                    float bwBits = _rfxBwCounters[i].NextValue();
+                    float bwMB = (bwBits / 8f) / (1024f * 1024f);
+                    float rtt = _rfxRttCounters[i].NextValue();
                     
                     sessionList.Add(new SessionStats
                     {
                         InstanceName = _instances[i],
-                        BandwidthMBps = bwMbps, // Already in Mbps
-                        RttMs = rttMs
+                        BandwidthMBps = bwMB,
+                        RttMs = rtt
                     });
                 }
                 stats.Sessions = sessionList.ToArray();
