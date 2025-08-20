@@ -101,7 +101,7 @@ public partial class MainPage : ContentPage
 					foreach (var session in stats.Sessions)
 					{
 						var bandwidthLabel = CreateStyledLabel(
-							$"Total BW: {session.TotalBandwidthMBps:F2} MB/s | UDP: {session.UdpBandwidthMBps:F2} MB/s | TCP: {session.TcpBandwidthMBps:F2} MB/s",
+							$"UDP: {session.UdpBandwidthMBps:F2} MB/s | TCP: {session.TcpBandwidthMBps:F2} MB/s",
 							_primaryTextColor);
 						SessionStatsContainer.Children.Add(bandwidthLabel);
 						

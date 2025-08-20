@@ -30,10 +30,9 @@ namespace PProtocolAnalyzer.Helpers
     public class SessionStats
     {
         public string InstanceName { get; set; } = "";
-    // Per-session bandwidth breakdown in MB/s
-    public float UdpBandwidthMBps { get; set; }
-    public float TcpBandwidthMBps { get; set; }
-    public float TotalBandwidthMBps { get; set; }
+        // Per-session bandwidth breakdown in MB/s
+        public float UdpBandwidthMBps { get; set; }
+        public float TcpBandwidthMBps { get; set; }
         public float RttMs { get; set; }
     }
 
@@ -265,7 +264,6 @@ namespace PProtocolAnalyzer.Helpers
                     sessionList.Add(new SessionStats
                     {
                         InstanceName = _instances[i],
-                        TotalBandwidthMBps = bwMB,
                         UdpBandwidthMBps = bwUdpMB,
                         TcpBandwidthMBps = bwTcpMB,
                         RttMs = rtt
