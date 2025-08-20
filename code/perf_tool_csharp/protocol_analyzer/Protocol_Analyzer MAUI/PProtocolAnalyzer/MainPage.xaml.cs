@@ -89,8 +89,8 @@ public partial class MainPage : ContentPage
 				}
 
 				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.TotalBandwidthKbps)}";
-				// keep UDP recv label as-is
-				UdpRecvRateLabel.Text = $"UDP Recv Rate: {stats.UdpRecvRateFormatted}";
+				// Show Bandwidth Input using NIC received counters (format same as output)
+				BandwidthInputLabel.Text = $"Bandwidth Input: {FormatBandwidth(stats.InputBandwidthKbps)}";
 				
 				// Clear existing session stats
 				SessionStatsContainer.Children.Clear();
@@ -120,7 +120,7 @@ public partial class MainPage : ContentPage
 			else
 			{
 				BandwidthOutputLabel.Text = $"Bandwidth Output: {stats.ErrorMessage}";
-				UdpRecvRateLabel.Text = "UDP Recv Rate: Not available";
+				BandwidthInputLabel.Text = "Bandwidth Input: Not available";
 				
 				SessionStatsContainer.Children.Clear();
 				var errorLabel = CreateStyledLabel($"RemoteFX counters not available: {stats.ErrorMessage}", _errorTextColor);
@@ -136,7 +136,7 @@ public partial class MainPage : ContentPage
 	private void SetRealTimeStatsPlaceholder()
 	{
 	BandwidthOutputLabel.Text = "Bandwidth Output: Not available on this platform";
-	UdpRecvRateLabel.Text = "UDP Recv Rate: Not available on this platform";
+	BandwidthInputLabel.Text = "Bandwidth Input: Not available on this platform";
 		
 		SessionStatsContainer.Children.Clear();
 		var placeholderLabel = CreateStyledLabel("RemoteFX statistics only available on Windows", _primaryTextColor);

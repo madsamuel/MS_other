@@ -16,10 +16,12 @@ namespace PProtocolAnalyzer.Helpers
     public float UdpBandwidthKbps { get; set; }
     public float TcpBandwidthKbps { get; set; }
     public float RdpBandwidthKbps { get; set; }
+    public float InputBandwidthKbps { get; set; }
     public string TotalBandwidthFormatted { get; set; } = "";
     public string UdpBandwidthFormatted { get; set; } = "";
     public string TcpBandwidthFormatted { get; set; } = "";
     public string RdpBandwidthFormatted { get; set; } = "";
+    public string InputBandwidthFormatted { get; set; } = "";
         public SessionStats[] Sessions { get; set; } = Array.Empty<SessionStats>();
         public bool IsAvailable { get; set; }
         public string ErrorMessage { get; set; } = "";
@@ -43,6 +45,7 @@ namespace PProtocolAnalyzer.Helpers
     private static PerformanceCounter[]? _rfxTcpBwCounters;
         private static PerformanceCounter[]? _rfxRttCounters;
     private static PerformanceCounter[]? _networkBytesTotalCounters;
+    private static PerformanceCounter[]? _networkBytesReceivedCounters;
         private static string[]? _instances;
         private static bool _countersInitialized = false;
         private static string? _initializationError;
@@ -114,7 +117,9 @@ namespace PProtocolAnalyzer.Helpers
                     if (netInstances.Length > 0)
                     {
                         _networkBytesTotalCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Bytes Total/sec", i, true)).ToArray();
+                        _networkBytesReceivedCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Bytes Received/sec", i, true)).ToArray();
                         foreach (var c in _networkBytesTotalCounters) c.NextValue();
+                        foreach (var c in _networkBytesReceivedCounters) c.NextValue();
                     }
                 }
                 catch (Exception ex)
@@ -179,6 +184,23 @@ namespace PProtocolAnalyzer.Helpers
                     }
                 }
 
+                // Compute input bits/sec from Bytes Received/sec counters
+                float nicInputBitsPerSec = 0f;
+                if (_networkBytesReceivedCounters != null && _networkBytesReceivedCounters.Length > 0)
+                {
+                    try
+                    {
+                        nicInputBitsPerSec = _networkBytesReceivedCounters.Sum(c => c.NextValue()) * 8f;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Warning: reading network interface received counters failed: {ex.Message}");
+                        nicInputBitsPerSec = 0f;
+                    }
+                }
+
+                float nicInputKbps = nicInputBitsPerSec / 1000f;
+
                 float nicTotalKbps = nicTotalBitsPerSec / 1000f;
 
                 // Decide which value to treat as TotalBandwidth: NIC total when available, otherwise RDP total
@@ -216,10 +238,12 @@ namespace PProtocolAnalyzer.Helpers
                 stats.TcpBandwidthKbps = (int)Math.Round(totalTcpKbps);
                 stats.RdpBandwidthKbps = (int)Math.Round(totalRdpKbps);
                 stats.TotalBandwidthKbps = (int)Math.Round(totalBandwidthKbps);
+                stats.InputBandwidthKbps = (int)Math.Round(nicInputKbps);
                 stats.UdpBandwidthFormatted = $"{(int)Math.Round(totalUdpKbps)} Kbps";
                 stats.TcpBandwidthFormatted = $"{(int)Math.Round(totalTcpKbps)} Kbps";
                 stats.RdpBandwidthFormatted = $"{(int)Math.Round(totalRdpKbps)} Kbps";
                 stats.TotalBandwidthFormatted = $"{(int)Math.Round(totalBandwidthKbps)} Kbps";
+                stats.InputBandwidthFormatted = $"{(int)Math.Round(nicInputKbps)} Kbps";
 
                 // Debug output for troubleshooting
                 System.Diagnostics.Debug.WriteLine($"Total bandwidth: {totalBandwidthKbps:F1} Kbps");
@@ -310,6 +334,7 @@ namespace PProtocolAnalyzer.Helpers
                 _rfxBwCounters?.ToList().ForEach(c => c.Dispose());
                 _rfxRttCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesTotalCounters?.ToList().ForEach(c => c.Dispose());
+                _networkBytesReceivedCounters?.ToList().ForEach(c => c.Dispose());
             }
             catch (Exception ex)
             {
