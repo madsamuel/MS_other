@@ -79,8 +79,17 @@ public partial class MainPage : ContentPage
 		{
 			if (stats.IsAvailable)
 			{
-				// Show total and per-protocol bandwidth
-				BandwidthOutputLabel.Text = $"Total: {stats.TotalBandwidthFormatted} | UDP: {stats.UdpBandwidthFormatted} | TCP: {stats.TcpBandwidthFormatted}";
+				// Show authoritative total Bandwidth Output only (convert Kbps->Mbps when appropriate)
+				string FormatBandwidth(float kbps)
+				{
+					if (kbps <= 999f)
+						return $"{(int)Math.Round(kbps)} Kbps";
+					else
+						return $"{(kbps / 1000f):F2} Mbps";
+				}
+
+				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.TotalBandwidthKbps)}";
+				// keep UDP recv label as-is
 				UdpRecvRateLabel.Text = $"UDP Recv Rate: {stats.UdpRecvRateFormatted}";
 				
 				// Clear existing session stats
