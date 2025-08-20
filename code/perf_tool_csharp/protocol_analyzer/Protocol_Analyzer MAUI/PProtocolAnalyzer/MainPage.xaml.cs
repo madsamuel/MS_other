@@ -79,7 +79,8 @@ public partial class MainPage : ContentPage
 		{
 			if (stats.IsAvailable)
 			{
-				UdpSentRateLabel.Text = $"UDP Sent Rate: {stats.UdpSentRateFormatted}";
+				// Show total and per-protocol bandwidth
+				BandwidthOutputLabel.Text = $"Total: {stats.TotalBandwidthFormatted} | UDP: {stats.UdpBandwidthFormatted} | TCP: {stats.TcpBandwidthFormatted}";
 				UdpRecvRateLabel.Text = $"UDP Recv Rate: {stats.UdpRecvRateFormatted}";
 				
 				// Clear existing session stats
@@ -91,7 +92,7 @@ public partial class MainPage : ContentPage
 					foreach (var session in stats.Sessions)
 					{
 						var bandwidthLabel = CreateStyledLabel(
-							$"UDP BW: {session.BandwidthMBps:F2} MB/s",
+							$"Total BW: {session.TotalBandwidthMBps:F2} MB/s | UDP: {session.UdpBandwidthMBps:F2} MB/s | TCP: {session.TcpBandwidthMBps:F2} MB/s",
 							_primaryTextColor);
 						SessionStatsContainer.Children.Add(bandwidthLabel);
 						
@@ -109,7 +110,7 @@ public partial class MainPage : ContentPage
 			}
 			else
 			{
-				UdpSentRateLabel.Text = $"UDP Sent Rate: {stats.ErrorMessage}";
+				BandwidthOutputLabel.Text = $"Bandwidth Output: {stats.ErrorMessage}";
 				UdpRecvRateLabel.Text = "UDP Recv Rate: Not available";
 				
 				SessionStatsContainer.Children.Clear();
@@ -125,8 +126,8 @@ public partial class MainPage : ContentPage
 
 	private void SetRealTimeStatsPlaceholder()
 	{
-		UdpSentRateLabel.Text = "UDP Sent Rate: Not available on this platform";
-		UdpRecvRateLabel.Text = "UDP Recv Rate: Not available on this platform";
+	BandwidthOutputLabel.Text = "Bandwidth Output: Not available on this platform";
+	UdpRecvRateLabel.Text = "UDP Recv Rate: Not available on this platform";
 		
 		SessionStatsContainer.Children.Clear();
 		var placeholderLabel = CreateStyledLabel("RemoteFX statistics only available on Windows", _primaryTextColor);

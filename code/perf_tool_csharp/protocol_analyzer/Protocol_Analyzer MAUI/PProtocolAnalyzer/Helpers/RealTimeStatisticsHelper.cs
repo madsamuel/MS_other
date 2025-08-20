@@ -11,6 +11,15 @@ namespace PProtocolAnalyzer.Helpers
         public float UdpRecvRate { get; set; }
         public string UdpSentRateFormatted { get; set; } = "";
         public string UdpRecvRateFormatted { get; set; } = "";
+    // New bandwidth breakdown (Kbps)
+    public float TotalBandwidthKbps { get; set; }
+    public float UdpBandwidthKbps { get; set; }
+    public float TcpBandwidthKbps { get; set; }
+    public float RdpBandwidthKbps { get; set; }
+    public string TotalBandwidthFormatted { get; set; } = "";
+    public string UdpBandwidthFormatted { get; set; } = "";
+    public string TcpBandwidthFormatted { get; set; } = "";
+    public string RdpBandwidthFormatted { get; set; } = "";
         public SessionStats[] Sessions { get; set; } = Array.Empty<SessionStats>();
         public bool IsAvailable { get; set; }
         public string ErrorMessage { get; set; } = "";
@@ -19,7 +28,10 @@ namespace PProtocolAnalyzer.Helpers
     public class SessionStats
     {
         public string InstanceName { get; set; } = "";
-        public float BandwidthMBps { get; set; }
+    // Per-session bandwidth breakdown in MB/s
+    public float UdpBandwidthMBps { get; set; }
+    public float TcpBandwidthMBps { get; set; }
+    public float TotalBandwidthMBps { get; set; }
         public float RttMs { get; set; }
     }
 
@@ -28,7 +40,9 @@ namespace PProtocolAnalyzer.Helpers
         private static PerformanceCounter[]? _udpSentCounters;
         private static PerformanceCounter[]? _udpRecvCounters;
         private static PerformanceCounter[]? _rfxBwCounters;
+    private static PerformanceCounter[]? _rfxTcpBwCounters;
         private static PerformanceCounter[]? _rfxRttCounters;
+    private static PerformanceCounter[]? _networkBytesTotalCounters;
         private static string[]? _instances;
         private static bool _countersInitialized = false;
         private static string? _initializationError;
@@ -54,6 +68,7 @@ namespace PProtocolAnalyzer.Helpers
                 const string sentCn = "UDP Sent Rate";
                 const string recvCn = "UDP Received Rate";
                 const string bwCn = "Current UDP Bandwidth";
+                const string tcpBwCn = "Current TCP Bandwidth";
                 const string rttCn = "Current UDP RTT";
 
                 var category = new PerformanceCounterCategory(cat);
@@ -75,13 +90,37 @@ namespace PProtocolAnalyzer.Helpers
                 _udpSentCounters = _instances.Select(i => new PerformanceCounter(cat, sentCn, i, true)).ToArray();
                 _udpRecvCounters = _instances.Select(i => new PerformanceCounter(cat, recvCn, i, true)).ToArray();
                 _rfxBwCounters = _instances.Select(i => new PerformanceCounter(cat, bwCn, i, true)).ToArray();
+                _rfxTcpBwCounters = _instances.Select(i => new PerformanceCounter(cat, tcpBwCn, i, true)).ToArray();
                 _rfxRttCounters = _instances.Select(i => new PerformanceCounter(cat, rttCn, i, true)).ToArray();
 
                 // Warm up counters for accurate readings
                 foreach (var c in _udpSentCounters) c.NextValue();
                 foreach (var c in _udpRecvCounters) c.NextValue();
                 foreach (var c in _rfxBwCounters) c.NextValue();
+                foreach (var c in _rfxTcpBwCounters) c.NextValue();
                 foreach (var c in _rfxRttCounters) c.NextValue();
+
+                // Initialize Network Interface "Bytes Total/sec" counters for all adapters
+                try
+                {
+                    var netCategory = new PerformanceCounterCategory("Network Interface");
+                    var netInstances = netCategory.GetInstanceNames()
+                        .Where(n => !string.IsNullOrWhiteSpace(n) &&
+                                    !n.Contains("Loopback", StringComparison.OrdinalIgnoreCase) &&
+                                    !n.Contains("isatap", StringComparison.OrdinalIgnoreCase) &&
+                                    !n.Contains("Teredo", StringComparison.OrdinalIgnoreCase))
+                        .ToArray();
+
+                    if (netInstances.Length > 0)
+                    {
+                        _networkBytesTotalCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Bytes Total/sec", i, true)).ToArray();
+                        foreach (var c in _networkBytesTotalCounters) c.NextValue();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Warning: Failed to initialize Network Interface counters: {ex.Message}");
+                }
 
                 _countersInitialized = true;
             }
@@ -106,8 +145,8 @@ namespace PProtocolAnalyzer.Helpers
                 return stats;
             }
 
-            if (_udpSentCounters == null || _udpRecvCounters == null || 
-                _rfxBwCounters == null || _rfxRttCounters == null || _instances == null)
+                if (_udpSentCounters == null || _udpRecvCounters == null || 
+                _rfxBwCounters == null || _rfxTcpBwCounters == null || _rfxRttCounters == null || _instances == null)
             {
                 stats.ErrorMessage = "Performance counters not available";
                 return stats;
@@ -115,9 +154,35 @@ namespace PProtocolAnalyzer.Helpers
 
             try
             {
-                // Use Current UDP Bandwidth for accurate measurement (bits per second)
-                float totalBandwidthBitsPerSec = _rfxBwCounters.Sum(c => c.NextValue());
-                float totalBandwidthKbps = totalBandwidthBitsPerSec / 1000f; // Convert bits/sec to Kbps
+                // Read per-protocol bandwidth (bits per second)
+                float totalUdpBitsPerSec = _rfxBwCounters.Sum(c => c.NextValue());
+                float totalTcpBitsPerSec = _rfxTcpBwCounters.Sum(c => c.NextValue());
+                float totalRdpBitsPerSec = totalUdpBitsPerSec + totalTcpBitsPerSec;
+
+                float totalUdpKbps = totalUdpBitsPerSec / 1000f;
+                float totalTcpKbps = totalTcpBitsPerSec / 1000f;
+                float totalRdpKbps = totalRdpBitsPerSec / 1000f; // Convert bits/sec to Kbps
+
+                // Compute NIC total bandwidth from Network Interface counters (Bytes/sec -> bits/sec)
+                float nicTotalBitsPerSec = 0f;
+                if (_networkBytesTotalCounters != null && _networkBytesTotalCounters.Length > 0)
+                {
+                    try
+                    {
+                        // Bytes/sec to bits/sec = *8
+                        nicTotalBitsPerSec = _networkBytesTotalCounters.Sum(c => c.NextValue()) * 8f;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Warning: reading network interface counters failed: {ex.Message}");
+                        nicTotalBitsPerSec = 0f;
+                    }
+                }
+
+                float nicTotalKbps = nicTotalBitsPerSec / 1000f;
+
+                // Decide which value to treat as TotalBandwidth: NIC total when available, otherwise RDP total
+                float totalBandwidthKbps = nicTotalKbps > 0 ? nicTotalKbps : totalRdpKbps;
 
                 // Get packet rates to determine sent/received traffic split
                 float sentPacketsPerSec = _udpSentCounters.Sum(c => c.NextValue());
@@ -146,6 +211,16 @@ namespace PProtocolAnalyzer.Helpers
                 stats.UdpSentRateFormatted = $"{sentKbpsInt} Kbps";
                 stats.UdpRecvRateFormatted = $"{recvKbpsInt} Kbps";
 
+                // Fill bandwidth breakdown
+                stats.UdpBandwidthKbps = (int)Math.Round(totalUdpKbps);
+                stats.TcpBandwidthKbps = (int)Math.Round(totalTcpKbps);
+                stats.RdpBandwidthKbps = (int)Math.Round(totalRdpKbps);
+                stats.TotalBandwidthKbps = (int)Math.Round(totalBandwidthKbps);
+                stats.UdpBandwidthFormatted = $"{(int)Math.Round(totalUdpKbps)} Kbps";
+                stats.TcpBandwidthFormatted = $"{(int)Math.Round(totalTcpKbps)} Kbps";
+                stats.RdpBandwidthFormatted = $"{(int)Math.Round(totalRdpKbps)} Kbps";
+                stats.TotalBandwidthFormatted = $"{(int)Math.Round(totalBandwidthKbps)} Kbps";
+
                 // Debug output for troubleshooting
                 System.Diagnostics.Debug.WriteLine($"Total bandwidth: {totalBandwidthKbps:F1} Kbps");
                 System.Diagnostics.Debug.WriteLine($"Packet rates - Sent: {sentPacketsPerSec:F1} pps, Recv: {recvPacketsPerSec:F1} pps");
@@ -155,14 +230,20 @@ namespace PProtocolAnalyzer.Helpers
                 var sessionList = new System.Collections.Generic.List<SessionStats>();
                 for (int i = 0; i < _instances.Length; i++)
                 {
-                    float bwBits = _rfxBwCounters[i].NextValue();
+                    float bwUdpBits = _rfxBwCounters[i].NextValue();
+                    float bwTcpBits = _rfxTcpBwCounters[i].NextValue();
+                    float bwBits = bwUdpBits + bwTcpBits;
                     float bwMB = (bwBits / 8f) / (1024f * 1024f);
+                    float bwUdpMB = (bwUdpBits / 8f) / (1024f * 1024f);
+                    float bwTcpMB = (bwTcpBits / 8f) / (1024f * 1024f);
                     float rtt = _rfxRttCounters[i].NextValue();
                     
                     sessionList.Add(new SessionStats
                     {
                         InstanceName = _instances[i],
-                        BandwidthMBps = bwMB,
+                        TotalBandwidthMBps = bwMB,
+                        UdpBandwidthMBps = bwUdpMB,
+                        TcpBandwidthMBps = bwTcpMB,
                         RttMs = rtt
                     });
                 }
@@ -228,6 +309,7 @@ namespace PProtocolAnalyzer.Helpers
                 _udpRecvCounters?.ToList().ForEach(c => c.Dispose());
                 _rfxBwCounters?.ToList().ForEach(c => c.Dispose());
                 _rfxRttCounters?.ToList().ForEach(c => c.Dispose());
+                _networkBytesTotalCounters?.ToList().ForEach(c => c.Dispose());
             }
             catch (Exception ex)
             {
