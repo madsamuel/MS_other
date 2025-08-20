@@ -7,20 +7,10 @@ namespace PProtocolAnalyzer.Helpers
 {
     public class RemoteFXNetworkStats
     {
-        public float UdpSentRate { get; set; }
-        public float UdpRecvRate { get; set; }
-        public string UdpSentRateFormatted { get; set; } = "";
-        public string UdpRecvRateFormatted { get; set; } = "";
     // New bandwidth breakdown (Kbps)
     public float TotalBandwidthKbps { get; set; }
-    public float UdpBandwidthKbps { get; set; }
-    public float TcpBandwidthKbps { get; set; }
-    public float RdpBandwidthKbps { get; set; }
     public float InputBandwidthKbps { get; set; }
     public string TotalBandwidthFormatted { get; set; } = "";
-    public string UdpBandwidthFormatted { get; set; } = "";
-    public string TcpBandwidthFormatted { get; set; } = "";
-    public string RdpBandwidthFormatted { get; set; } = "";
     public string InputBandwidthFormatted { get; set; } = "";
         public SessionStats[] Sessions { get; set; } = Array.Empty<SessionStats>();
         public bool IsAvailable { get; set; }
@@ -30,18 +20,13 @@ namespace PProtocolAnalyzer.Helpers
     public class SessionStats
     {
         public string InstanceName { get; set; } = "";
-        // Per-session bandwidth breakdown in MB/s
-        public float UdpBandwidthMBps { get; set; }
-        public float TcpBandwidthMBps { get; set; }
-        public float RttMs { get; set; }
+    // Per-session: only RTT is tracked now
+    public float RttMs { get; set; }
     }
 
     public static class RealTimeStatisticsHelper
     {
-        private static PerformanceCounter[]? _udpSentCounters;
-        private static PerformanceCounter[]? _udpRecvCounters;
-        private static PerformanceCounter[]? _rfxBwCounters;
-    private static PerformanceCounter[]? _rfxTcpBwCounters;
+    // Removed per-protocol counters (UDP/TCP) - we no longer pull per-protocol bandwidth values here
         private static PerformanceCounter[]? _rfxRttCounters;
     private static PerformanceCounter[]? _networkBytesTotalCounters;
     private static PerformanceCounter[]? _networkBytesReceivedCounters;
@@ -67,18 +52,11 @@ namespace PProtocolAnalyzer.Helpers
                 }
 
                 const string cat = "RemoteFX Network";
-                const string sentCn = "UDP Sent Rate";
-                const string recvCn = "UDP Received Rate";
-                const string bwCn = "Current UDP Bandwidth";
-                const string tcpBwCn = "Current TCP Bandwidth";
                 const string rttCn = "Current UDP RTT";
 
                 var category = new PerformanceCounterCategory(cat);
                 var missingCounters = new System.Collections.Generic.List<string>();
                 
-                if (!category.CounterExists(sentCn)) missingCounters.Add($"'{sentCn}' in {cat}");
-                if (!category.CounterExists(recvCn)) missingCounters.Add($"'{recvCn}' in {cat}");
-                if (!category.CounterExists(bwCn)) missingCounters.Add($"'{bwCn}' in {cat}");
                 if (!category.CounterExists(rttCn)) missingCounters.Add($"'{rttCn}' in {cat}");
                 
                 if (missingCounters.Count > 0)
@@ -89,17 +67,11 @@ namespace PProtocolAnalyzer.Helpers
 
                 // Instantiate counters
                 _instances = category.GetInstanceNames();
-                _udpSentCounters = _instances.Select(i => new PerformanceCounter(cat, sentCn, i, true)).ToArray();
-                _udpRecvCounters = _instances.Select(i => new PerformanceCounter(cat, recvCn, i, true)).ToArray();
-                _rfxBwCounters = _instances.Select(i => new PerformanceCounter(cat, bwCn, i, true)).ToArray();
-                _rfxTcpBwCounters = _instances.Select(i => new PerformanceCounter(cat, tcpBwCn, i, true)).ToArray();
+                // Only initialize RTT counters for per-session latency
                 _rfxRttCounters = _instances.Select(i => new PerformanceCounter(cat, rttCn, i, true)).ToArray();
 
                 // Warm up counters for accurate readings
-                foreach (var c in _udpSentCounters) c.NextValue();
-                foreach (var c in _udpRecvCounters) c.NextValue();
-                foreach (var c in _rfxBwCounters) c.NextValue();
-                foreach (var c in _rfxTcpBwCounters) c.NextValue();
+                // Warm up RTT counters
                 foreach (var c in _rfxRttCounters) c.NextValue();
 
                 // Initialize Network Interface "Bytes Total/sec" counters for all adapters
@@ -149,8 +121,7 @@ namespace PProtocolAnalyzer.Helpers
                 return stats;
             }
 
-                if (_udpSentCounters == null || _udpRecvCounters == null || 
-                _rfxBwCounters == null || _rfxTcpBwCounters == null || _rfxRttCounters == null || _instances == null)
+                if (_rfxRttCounters == null || _instances == null)
             {
                 stats.ErrorMessage = "Performance counters not available";
                 return stats;
@@ -158,14 +129,7 @@ namespace PProtocolAnalyzer.Helpers
 
             try
             {
-                // Read per-protocol bandwidth (bits per second)
-                float totalUdpBitsPerSec = _rfxBwCounters.Sum(c => c.NextValue());
-                float totalTcpBitsPerSec = _rfxTcpBwCounters.Sum(c => c.NextValue());
-                float totalRdpBitsPerSec = totalUdpBitsPerSec + totalTcpBitsPerSec;
-
-                float totalUdpKbps = totalUdpBitsPerSec / 1000f;
-                float totalTcpKbps = totalTcpBitsPerSec / 1000f;
-                float totalRdpKbps = totalRdpBitsPerSec / 1000f; // Convert bits/sec to Kbps
+                // We no longer pull per-protocol (UDP/TCP) bandwidth values here. Rely on NIC-level counters for totals.
 
                 // Compute NIC total bandwidth from Network Interface counters (Bytes/sec -> bits/sec)
                 float nicTotalBitsPerSec = 0f;
@@ -203,69 +167,27 @@ namespace PProtocolAnalyzer.Helpers
                 float nicTotalKbps = nicTotalBitsPerSec / 1000f;
 
                 // Decide which value to treat as TotalBandwidth: NIC total when available, otherwise RDP total
-                float totalBandwidthKbps = nicTotalKbps > 0 ? nicTotalKbps : totalRdpKbps;
+                float totalBandwidthKbps = nicTotalKbps > 0 ? nicTotalKbps : 0f;
 
-                // Get packet rates to determine sent/received traffic split
-                float sentPacketsPerSec = _udpSentCounters.Sum(c => c.NextValue());
-                float recvPacketsPerSec = _udpRecvCounters.Sum(c => c.NextValue());
-                float totalPacketsPerSec = sentPacketsPerSec + recvPacketsPerSec;
-
-                // Split total bandwidth based on packet ratios
-                float sentKbps, recvKbps;
-                if (totalPacketsPerSec > 0)
-                {
-                    sentKbps = totalBandwidthKbps * (sentPacketsPerSec / totalPacketsPerSec);
-                    recvKbps = totalBandwidthKbps * (recvPacketsPerSec / totalPacketsPerSec);
-                }
-                else
-                {
-                    // No traffic - show zero
-                    sentKbps = recvKbps = 0f;
-                }
-
-                // Convert to integers for display (no decimal points)
-                int sentKbpsInt = (int)Math.Round(sentKbps);
-                int recvKbpsInt = (int)Math.Round(recvKbps);
-
-                stats.UdpSentRate = sentKbpsInt;
-                stats.UdpRecvRate = recvKbpsInt;
-                stats.UdpSentRateFormatted = $"{sentKbpsInt} Kbps";
-                stats.UdpRecvRateFormatted = $"{recvKbpsInt} Kbps";
-
-                // Fill bandwidth breakdown
-                stats.UdpBandwidthKbps = (int)Math.Round(totalUdpKbps);
-                stats.TcpBandwidthKbps = (int)Math.Round(totalTcpKbps);
-                stats.RdpBandwidthKbps = (int)Math.Round(totalRdpKbps);
+                // Do not populate per-protocol bandwidth fields here.
                 stats.TotalBandwidthKbps = (int)Math.Round(totalBandwidthKbps);
                 stats.InputBandwidthKbps = (int)Math.Round(nicInputKbps);
-                stats.UdpBandwidthFormatted = $"{(int)Math.Round(totalUdpKbps)} Kbps";
-                stats.TcpBandwidthFormatted = $"{(int)Math.Round(totalTcpKbps)} Kbps";
-                stats.RdpBandwidthFormatted = $"{(int)Math.Round(totalRdpKbps)} Kbps";
                 stats.TotalBandwidthFormatted = $"{(int)Math.Round(totalBandwidthKbps)} Kbps";
                 stats.InputBandwidthFormatted = $"{(int)Math.Round(nicInputKbps)} Kbps";
 
                 // Debug output for troubleshooting
                 System.Diagnostics.Debug.WriteLine($"Total bandwidth: {totalBandwidthKbps:F1} Kbps");
-                System.Diagnostics.Debug.WriteLine($"Packet rates - Sent: {sentPacketsPerSec:F1} pps, Recv: {recvPacketsPerSec:F1} pps");
-                System.Diagnostics.Debug.WriteLine($"Final rates - Sent: {sentKbpsInt} Kbps, Recv: {recvKbpsInt} Kbps");
+                // Packet-splitting removed; no per-protocol packet debug output.
 
-                // Get per-session statistics
+                // Get per-session statistics (only RTT is read per-session now)
                 var sessionList = new System.Collections.Generic.List<SessionStats>();
                 for (int i = 0; i < _instances.Length; i++)
                 {
-                    float bwUdpBits = _rfxBwCounters[i].NextValue();
-                    float bwTcpBits = _rfxTcpBwCounters[i].NextValue();
-                    float bwBits = bwUdpBits + bwTcpBits;
-                    float bwMB = (bwBits / 8f) / (1024f * 1024f);
-                    float bwUdpMB = (bwUdpBits / 8f) / (1024f * 1024f);
-                    float bwTcpMB = (bwTcpBits / 8f) / (1024f * 1024f);
                     float rtt = _rfxRttCounters[i].NextValue();
-                    
                     sessionList.Add(new SessionStats
                     {
                         InstanceName = _instances[i],
-                        UdpBandwidthMBps = bwUdpMB,
-                        TcpBandwidthMBps = bwTcpMB,
+                        // Per-protocol session bandwidth removed - only RTT retained
                         RttMs = rtt
                     });
                 }
@@ -327,9 +249,7 @@ namespace PProtocolAnalyzer.Helpers
         {
             try
             {
-                _udpSentCounters?.ToList().ForEach(c => c.Dispose());
-                _udpRecvCounters?.ToList().ForEach(c => c.Dispose());
-                _rfxBwCounters?.ToList().ForEach(c => c.Dispose());
+                // Dispose only counters that are still present
                 _rfxRttCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesTotalCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesReceivedCounters?.ToList().ForEach(c => c.Dispose());
