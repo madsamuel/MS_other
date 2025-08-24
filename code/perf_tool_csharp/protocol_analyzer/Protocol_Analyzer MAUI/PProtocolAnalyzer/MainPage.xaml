@@ -48,6 +48,7 @@
                     <Label Text="Real-Time Statistics" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
                     <Label x:Name="BandwidthOutputLabel" Text="Bandwidth Output: Loading..." TextColor="{DynamicResource DarkText}"/>
                     <Label x:Name="BandwidthInputLabel" Text="Bandwidth Input: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="AvailableBandwidthLabel" Text="Available Bandwidth: Loading..." TextColor="{DynamicResource DarkText}"/>
                     <VerticalStackLayout x:Name="SessionStatsContainer">
                         <!-- Session statistics will be added dynamically -->
                     </VerticalStackLayout>

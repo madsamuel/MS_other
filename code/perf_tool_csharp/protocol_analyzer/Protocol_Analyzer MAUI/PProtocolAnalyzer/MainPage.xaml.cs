@@ -91,9 +91,20 @@ public partial class MainPage : ContentPage
 				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.TotalBandwidthKbps)}";
 				// Show Bandwidth Input using NIC received counters (format same as output)
 				BandwidthInputLabel.Text = $"Bandwidth Input: {FormatBandwidth(stats.InputBandwidthKbps)}";
+				// Show Available Bandwidth (capacity - observed) when known; otherwise display best-effort text
+				if (stats.AvailableBandwidthKbps > 0)
+				{
+					AvailableBandwidthLabel.Text = $"Available Bandwidth: {FormatBandwidth(stats.AvailableBandwidthKbps)}";
+				}
+				else
+				{
+					AvailableBandwidthLabel.Text = $"Available Bandwidth: {stats.AvailableBandwidthFormatted}";
+				}
 				
 				// Clear existing session stats
 				SessionStatsContainer.Children.Clear();
+
+				// (Per-adapter details removed; showing system total only)
 				
 				// Add session statistics
 				if (stats.Sessions.Length > 0)

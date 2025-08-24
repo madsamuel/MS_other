@@ -10,11 +10,24 @@ namespace PProtocolAnalyzer.Helpers
     // New bandwidth breakdown (Kbps)
     public float TotalBandwidthKbps { get; set; }
     public float InputBandwidthKbps { get; set; }
+    // Estimated available capacity (Kbps) = NIC capacity - observed total (if capacity known)
+    public float AvailableBandwidthKbps { get; set; }
+    public string AvailableBandwidthFormatted { get; set; } = "Unknown";
     public string TotalBandwidthFormatted { get; set; } = "";
     public string InputBandwidthFormatted { get; set; } = "";
+    // Per-adapter throughput info
+    public AdapterStats[] Adapters { get; set; } = Array.Empty<AdapterStats>();
         public SessionStats[] Sessions { get; set; } = Array.Empty<SessionStats>();
         public bool IsAvailable { get; set; }
         public string ErrorMessage { get; set; } = "";
+    }
+
+    public class AdapterStats
+    {
+        public string Name { get; set; } = "";
+        // Kbps
+        public float Kbps { get; set; }
+        public string Formatted { get; set; } = "";
     }
 
     public class SessionStats
@@ -30,6 +43,7 @@ namespace PProtocolAnalyzer.Helpers
         private static PerformanceCounter[]? _rfxRttCounters;
     private static PerformanceCounter[]? _networkBytesTotalCounters;
     private static PerformanceCounter[]? _networkBytesReceivedCounters;
+    private static PerformanceCounter[]? _networkCurrentBandwidthCounters;
         private static string[]? _instances;
         private static bool _countersInitialized = false;
         private static string? _initializationError;
@@ -89,6 +103,17 @@ namespace PProtocolAnalyzer.Helpers
                     {
                         _networkBytesTotalCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Bytes Total/sec", i, true)).ToArray();
                         _networkBytesReceivedCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Bytes Received/sec", i, true)).ToArray();
+                            // Try to read Current Bandwidth (reported link capacity in bits/sec) when available
+                            try
+                            {
+                                _networkCurrentBandwidthCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Current Bandwidth", i, true)).ToArray();
+                                foreach (var c in _networkCurrentBandwidthCounters) c.NextValue();
+                            }
+                            catch (Exception ex2)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Info: Current Bandwidth counter not available for some adapters: {ex2.Message}");
+                                _networkCurrentBandwidthCounters = null;
+                            }
                         foreach (var c in _networkBytesTotalCounters) c.NextValue();
                         foreach (var c in _networkBytesReceivedCounters) c.NextValue();
                     }
@@ -131,19 +156,25 @@ namespace PProtocolAnalyzer.Helpers
             {
                 // We no longer pull per-protocol (UDP/TCP) bandwidth values here. Rely on NIC-level counters for totals.
 
-                // Compute NIC total bandwidth from Network Interface counters (Bytes/sec -> bits/sec)
+                // Compute per-adapter throughput and NIC total bandwidth (Bytes/sec -> bits/sec)
                 float nicTotalBitsPerSec = 0f;
+                var adapterList = new System.Collections.Generic.List<AdapterStats>();
                 if (_networkBytesTotalCounters != null && _networkBytesTotalCounters.Length > 0)
                 {
-                    try
+                    for (int a = 0; a < _networkBytesTotalCounters.Length; a++)
                     {
-                        // Bytes/sec to bits/sec = *8
-                        nicTotalBitsPerSec = _networkBytesTotalCounters.Sum(c => c.NextValue()) * 8f;
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Warning: reading network interface counters failed: {ex.Message}");
-                        nicTotalBitsPerSec = 0f;
+                        try
+                        {
+                            float bytesPerSec = _networkBytesTotalCounters[a].NextValue();
+                            float bitsPerSec = bytesPerSec * 8f;
+                            nicTotalBitsPerSec += bitsPerSec;
+                            float kbps = bitsPerSec / 1000f;
+                            adapterList.Add(new AdapterStats { Name = _networkBytesTotalCounters[a].InstanceName, Kbps = kbps, Formatted = $"{(kbps <= 999f ? ((int)Math.Round(kbps)).ToString() + " Kbps" : (kbps/1000f).ToString("F2") + " Mbps")}" });
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Warning: reading adapter counter failed: {ex.Message}");
+                        }
                     }
                 }
 
@@ -166,6 +197,35 @@ namespace PProtocolAnalyzer.Helpers
 
                 float nicTotalKbps = nicTotalBitsPerSec / 1000f;
 
+                // Read reported NIC capacity (Current Bandwidth) if available (bits/sec)
+                float nicCapacityBitsPerSec = 0f;
+                bool capacityKnown = false;
+                if (_networkCurrentBandwidthCounters != null && _networkCurrentBandwidthCounters.Length > 0)
+                {
+                    try
+                    {
+                        nicCapacityBitsPerSec = _networkCurrentBandwidthCounters.Sum(c => c.NextValue());
+                        capacityKnown = nicCapacityBitsPerSec > 0f;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Warning: reading network interface Current Bandwidth counters failed: {ex.Message}");
+                        capacityKnown = false;
+                        nicCapacityBitsPerSec = 0f;
+                    }
+                }
+
+                float availableKbps = 0f;
+                if (capacityKnown)
+                {
+                    float availableBitsPerSec = nicCapacityBitsPerSec - nicTotalBitsPerSec;
+                    if (availableBitsPerSec < 0) availableBitsPerSec = 0f;
+                    availableKbps = availableBitsPerSec / 1000f;
+                }
+
+                // Attach adapters
+                stats.Adapters = adapterList.ToArray();
+
                 // Decide which value to treat as TotalBandwidth: NIC total when available, otherwise RDP total
                 float totalBandwidthKbps = nicTotalKbps > 0 ? nicTotalKbps : 0f;
 
@@ -174,6 +234,8 @@ namespace PProtocolAnalyzer.Helpers
                 stats.InputBandwidthKbps = (int)Math.Round(nicInputKbps);
                 stats.TotalBandwidthFormatted = $"{(int)Math.Round(totalBandwidthKbps)} Kbps";
                 stats.InputBandwidthFormatted = $"{(int)Math.Round(nicInputKbps)} Kbps";
+                stats.AvailableBandwidthKbps = (int)Math.Round(availableKbps);
+                stats.AvailableBandwidthFormatted = capacityKnown ? $"{(int)Math.Round(availableKbps)} Kbps" : "Unknown";
 
                 // Debug output for troubleshooting
                 System.Diagnostics.Debug.WriteLine($"Total bandwidth: {totalBandwidthKbps:F1} Kbps");
@@ -253,6 +315,7 @@ namespace PProtocolAnalyzer.Helpers
                 _rfxRttCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesTotalCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesReceivedCounters?.ToList().ForEach(c => c.Dispose());
+                _networkCurrentBandwidthCounters?.ToList().ForEach(c => c.Dispose());
             }
             catch (Exception ex)
             {
