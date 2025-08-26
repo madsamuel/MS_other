@@ -46,9 +46,9 @@
             <Border Grid.Row="1" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
                 <VerticalStackLayout>
                     <Label Text="Real-Time Statistics" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
+                    <Label x:Name="TotalBandwidthLabel" Text="Total Bandwidth: Loading..." TextColor="{DynamicResource DarkText}"/>
                     <Label x:Name="BandwidthOutputLabel" Text="Bandwidth Output: Loading..." TextColor="{DynamicResource DarkText}"/>
                     <Label x:Name="BandwidthInputLabel" Text="Bandwidth Input: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="AvailableBandwidthLabel" Text="Available Bandwidth: Loading..." TextColor="{DynamicResource DarkText}"/>
                     <VerticalStackLayout x:Name="SessionStatsContainer">
                         <!-- Session statistics will be added dynamically -->
                     </VerticalStackLayout>

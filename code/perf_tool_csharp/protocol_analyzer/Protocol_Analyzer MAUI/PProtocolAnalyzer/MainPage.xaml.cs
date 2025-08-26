@@ -88,18 +88,12 @@ public partial class MainPage : ContentPage
 						return $"{(kbps / 1000f):F2} Mbps";
 				}
 
-				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.TotalBandwidthKbps)}";
+				// Show Total observed throughput, Output (sent) and Input (received)
+				TotalBandwidthLabel.Text = $"Total Bandwidth: {FormatBandwidth(stats.TotalBandwidthKbps)}";
+				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.SentBandwidthKbps)}";
 				// Show Bandwidth Input using NIC received counters (format same as output)
 				BandwidthInputLabel.Text = $"Bandwidth Input: {FormatBandwidth(stats.InputBandwidthKbps)}";
-				// Show Available Bandwidth (capacity - observed) when known; otherwise display best-effort text
-				if (stats.AvailableBandwidthKbps > 0)
-				{
-					AvailableBandwidthLabel.Text = $"Available Bandwidth: {FormatBandwidth(stats.AvailableBandwidthKbps)}";
-				}
-				else
-				{
-					AvailableBandwidthLabel.Text = $"Available Bandwidth: {stats.AvailableBandwidthFormatted}";
-				}
+				// Link capacity reporting removed; showing Total/Output/Input only.
 				
 				// Clear existing session stats
 				SessionStatsContainer.Children.Clear();
