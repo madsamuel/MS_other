@@ -44,10 +44,12 @@ namespace PProtocolAnalyzer.Helpers
         private static PerformanceCounter[]? _rfxRttCounters;
     private static PerformanceCounter[]? _networkBytesTotalCounters;
     private static PerformanceCounter[]? _networkBytesReceivedCounters;
-    // _networkCurrentBandwidthCounters removed
+    private static PerformanceCounter[]? _networkCurrentBandwidthCounters;
         private static string[]? _instances;
         private static bool _countersInitialized = false;
         private static string? _initializationError;
+    // If we can detect which local NIC serves the session, prefer its counters instead of summing all adapters
+        private static int? _preferredAdapterIndex = null;
 
         /// <summary>
         /// Initializes RemoteFX performance counters
@@ -104,8 +106,68 @@ namespace PProtocolAnalyzer.Helpers
                     {
                         _networkBytesTotalCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Bytes Total/sec", i, true)).ToArray();
                         _networkBytesReceivedCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Bytes Received/sec", i, true)).ToArray();
+                        // Try to read Current Bandwidth (reported link capacity in bits/sec) when available
+                        try
+                        {
+                            _networkCurrentBandwidthCounters = netInstances.Select(i => new PerformanceCounter("Network Interface", "Current Bandwidth", i, true)).ToArray();
+                            foreach (var c in _networkCurrentBandwidthCounters) c.NextValue();
+                        }
+                        catch (Exception ex2)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Info: Current Bandwidth counter not available for some adapters: {ex2.Message}");
+                            _networkCurrentBandwidthCounters = null;
+                        }
                         foreach (var c in _networkBytesTotalCounters) c.NextValue();
                         foreach (var c in _networkBytesReceivedCounters) c.NextValue();
+
+                        // Try to detect the NIC used by the current session (client IP) and pick a preferred adapter instance if possible.
+                        try
+                        {
+                            var clientIp = SessionInfoHelper.GetClientIpAddress();
+                            if (clientIp != null && clientIp.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                            {
+                                var clientBytes = clientIp.GetAddressBytes();
+                                var nics = System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces();
+                                System.Net.NetworkInformation.NetworkInterface? matchNic = null;
+                                foreach (var nic in nics)
+                                {
+                                    var props = nic.GetIPProperties();
+                                    foreach (var ua in props.UnicastAddresses)
+                                    {
+                                        if (ua.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork) continue;
+                                        var addrBytes = ua.Address.GetAddressBytes();
+                                        // heuristic: same /24 subnet (first 3 octets) - common case for LAN RDP sessions
+                                        if (addrBytes.Length == 4 && clientBytes.Length == 4 &&
+                                            addrBytes[0] == clientBytes[0] && addrBytes[1] == clientBytes[1] && addrBytes[2] == clientBytes[2])
+                                        {
+                                            matchNic = nic;
+                                            break;
+                                        }
+                                    }
+                                    if (matchNic != null) break;
+                                }
+
+                                if (matchNic != null)
+                                {
+                                    // Try to map NIC to performance counter instance name using description or name
+                                    var desc = (matchNic.Description ?? string.Empty).ToLowerInvariant();
+                                    var name = (matchNic.Name ?? string.Empty).ToLowerInvariant();
+                                    for (int i = 0; i < netInstances.Length; i++)
+                                    {
+                                        var inst = netInstances[i].ToLowerInvariant();
+                                        if (inst.Contains(desc) || inst.Contains(name))
+                                        {
+                                            _preferredAdapterIndex = i;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Info: failed to detect preferred adapter: {ex.Message}");
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -212,7 +274,7 @@ namespace PProtocolAnalyzer.Helpers
                 // Attach adapters
                 stats.Adapters = adapterList.ToArray();
 
-                // Decide which value to treat as TotalBandwidth: NIC total when available, otherwise RDP total
+                // Use observed NIC totals for TotalBandwidth so the UI reacts immediately to traffic.
                 float totalBandwidthKbps = nicTotalKbps > 0 ? nicTotalKbps : 0f;
 
                 // Do not populate per-protocol bandwidth fields here.
@@ -302,7 +364,7 @@ namespace PProtocolAnalyzer.Helpers
                 _rfxRttCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesTotalCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesReceivedCounters?.ToList().ForEach(c => c.Dispose());
-                // _networkCurrentBandwidthCounters removed
+                _networkCurrentBandwidthCounters?.ToList().ForEach(c => c.Dispose());
             }
             catch (Exception ex)
             {

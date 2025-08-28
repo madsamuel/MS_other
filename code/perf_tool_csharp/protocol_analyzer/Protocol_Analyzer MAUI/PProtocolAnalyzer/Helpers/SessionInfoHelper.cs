@@ -80,5 +80,28 @@ namespace PProtocolAnalyzer.Helpers
                 return null;
             }
         }
+
+        /// <summary>
+        /// Attempts to resolve the client IP address for the current session. This is best-effort:
+        /// - For RDP sessions, uses CLIENTNAME environment variable and DNS to resolve to an IPv4 address.
+        /// - Returns null if resolution fails.
+        /// </summary>
+        public static System.Net.IPAddress? GetClientIpAddress()
+        {
+            try
+            {
+                var clientName = GetClientName();
+                if (string.IsNullOrEmpty(clientName)) return null;
+
+                // Try to resolve DNS A records for the client name
+                var addresses = System.Net.Dns.GetHostAddresses(clientName);
+                var ipv4 = addresses.FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                return ipv4;
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }
