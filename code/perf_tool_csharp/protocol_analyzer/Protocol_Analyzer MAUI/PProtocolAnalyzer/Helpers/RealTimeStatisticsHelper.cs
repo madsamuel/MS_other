@@ -16,6 +16,9 @@ namespace PProtocolAnalyzer.Helpers
     public string SentBandwidthFormatted { get; set; } = "";
     public string TotalBandwidthFormatted { get; set; } = "";
     public string InputBandwidthFormatted { get; set; } = "";
+    // Available bandwidth (Kbps) = capacity - observed total when capacity known
+    public float AvailableBandwidthKbps { get; set; }
+    public string AvailableBandwidthFormatted { get; set; } = "Unknown";
     // Per-adapter throughput info
     public AdapterStats[] Adapters { get; set; } = Array.Empty<AdapterStats>();
         public SessionStats[] Sessions { get; set; } = Array.Empty<SessionStats>();
@@ -277,6 +280,40 @@ namespace PProtocolAnalyzer.Helpers
                 // Use observed NIC totals for TotalBandwidth so the UI reacts immediately to traffic.
                 float totalBandwidthKbps = nicTotalKbps > 0 ? nicTotalKbps : 0f;
 
+                // Compute capacity (bits/sec) from Current Bandwidth counters if available.
+                float nicCapacityBitsPerSec = 0f;
+                bool capacityKnown = false;
+                if (_networkCurrentBandwidthCounters != null && _networkCurrentBandwidthCounters.Length > 0)
+                {
+                    try
+                    {
+                        if (_preferredAdapterIndex.HasValue && _preferredAdapterIndex.Value >= 0 && _preferredAdapterIndex.Value < _networkCurrentBandwidthCounters.Length)
+                        {
+                            nicCapacityBitsPerSec = _networkCurrentBandwidthCounters[_preferredAdapterIndex.Value].NextValue();
+                        }
+                        else
+                        {
+                            nicCapacityBitsPerSec = _networkCurrentBandwidthCounters.Sum(c => c.NextValue());
+                        }
+                        capacityKnown = nicCapacityBitsPerSec > 0f;
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Warning: reading Current Bandwidth counters failed: {ex.Message}");
+                        capacityKnown = false;
+                        nicCapacityBitsPerSec = 0f;
+                    }
+                }
+
+                // Available = capacity - observed (use bits/sec values), fall back to Unknown if capacity not known.
+                float availableKbps = 0f;
+                if (capacityKnown)
+                {
+                    float availableBits = nicCapacityBitsPerSec - nicTotalBitsPerSec;
+                    if (availableBits < 0f) availableBits = 0f;
+                    availableKbps = availableBits / 1000f;
+                }
+
                 // Do not populate per-protocol bandwidth fields here.
                 stats.TotalBandwidthKbps = (int)Math.Round(totalBandwidthKbps);
                 stats.InputBandwidthKbps = (int)Math.Round(nicInputKbps);
@@ -284,7 +321,9 @@ namespace PProtocolAnalyzer.Helpers
                 stats.TotalBandwidthFormatted = $"{(int)Math.Round(totalBandwidthKbps)} Kbps";
                 stats.InputBandwidthFormatted = $"{(int)Math.Round(nicInputKbps)} Kbps";
                 stats.SentBandwidthFormatted = $"{(int)Math.Round(sentKbps)} Kbps";
-                // Link-capacity reporting removed per user request.
+                // Populate available bandwidth if capacity known
+                stats.AvailableBandwidthKbps = (int)Math.Round(availableKbps);
+                stats.AvailableBandwidthFormatted = capacityKnown ? $"{(int)Math.Round(availableKbps)} Kbps" : "Unknown";
 
                 // Debug output for troubleshooting
                 System.Diagnostics.Debug.WriteLine($"Total bandwidth: {totalBandwidthKbps:F1} Kbps");

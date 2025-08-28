@@ -93,7 +93,15 @@ public partial class MainPage : ContentPage
 				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.SentBandwidthKbps)}";
 				// Show Bandwidth Input using NIC received counters (format same as output)
 				BandwidthInputLabel.Text = $"Bandwidth Input: {FormatBandwidth(stats.InputBandwidthKbps)}";
-				// Link capacity reporting removed; showing Total/Output/Input only.
+				// Show available bandwidth (capacity - observed) when known
+				if (stats.AvailableBandwidthKbps > 0)
+				{
+					AvailableBandwidthLabel.Text = $"Available Bandwidth: {FormatBandwidth(stats.AvailableBandwidthKbps)}";
+				}
+				else
+				{
+					AvailableBandwidthLabel.Text = $"Available Bandwidth: {stats.AvailableBandwidthFormatted}";
+				}
 				
 				// Clear existing session stats
 				SessionStatsContainer.Children.Clear();
