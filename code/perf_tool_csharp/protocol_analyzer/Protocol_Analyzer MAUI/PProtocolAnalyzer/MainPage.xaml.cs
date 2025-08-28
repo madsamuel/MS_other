@@ -89,7 +89,6 @@ public partial class MainPage : ContentPage
 				}
 
 				// Show Total observed throughput, Output (sent) and Input (received)
-				TotalBandwidthLabel.Text = $"Total Bandwidth: {FormatBandwidth(stats.TotalBandwidthKbps)}";
 				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.SentBandwidthKbps)}";
 				// Show Bandwidth Input using NIC received counters (format same as output)
 				BandwidthInputLabel.Text = $"Bandwidth Input: {FormatBandwidth(stats.InputBandwidthKbps)}";
