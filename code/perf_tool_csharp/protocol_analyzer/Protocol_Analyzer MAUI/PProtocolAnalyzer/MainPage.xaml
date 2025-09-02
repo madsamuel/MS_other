@@ -16,39 +16,39 @@
             </Grid.ColumnDefinitions>
 
             <!-- GPU Information -->
-            <Border Grid.Row="0" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="0" Grid.Column="0" Padding="8">
                 <VerticalStackLayout>
-                    <Label Text="GPU Information" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="MainDisplayResolutionLabel" Text="Main Display Resolution: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="DpiScaleLabel" Text="DPI Scale: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="SessionTypeLabel" Text="Session Type: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="GpuTypeLabel" Text="GPU Type: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="EncodingLabel" Text="Encoding: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="HwEncodeLabel" Text="HW Encode: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="GPU Information" FontAttributes="Bold" />
+                    <Label x:Name="MainDisplayResolutionLabel" Text="Main Display Resolution: Loading..." />
+                    <Label x:Name="DpiScaleLabel" Text="DPI Scale: Loading..." />
+                    <Label x:Name="SessionTypeLabel" Text="Session Type: Loading..." />
+                    <Label x:Name="GpuTypeLabel" Text="GPU Type: Loading..." />
+                    <Label x:Name="EncodingLabel" Text="Encoding: Loading..." />
+                    <Label x:Name="HwEncodeLabel" Text="HW Encode: Loading..." />
                 </VerticalStackLayout>
             </Border>
 
             <!-- Detected settings -->
-            <Border Grid.Row="0" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="0" Grid.Column="1" Padding="8">
                 <VerticalStackLayout>
-                    <Label Text="Detected settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="DisplayResolutionLabel" Text="Display Resolution: 4096x1152" TextColor="{DynamicResource DarkText}" />
-                    <Label x:Name="RefreshRateLabel" Text="Display Refresh Rate: 60 Hz" TextColor="{DynamicResource DarkText}" />
-                    <Label x:Name="ScalingFactorLabel" Text="Scaling: 100%" TextColor="{DynamicResource DarkText}" />
-                    <Label x:Name="VisualQualityLabel" Text="Visual Quality: Medium" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="MaxFramesLabel" Text="Max Frames p/s: 59" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="HardwareEncodeStatusLabel" Text="Hardware Encode: Active" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="EncoderTypeLabel" Text="Encoder type: H265 (Hardware)" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Detected settings" FontAttributes="Bold" />
+                    <Label x:Name="DisplayResolutionLabel" Text="Display Resolution: 4096x1152" />
+                    <Label x:Name="RefreshRateLabel" Text="Display Refresh Rate: 60 Hz" />
+                    <Label x:Name="ScalingFactorLabel" Text="Scaling: 100%" />
+                    <Label x:Name="VisualQualityLabel" Text="Visual Quality: Medium" />
+                    <Label x:Name="MaxFramesLabel" Text="Max Frames p/s: 59" />
+                    <Label x:Name="HardwareEncodeStatusLabel" Text="Hardware Encode: Active" />
+                    <Label x:Name="EncoderTypeLabel" Text="Encoder type: H265 (Hardware)" />
                 </VerticalStackLayout>
             </Border>
 
             <!-- Real-Time Statistics -->
-            <Border Grid.Row="1" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="1" Grid.Column="0" Padding="8">
                 <VerticalStackLayout>
-                    <Label Text="Real-Time Statistics" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="AvailableBandwidthLabel" Text="Available Bandwidth: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="BandwidthOutputLabel" Text="Bandwidth Output: Loading..." TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="BandwidthInputLabel" Text="Bandwidth Input: Loading..." TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Real-Time Statistics" FontAttributes="Bold" />
+                    <Label x:Name="AvailableBandwidthLabel" Text="Available Bandwidth: Loading..." />
+                    <Label x:Name="BandwidthOutputLabel" Text="Bandwidth Output: Loading..." />
+                    <Label x:Name="BandwidthInputLabel" Text="Bandwidth Input: Loading..." />
                     <!-- Total bandwidth removed from UI -->
                     <VerticalStackLayout x:Name="SessionStatsContainer">
                         <!-- Session statistics will be added dynamically -->
@@ -57,27 +57,27 @@
             </Border>
 
             <!-- Real-Time Advanced Statistics -->
-            <Border Grid.Row="1" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="1" Grid.Column="1" Padding="8">
                 <VerticalStackLayout>
-                    <Label Text="Real-Time Advanced Statistics" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Encoder Frames Dropped: (waiting for data)" TextColor="{DynamicResource DarkText}"/>
-                    <Label Text="Input Frames Per Second: (waiting for data)" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Real-Time Advanced Statistics" FontAttributes="Bold" />
+                    <Label Text="Encoder Frames Dropped: (waiting for data)" />
+                    <Label Text="Input Frames Per Second: (waiting for data)" />
                 </VerticalStackLayout>
             </Border>
 
             <!-- Session Info (Left) and Custom Settings (Right) -->
-            <Border Grid.Row="2" Grid.Column="0" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="2" Grid.Column="0" Padding="8">
                 <VerticalStackLayout>
-                    <Label Text="Session Info" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="SessionIdLabel" Text="Session Id: 1" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="ClientNameLabel" Text="Client Name:" TextColor="{DynamicResource DarkText}"/>
-                    <Label x:Name="ProtocolVersionLabel" Text="Protocol Version: RDP 8.1+" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Session Info" FontAttributes="Bold" />
+                    <Label x:Name="SessionIdLabel" Text="Session Id: 1" />
+                    <Label x:Name="ClientNameLabel" Text="Client Name:" />
+                    <Label x:Name="ProtocolVersionLabel" Text="Protocol Version: RDP 8.1+" />
                 </VerticalStackLayout>
             </Border>
 
-            <Border Grid.Row="2" Grid.Column="1" Padding="8" Stroke="{DynamicResource DarkFrameBorder}" BackgroundColor="{DynamicResource DarkFrameBackground}">
+            <Border Grid.Row="2" Grid.Column="1" Padding="8">
                 <VerticalStackLayout x:Name="CustomSettingsContainer">
-                    <Label Text="Custom Settings" FontAttributes="Bold" TextColor="{DynamicResource DarkText}"/>
+                    <Label Text="Custom Settings" FontAttributes="Bold" />
                     <!-- Dynamic custom settings labels will be added here programmatically -->
                 </VerticalStackLayout>
             </Border>

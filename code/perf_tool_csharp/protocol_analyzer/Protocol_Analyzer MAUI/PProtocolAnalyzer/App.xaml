@@ -10,15 +10,7 @@
                 <ResourceDictionary Source="Resources/Styles/Styles.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Updated Dark Theme Styles -->
-            <Style TargetType="Label">
-                <Setter Property="TextColor" Value="{DynamicResource DarkText}" />
-            </Style>
-
-            <Style TargetType="Border">
-                <Setter Property="BackgroundColor" Value="{DynamicResource DarkFrameBackground}" />
-                <Setter Property="Stroke" Value="{DynamicResource DarkFrameBorder}" />
-            </Style>
+            <!-- Theme-aware styles are defined in Resources/Styles/Styles.xaml; do not override them here -->
         </ResourceDictionary>
     </Application.Resources>
 </Application>
