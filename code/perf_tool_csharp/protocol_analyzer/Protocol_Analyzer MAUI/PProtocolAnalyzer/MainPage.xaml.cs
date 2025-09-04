@@ -123,6 +123,21 @@ public partial class MainPage : ContentPage
 					var noSessionsLabel = CreateStyledLabel("No active RemoteFX sessions", _primaryTextColor);
 					SessionStatsContainer.Children.Add(noSessionsLabel);
 				}
+
+				// Update advanced real-time statistics (encoder frames dropped, input FPS)
+				try
+				{
+					var framesDropped = RealTimeStatisticsHelper.GetEncoderFramesDropped();
+					var inputFps = RealTimeStatisticsHelper.GetInputFramesPerSecond();
+
+					EncoderFramesDroppedLabel.Text = $"Encoder Frames Dropped: {(framesDropped >= 0 ? framesDropped.ToString() : "Unavailable")}";
+					InputFpsLabel.Text = $"Input Frames Per Second: {(inputFps >= 0 ? inputFps.ToString() : "Unavailable")}";
+				}
+				catch
+				{
+					EncoderFramesDroppedLabel.Text = "Encoder Frames Dropped: (waiting for data)";
+					InputFpsLabel.Text = "Input Frames Per Second: (waiting for data)";
+				}
 			}
 			else
 			{
@@ -133,6 +148,20 @@ public partial class MainPage : ContentPage
 				var errorLabel = CreateStyledLabel($"RemoteFX counters not available: {stats.ErrorMessage}", _errorTextColor);
 				SessionStatsContainer.Children.Add(errorLabel);
 			}
+
+				// Always update advanced stats labels (do not depend on RemoteFX counters)
+				try
+				{
+					var framesDroppedAlways = RealTimeStatisticsHelper.GetEncoderFramesDropped();
+					var inputFpsAlways = RealTimeStatisticsHelper.GetInputFramesPerSecond();
+
+					EncoderFramesDroppedLabel.Text = $"Encoder Frames Dropped: {(framesDroppedAlways >= 0 ? framesDroppedAlways.ToString() : "Unavailable")}";
+					InputFpsLabel.Text = $"Input Frames Per Second: {(inputFpsAlways >= 0 ? inputFpsAlways.ToString() : "Unavailable")}";
+				}
+				catch
+				{
+					// leave existing text if retrieval fails
+				}
 		}
 		catch (Exception ex)
 		{

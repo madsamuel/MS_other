@@ -60,8 +60,8 @@
             <Border Grid.Row="1" Grid.Column="1" Padding="8">
                 <VerticalStackLayout>
                     <Label Text="Real-Time Advanced Statistics" FontAttributes="Bold" />
-                    <Label Text="Encoder Frames Dropped: (waiting for data)" />
-                    <Label Text="Input Frames Per Second: (waiting for data)" />
+                    <Label x:Name="EncoderFramesDroppedLabel" Text="Encoder Frames Dropped: (waiting for data)" />
+                    <Label x:Name="InputFpsLabel" Text="Input Frames Per Second: (waiting for data)" />
                 </VerticalStackLayout>
             </Border>
 

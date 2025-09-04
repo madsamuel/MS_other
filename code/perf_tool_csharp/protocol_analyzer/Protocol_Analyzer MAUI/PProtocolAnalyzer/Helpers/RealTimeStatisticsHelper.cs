@@ -361,9 +361,84 @@ namespace PProtocolAnalyzer.Helpers
         {
             try
             {
-                // TODO: Could be enhanced with actual WMI queries or performance counters
-                // For now, return a placeholder value
-                return 0;
+                if (!OperatingSystem.IsWindows()) return -1;
+
+                // Candidate category names to try first (common RemoteFX/encoder related categories)
+                var preferredCategories = new[]
+                {
+                    "RemoteFX Video Encoder",
+                    "RemoteFX Graphics",
+                    "RemoteFX Graphics Encoder",
+                    "RemoteFX",
+                    "Terminal Services",
+                    "Remote Desktop Services"
+                };
+
+                // Helper to probe a category for counters that look like frames-dropped
+                int ProbeCategory(PerformanceCounterCategory cat)
+                {
+                    try
+                    {
+                        // Check non-instance counters
+                        foreach (var c in cat.GetCounters())
+                        {
+                            var name = c.CounterName?.ToLowerInvariant() ?? string.Empty;
+                            if (name.Contains("drop") || name.Contains("dropped") || (name.Contains("frame") && name.Contains("drop")))
+                            {
+                                try { return (int)Math.Round(c.NextValue()); } catch { }
+                            }
+                        }
+
+                        // Check instance counters
+                        var instances = cat.GetInstanceNames();
+                        if (instances != null && instances.Length > 0)
+                        {
+                            foreach (var inst in instances)
+                            {
+                                try
+                                {
+                                    foreach (var c in cat.GetCounters(inst))
+                                    {
+                                        var name = c.CounterName?.ToLowerInvariant() ?? string.Empty;
+                                        if (name.Contains("drop") || name.Contains("dropped") || (name.Contains("frame") && name.Contains("drop")))
+                                        {
+                                            try { return (int)Math.Round(c.NextValue()); } catch { }
+                                        }
+                                    }
+                                }
+                                catch { /* ignore instance probing errors */ }
+                            }
+                        }
+                    }
+                    catch { /* ignore category probing errors */ }
+
+                    return -1;
+                }
+
+                // Try preferred categories first
+                foreach (var catName in preferredCategories)
+                {
+                    try
+                    {
+                        if (PerformanceCounterCategory.Exists(catName))
+                        {
+                            var cat = new PerformanceCounterCategory(catName);
+                            var v = ProbeCategory(cat);
+                            if (v >= 0) return v;
+                        }
+                    }
+                    catch { }
+                }
+
+                // Fall back to scanning all categories for likely counters
+                foreach (var cat in PerformanceCounterCategory.GetCategories())
+                {
+                    var v = ProbeCategory(cat);
+                    if (v >= 0) return v;
+                }
+
+                // If nothing found, return -1 to indicate unavailable
+                return -1;
             }
             catch (Exception ex)
             {
