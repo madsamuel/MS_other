@@ -36,7 +36,7 @@
                     <Label x:Name="RefreshRateLabel" Text="Display Refresh Rate: 60 Hz" />
                     <Label x:Name="ScalingFactorLabel" Text="Scaling: 100%" />
                     <Label x:Name="VisualQualityLabel" Text="Visual Quality: Medium" />
-                    <Label x:Name="MaxFramesLabel" Text="Max Frames p/s: 59" />
+                    <!-- Max Frames display removed per request -->
                     <Label x:Name="HardwareEncodeStatusLabel" Text="Hardware Encode: Active" />
                     <Label x:Name="EncoderTypeLabel" Text="Encoder type: H265 (Hardware)" />
                 </VerticalStackLayout>

@@ -74,7 +74,6 @@ namespace PProtocolAnalyzer.Services
                     // Use the existing working DisplayInfoHelper methods through DetectedSettingsHelper
                     var (width, height, refreshRate, scalingFactor) = DetectedSettingsHelper.GetDisplayResolutionAndRefreshRate();
                     var visualQuality = DetectedSettingsHelper.GetVisualQuality();
-                    var maxFps = DetectedSettingsHelper.GetMaxFPS();
                     var hwEncodeSupported = DetectedSettingsHelper.IsHardwareEncodingSupported();
                     var encoderType = DetectedSettingsHelper.GetEncoderType();
 
@@ -82,7 +81,7 @@ namespace PProtocolAnalyzer.Services
                     detectedSettings.DisplayRefreshRate = $"Display Refresh Rate: {(refreshRate > 0 ? $"{refreshRate} Hz" : "Unknown")}";
                     detectedSettings.Scaling = $"Scaling: {scalingFactor * 100:F0}%";
                     detectedSettings.VisualQuality = $"Visual Quality: {visualQuality}";
-                    detectedSettings.MaxFramesPerSecond = $"Max Frames p/s: {maxFps}";
+                    // Max frames value removed from UI; GetMaxFPS() still available in helper if needed
                     detectedSettings.HardwareEncode = $"Hardware Encode: {(hwEncodeSupported ? "Active" : "Inactive")}";
                     detectedSettings.EncoderType = $"Encoder type: {encoderType}";
                 }
@@ -94,7 +93,7 @@ namespace PProtocolAnalyzer.Services
                     detectedSettings.DisplayRefreshRate = "Display Refresh Rate: Unknown";
                     detectedSettings.Scaling = "Scaling: Unknown";
                     detectedSettings.VisualQuality = "Visual Quality: Unknown";
-                    detectedSettings.MaxFramesPerSecond = "Max Frames p/s: Unknown";
+                    // Max frames value removed from UI; no fallback needed
                     detectedSettings.HardwareEncode = "Hardware Encode: Unknown";
                     detectedSettings.EncoderType = "Encoder type: Unknown";
                 }

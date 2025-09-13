@@ -128,7 +128,6 @@ namespace PProtocolAnalyzer.Models
         private string _displayRefreshRate = "Unknown";
         private string _scaling = "Unknown";
         private string _visualQuality = "Unknown";
-        private string _maxFramesPerSecond = "Unknown";
         private string _hardwareEncode = "Unknown";
         private string _encoderType = "Unknown";
 
@@ -156,11 +155,7 @@ namespace PProtocolAnalyzer.Models
             set => SetProperty(ref _visualQuality, value);
         }
 
-        public string MaxFramesPerSecond
-        {
-            get => _maxFramesPerSecond;
-            set => SetProperty(ref _maxFramesPerSecond, value);
-        }
+    // MaxFramesPerSecond removed — UI no longer displays this value
 
         public string HardwareEncode
         {

@@ -107,28 +107,63 @@ namespace PProtocolAnalyzer.Helpers
         {
             try
             {
-                // Get display refresh rate using WMI
-                using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController"))
+                // 1) Prefer platform/runtime API that MAUI exposes (DeviceDisplay)
+                try
                 {
-                    foreach (ManagementObject obj in searcher.Get())
+                    var runtimeRefresh = DisplayInfoHelper.GetDisplayRefreshRate();
+                    if (runtimeRefresh > 0)
                     {
-                        if (obj["CurrentRefreshRate"] is not null)
+                        return Math.Min((int)Math.Round(runtimeRefresh), 120);
+                    }
+                }
+                catch (Exception rex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Info: DisplayInfoHelper refresh read failed: {rex.Message}");
+                }
+
+                // 2) Try Win32 EnumDisplaySettings fallback which reads DEVMODE.dmDisplayFrequency
+                try
+                {
+                    var winApiRefresh = GetRefreshRate();
+                    if (winApiRefresh > 0)
+                        return Math.Min(winApiRefresh, 120);
+                }
+                catch (Exception dex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Info: GetRefreshRate() failed: {dex.Message}");
+                }
+
+                // 3) Last resort: try WMI (may throw or be slow) - keep as fallback only
+                try
+                {
+                    using (var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController"))
+                    {
+                        foreach (ManagementObject obj in searcher.Get())
                         {
-                            int refreshRate = 60;
-                            var refreshRateObj = obj["CurrentRefreshRate"];
-                            if (refreshRateObj != null && int.TryParse(refreshRateObj.ToString() ?? "60", out int rr))
-                                refreshRate = rr;
-                            // Cap at 120 FPS as a reasonable maximum
-                            return Math.Min(refreshRate, 120);
+                            if (obj["CurrentRefreshRate"] is not null)
+                            {
+                                int refreshRate = 60;
+                                var refreshRateObj = obj["CurrentRefreshRate"];
+                                if (refreshRateObj != null && int.TryParse(refreshRateObj.ToString() ?? "60", out int rr))
+                                    refreshRate = rr;
+                                // Cap at 120 FPS as a reasonable maximum
+                                return Math.Min(refreshRate, 120);
+                            }
                         }
                     }
                 }
-                return 60; // Default to 60 FPS if cannot determine
+                catch (Exception wex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Info: WMI refresh read failed: {wex.Message}");
+                }
+
+                // Final sensible default
+                return 60;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting max FPS: {ex.Message}");
-                return 59;
+                return 60;
             }
         }
 

@@ -262,7 +262,6 @@ public partial class MainPage : ContentPage
 			var refreshRate = DisplayInfoHelper.GetDisplayRefreshRate();
 			var scalingFactor = DisplayInfoHelper.GetScalingFactor();
 			var visualQuality = DetectedSettingsHelper.GetVisualQuality();
-			var maxFps = DetectedSettingsHelper.GetMaxFPS();
 			var hwEncodeSupported = DetectedSettingsHelper.IsHardwareEncodingSupported();
 			var encoderType = DetectedSettingsHelper.GetEncoderType();
 
@@ -270,7 +269,7 @@ public partial class MainPage : ContentPage
 			SetLabelText(RefreshRateLabel, "Display Refresh Rate", $"{refreshRate} Hz");
 			SetLabelText(ScalingFactorLabel, "Scaling", $"{scalingFactor * 100:F0}%");
 			SetLabelText(VisualQualityLabel, "Visual Quality", visualQuality);
-			SetLabelText(MaxFramesLabel, "Max Frames p/s", maxFps.ToString());
+			// Max Frames display removed; value computed by DetectedSettingsHelper if needed elsewhere.
 			SetLabelText(HardwareEncodeStatusLabel, "Hardware Encode", hwEncodeSupported ? "Active" : "Inactive");
 			SetLabelText(EncoderTypeLabel, "Encoder type", encoderType);
 		}
