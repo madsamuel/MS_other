@@ -1,23 +1,36 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Win32;
 using System.Reflection;
 
 namespace PProtocolAnalyzer.Helpers
 {
     /// <summary>
-    /// Registry setting configuration model
+    /// Registry setting configuration model (maps JSON snake_case to C# PascalCase)
     /// </summary>
     public class CustomRegistrySetting
     {
-        public string registry_path { get; set; } = string.Empty;
-        public string value_name { get; set; } = string.Empty;
-        public string value_type { get; set; } = string.Empty;
-        public int expected_value { get; set; }
-        public string friendly_name { get; set; } = string.Empty;
-        public string fallback_name { get; set; } = string.Empty;
+        [JsonPropertyName("registry_path")]
+        public string RegistryPath { get; set; } = string.Empty;
+
+        [JsonPropertyName("value_name")]
+        public string ValueName { get; set; } = string.Empty;
+
+        [JsonPropertyName("value_type")]
+        public string ValueType { get; set; } = string.Empty;
+
+        [JsonPropertyName("expected_value")]
+        public int ExpectedValue { get; set; }
+
+        [JsonPropertyName("friendly_name")]
+        public string FriendlyName { get; set; } = string.Empty;
+
+        [JsonPropertyName("fallback_name")]
+        public string FallbackName { get; set; } = string.Empty;
     }
 
     public static class CustomSettingsHelper
@@ -26,60 +39,59 @@ namespace PProtocolAnalyzer.Helpers
         /// Loads custom registry settings from JSON configuration file
         /// File is distributed with the app and user-editable
         /// </summary>
-        public static List<CustomRegistrySetting>? LoadCustomSettings()
+        private static List<CustomRegistrySetting>? _cachedSettings;
+
+        public static IReadOnlyList<CustomRegistrySetting>? LoadCustomSettings()
         {
+            if (_cachedSettings != null)
+                return _cachedSettings;
+
             try
             {
-                // DEBUGGING: Try the exact path we know works
-                string hardcodedPath = @"c:\code\MS_other\code\perf_tool_csharp\protocol_analyzer\Protocol_Analyzer MAUI\PProtocolAnalyzer\bin\Debug\net9.0-windows10.0.19041.0\win10-x64\custom_registry_settings.json";
-                
-                // Try multiple paths to find the JSON file
-                string[] possiblePaths = {
-                    hardcodedPath, // Debugging path
-                    // MAUI app directory (most likely location)
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "custom_registry_settings.json"),
-                    // Resources/Raw folder
-                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "Raw", "custom_registry_settings.json")
+                // Candidate locations to probe (no hardcoded dev paths)
+                var baseDirs = new[]
+                {
+                    AppDomain.CurrentDomain.BaseDirectory ?? string.Empty,
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty,
+                    Directory.GetCurrentDirectory()
                 };
 
-                string jsonPath = "";
-                foreach (var path in possiblePaths)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Checking path: {path}");
-                    if (File.Exists(path))
-                    {
-                        jsonPath = path;
-                        System.Diagnostics.Debug.WriteLine($"Found file at: {path}");
-                        break;
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"File not found at: {path}");
-                    }
-                }
+                var candidates = baseDirs
+                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                    .SelectMany(d => new[] {
+                        Path.Combine(d, "custom_registry_settings.json"),
+                        Path.Combine(d, "Resources", "Raw", "custom_registry_settings.json")
+                    })
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
 
-                if (string.IsNullOrEmpty(jsonPath))
+                string? jsonPath = candidates.FirstOrDefault(File.Exists);
+                if (jsonPath == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Custom registry settings file not found in any of the expected locations:");
-                    foreach (var path in possiblePaths)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"  - {path}");
-                    }
+                    System.Diagnostics.Debug.WriteLine("Custom registry settings file not found.");
                     return null;
                 }
 
-                string jsonContent = File.ReadAllText(jsonPath);
-                System.Diagnostics.Debug.WriteLine($"JSON content: {jsonContent}");
-                
-                var settings = JsonSerializer.Deserialize<List<CustomRegistrySetting>>(jsonContent);
-                
-                System.Diagnostics.Debug.WriteLine($"Successfully loaded {settings?.Count ?? 0} custom registry settings from: {jsonPath}");
-                return settings;
+                var jsonContent = File.ReadAllText(jsonPath);
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    ReadCommentHandling = JsonCommentHandling.Skip
+                };
+
+                var settings = JsonSerializer.Deserialize<List<CustomRegistrySetting>>(jsonContent, options);
+                if (settings == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Custom settings file parsed but returned null: {jsonPath}");
+                    return null;
+                }
+
+                _cachedSettings = settings;
+                return _cachedSettings;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error loading custom settings: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return null;
             }
         }
@@ -90,51 +102,55 @@ namespace PProtocolAnalyzer.Helpers
         /// </summary>
         public static string GetRegistryDisplay(CustomRegistrySetting setting)
         {
+            if (setting == null) return string.Empty;
+
             try
             {
-                // Parse the registry path to get base key and subkey
-                var (baseKey, subKeyPath) = GetBaseKey(setting.registry_path);
-                
+                var (baseKey, subKeyPath) = GetBaseKey(setting.RegistryPath ?? string.Empty);
                 if (baseKey == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Invalid registry path: {setting.registry_path}");
-                    return setting.fallback_name;
+                    return string.IsNullOrEmpty(setting.FallbackName) ? setting.FriendlyName : setting.FallbackName;
                 }
 
-                // Open the registry subkey
-                using (var regKey = baseKey.OpenSubKey(subKeyPath))
+                using var regKey = baseKey.OpenSubKey(subKeyPath);
+                if (regKey == null)
+                    return string.IsNullOrEmpty(setting.FallbackName) ? setting.FriendlyName : setting.FallbackName;
+
+                var rawValue = regKey.GetValue(setting.ValueName);
+                if (rawValue == null)
+                    return string.IsNullOrEmpty(setting.FallbackName) ? setting.FriendlyName : setting.FallbackName;
+
+                // Normalize value type check
+                var type = (setting.ValueType ?? string.Empty).Trim().ToUpperInvariant();
+                if (type == "REG_DWORD" || type == "DWORD")
                 {
-                    if (regKey == null)
+                    try
                     {
-                        System.Diagnostics.Debug.WriteLine($"Registry key not found: {setting.registry_path}");
-                        return setting.fallback_name;
+                        var intValue = Convert.ToInt32(rawValue);
+                        if (intValue == setting.ExpectedValue)
+                            return setting.FriendlyName;
                     }
-
-                    // Read the registry value
-                    var value = regKey.GetValue(setting.value_name);
-                    if (value == null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"Registry value not found: {setting.value_name}");
-                        return setting.fallback_name;
-                    }
-
-                    // Compare with expected value
-                    if (setting.value_type == "REG_DWORD" && value is int intValue)
-                    {
-                        if (intValue == setting.expected_value)
-                        {
-                            return setting.friendly_name;
-                        }
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"Registry value mismatch - Expected: {setting.expected_value}, Actual: {value}");
-                    return setting.fallback_name;
+                    catch { /* ignore conversion errors */ }
                 }
+                else if (type == "REG_SZ" || type == "STRING")
+                {
+                    var s = rawValue.ToString() ?? string.Empty;
+                    if (s.Equals(setting.ExpectedValue.ToString(), StringComparison.OrdinalIgnoreCase))
+                        return setting.FriendlyName;
+                }
+                else
+                {
+                    // Generic numeric comparison attempt
+                    if (int.TryParse(rawValue.ToString(), out var numeric) && numeric == setting.ExpectedValue)
+                        return setting.FriendlyName;
+                }
+
+                return string.IsNullOrEmpty(setting.FallbackName) ? setting.FriendlyName : setting.FallbackName;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error reading registry setting {setting.value_name}: {ex.Message}");
-                return setting.fallback_name;
+                System.Diagnostics.Debug.WriteLine($"Error reading registry setting {setting.ValueName}: {ex.Message}");
+                return string.IsNullOrEmpty(setting.FallbackName) ? setting.FriendlyName : setting.FallbackName;
             }
         }
 
@@ -144,71 +160,56 @@ namespace PProtocolAnalyzer.Helpers
         /// </summary>
         private static (RegistryKey? baseKey, string subKeyPath) GetBaseKey(string fullPath)
         {
-            try
+            if (string.IsNullOrWhiteSpace(fullPath)) return (null, string.Empty);
+
+            var path = fullPath.Trim();
+            // Support common prefixes and abbreviations
+            if (path.StartsWith("HKEY_LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase) || path.StartsWith("HKLM", StringComparison.OrdinalIgnoreCase))
             {
-                if (fullPath.StartsWith("HKEY_LOCAL_MACHINE\\"))
-                {
-                    string subKeyPath = fullPath.Substring("HKEY_LOCAL_MACHINE\\".Length);
-                    return (Registry.LocalMachine, subKeyPath);
-                }
-                else if (fullPath.StartsWith("HKEY_CURRENT_USER\\"))
-                {
-                    string subKeyPath = fullPath.Substring("HKEY_CURRENT_USER\\".Length);
-                    return (Registry.CurrentUser, subKeyPath);
-                }
-                else if (fullPath.StartsWith("HKEY_CLASSES_ROOT\\"))
-                {
-                    string subKeyPath = fullPath.Substring("HKEY_CLASSES_ROOT\\".Length);
-                    return (Registry.ClassesRoot, subKeyPath);
-                }
-                
-                return (null, string.Empty);
+                var prefix = path.IndexOf('\\') >= 0 ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                return (Registry.LocalMachine, prefix);
             }
-            catch (Exception ex)
+
+            if (path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase) || path.StartsWith("HKCU", StringComparison.OrdinalIgnoreCase))
             {
-                System.Diagnostics.Debug.WriteLine($"Error parsing registry path {fullPath}: {ex.Message}");
-                return (null, string.Empty);
+                var prefix = path.IndexOf('\\') >= 0 ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                return (Registry.CurrentUser, prefix);
             }
+
+            if (path.StartsWith("HKEY_CLASSES_ROOT", StringComparison.OrdinalIgnoreCase) || path.StartsWith("HKCR", StringComparison.OrdinalIgnoreCase))
+            {
+                var prefix = path.IndexOf('\\') >= 0 ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                return (Registry.ClassesRoot, prefix);
+            }
+
+            return (null, string.Empty);
         }
 
         /// <summary>
         /// Gets all custom settings status messages for display
         /// Returns list of friendly status messages based on actual registry values
         /// </summary>
-        public static List<string> GetAllCustomSettings()
+        public static IReadOnlyList<string> GetAllCustomSettings()
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("GetAllCustomSettings: Starting...");
-                
                 var customSettings = LoadCustomSettings();
-                var results = new List<string>();
-
-                System.Diagnostics.Debug.WriteLine($"GetAllCustomSettings: LoadCustomSettings returned {customSettings?.Count ?? 0} settings");
-
                 if (customSettings == null || customSettings.Count == 0)
-                {
-                    System.Diagnostics.Debug.WriteLine("GetAllCustomSettings: No settings found, returning default message");
-                    results.Add("No custom settings configured");
-                    return results;
-                }
+                    return new[] { "No custom settings configured" };
 
+                var results = new List<string>(customSettings.Count);
                 foreach (var setting in customSettings)
                 {
-                    System.Diagnostics.Debug.WriteLine($"GetAllCustomSettings: Processing setting '{setting.value_name}'");
-                    string status = GetRegistryDisplay(setting);
-                    System.Diagnostics.Debug.WriteLine($"GetAllCustomSettings: Got status '{status}' for setting '{setting.value_name}'");
+                    var status = GetRegistryDisplay(setting);
                     results.Add(status);
                 }
 
-                System.Diagnostics.Debug.WriteLine($"GetAllCustomSettings: Returning {results.Count} results");
                 return results;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error getting all custom settings: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
-                return new List<string> { $"Error loading custom settings: {ex.Message}" };
+                return new[] { $"Error loading custom settings: {ex.Message}" };
             }
         }
 
@@ -217,16 +218,8 @@ namespace PProtocolAnalyzer.Helpers
         /// </summary>
         public static string GetCustomSettingsDisplay()
         {
-            try
-            {
-                var settings = GetAllCustomSettings();
-                return string.Join("\n", settings);
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting custom settings display: {ex.Message}");
-                return "Error loading custom settings";
-            }
+            var settings = GetAllCustomSettings();
+            return string.Join(Environment.NewLine, settings);
         }
     }
 }
