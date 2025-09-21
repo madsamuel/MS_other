@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Maui.Storage;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Win32;
@@ -49,30 +50,75 @@ namespace PProtocolAnalyzer.Helpers
             try
             {
                 // Candidate locations to probe (no hardcoded dev paths)
-                var baseDirs = new[]
+                var baseDirsList = new List<string>();
+
+                // Working directory where the process was started (user-run folder)
+                try { baseDirsList.Add(Environment.CurrentDirectory); } catch { }
+
+                // AppContext / AppDomain base directories (exe folder)
+                try { baseDirsList.Add(AppContext.BaseDirectory ?? string.Empty); } catch { }
+                try { baseDirsList.Add(AppDomain.CurrentDomain.BaseDirectory ?? string.Empty); } catch { }
+
+                // Entry assembly location (may differ for single-file or packaged apps)
+                try { baseDirsList.Add(Path.GetDirectoryName(Assembly.GetEntryAssembly()?.Location ?? string.Empty) ?? string.Empty); } catch { }
+                try { baseDirsList.Add(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty); } catch { }
+
+                // Process main module folder (robust fallback)
+                try
                 {
-                    AppDomain.CurrentDomain.BaseDirectory ?? string.Empty,
-                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty,
-                    Directory.GetCurrentDirectory()
-                };
+                    var mainModule = System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName;
+                    if (!string.IsNullOrEmpty(mainModule))
+                        baseDirsList.Add(Path.GetDirectoryName(mainModule) ?? string.Empty);
+                }
+                catch { }
+
+                var baseDirs = baseDirsList
+                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
 
                 var candidates = baseDirs
-                    .Where(d => !string.IsNullOrWhiteSpace(d))
                     .SelectMany(d => new[] {
                         Path.Combine(d, "custom_registry_settings.json"),
                         Path.Combine(d, "Resources", "Raw", "custom_registry_settings.json")
                     })
+                    .Concat(new[] { Path.Combine(Directory.GetCurrentDirectory(), "custom_registry_settings.json") })
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 string? jsonPath = candidates.FirstOrDefault(File.Exists);
-                if (jsonPath == null)
+                string? jsonContent = null;
+
+                if (jsonPath != null)
                 {
-                    System.Diagnostics.Debug.WriteLine("Custom registry settings file not found.");
-                    return null;
+                    jsonContent = File.ReadAllText(jsonPath);
+                    System.Diagnostics.Debug.WriteLine($"Loaded custom_registry_settings.json from disk: {jsonPath}");
+                }
+                else
+                {
+                    // If the file wasn't found on disk, try reading it from the MAUI app package assets
+                    try
+                    {
+                        using var stream = FileSystem.OpenAppPackageFileAsync("custom_registry_settings.json").GetAwaiter().GetResult();
+                        if (stream != null)
+                        {
+                            using var sr = new StreamReader(stream);
+                            jsonContent = sr.ReadToEnd();
+                            System.Diagnostics.Debug.WriteLine("Loaded custom_registry_settings.json from app package assets.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"App package asset not found or unreadable: {ex.Message}");
+                    }
                 }
 
-                var jsonContent = File.ReadAllText(jsonPath);
+                if (string.IsNullOrWhiteSpace(jsonContent))
+                {
+                    System.Diagnostics.Debug.WriteLine("Custom registry settings file not found in any of the expected locations or app package.");
+                    return null;
+                }
                 var options = new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true,
