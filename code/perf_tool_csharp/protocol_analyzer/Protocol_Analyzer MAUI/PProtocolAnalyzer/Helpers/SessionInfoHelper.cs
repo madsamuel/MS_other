@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Security.Principal;
+using Microsoft.Extensions.Logging;
 
 namespace PProtocolAnalyzer.Helpers
 {
@@ -34,7 +35,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting session info: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SessionInfoHelper));
+                try { lg?.LogError(ex, $"Error getting session info: {ex.Message}"); } catch { }
                 return ("Unknown", "Unknown", "Unknown");
             }
         }

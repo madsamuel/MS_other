@@ -1,5 +1,6 @@
 using PProtocolAnalyzer.Models;
 using PProtocolAnalyzer.Services;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -51,7 +52,8 @@ namespace PProtocolAnalyzer.ViewModels
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading system information: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(MainPageViewModel));
+                try { lg?.LogError(ex, $"Error loading system information: {ex.Message}"); } catch { }
                 // Could show user-friendly error message here
             }
             finally
@@ -80,7 +82,8 @@ namespace PProtocolAnalyzer.ViewModels
             }
             catch (System.Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error refreshing real-time statistics: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(MainPageViewModel));
+                try { lg?.LogWarning(ex, $"Error refreshing real-time statistics: {ex.Message}"); } catch { }
             }
         }
 

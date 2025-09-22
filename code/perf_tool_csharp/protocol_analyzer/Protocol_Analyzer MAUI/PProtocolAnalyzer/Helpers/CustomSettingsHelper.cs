@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Win32;
 using System.Reflection;
+using Microsoft.Extensions.Logging;
 
 namespace PProtocolAnalyzer.Helpers
 {
@@ -93,7 +94,8 @@ namespace PProtocolAnalyzer.Helpers
                 if (jsonPath != null)
                 {
                     jsonContent = File.ReadAllText(jsonPath);
-                    System.Diagnostics.Debug.WriteLine($"Loaded custom_registry_settings.json from disk: {jsonPath}");
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                    try { lg?.LogInformation($"Loaded custom_registry_settings.json from disk: {jsonPath}"); } catch { }
                 }
                 else
                 {
@@ -105,18 +107,21 @@ namespace PProtocolAnalyzer.Helpers
                         {
                             using var sr = new StreamReader(stream);
                             jsonContent = sr.ReadToEnd();
-                            System.Diagnostics.Debug.WriteLine("Loaded custom_registry_settings.json from app package assets.");
+                            var lg2 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                            try { lg2?.LogInformation("Loaded custom_registry_settings.json from app package assets."); } catch { }
                         }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"App package asset not found or unreadable: {ex.Message}");
+                        var lg3 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                        try { lg3?.LogWarning(ex, $"App package asset not found or unreadable: {ex.Message}"); } catch { }
                     }
                 }
 
                 if (string.IsNullOrWhiteSpace(jsonContent))
                 {
-                    System.Diagnostics.Debug.WriteLine("Custom registry settings file not found in any of the expected locations or app package.");
+                    var lg4 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                    try { lg4?.LogInformation("Custom registry settings file not found in any of the expected locations or app package."); } catch { }
                     return null;
                 }
                 var options = new JsonSerializerOptions
@@ -128,7 +133,8 @@ namespace PProtocolAnalyzer.Helpers
                 var settings = JsonSerializer.Deserialize<List<CustomRegistrySetting>>(jsonContent, options);
                 if (settings == null)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Custom settings file parsed but returned null: {jsonPath}");
+                    var lg5 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                    try { lg5?.LogWarning($"Custom settings file parsed but returned null: {jsonPath}"); } catch { }
                     return null;
                 }
 
@@ -137,7 +143,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading custom settings: {ex.Message}");
+                var lg6 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                try { lg6?.LogError(ex, $"Error loading custom settings: {ex.Message}"); } catch { }
                 return null;
             }
         }
@@ -195,7 +202,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error reading registry setting {setting.ValueName}: {ex.Message}");
+                var lg7 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                try { lg7?.LogError(ex, $"Error reading registry setting {setting.ValueName}: {ex.Message}"); } catch { }
                 return string.IsNullOrEmpty(setting.FallbackName) ? setting.FriendlyName : setting.FallbackName;
             }
         }
@@ -254,7 +262,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting all custom settings: {ex.Message}");
+                var lg8 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(CustomSettingsHelper));
+                try { lg8?.LogError(ex, $"Error getting all custom settings: {ex.Message}"); } catch { }
                 return new[] { $"Error loading custom settings: {ex.Message}" };
             }
         }

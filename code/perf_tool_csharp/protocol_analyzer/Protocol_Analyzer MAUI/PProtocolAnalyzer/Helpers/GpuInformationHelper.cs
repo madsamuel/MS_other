@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace PProtocolAnalyzer.Helpers
 {
@@ -45,7 +46,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting display info: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GpuInformationHelper));
+                try { lg?.LogWarning(ex, $"Error getting display info: {ex.Message}"); } catch { }
             }
 
             // Fallback to DisplayInfoHelper for resolution
@@ -74,7 +76,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting graphics profile: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GpuInformationHelper));
+                try { lg?.LogWarning(ex, $"Error getting graphics profile: {ex.Message}"); } catch { }
                 return ("Unknown", "Unknown", "Unknown", "Unknown");
             }
         }

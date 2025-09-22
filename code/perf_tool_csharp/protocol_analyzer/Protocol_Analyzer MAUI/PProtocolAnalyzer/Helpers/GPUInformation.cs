@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 using System.Management;
 using System.Linq;
@@ -35,11 +36,12 @@ namespace PProtocolAnalyzer.Helpers
                     float dpiScale = GetDpiScale();
                     return (gpuResolution, dpiScale);
                 }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Error getting GPU display resolution: {ex.Message}");
-            }
+                }
+                catch (Exception ex)
+                {
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                    try { lg?.LogError(ex, $"Error getting GPU display resolution: {ex.Message}"); } catch { }
+                }
 
             try
             {
@@ -58,7 +60,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting display info via Win32: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error getting display info via Win32: {ex.Message}"); } catch { }
             }
 
             // Final fallback to MAUI DeviceDisplay
@@ -71,7 +74,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting display info via MAUI: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error getting display info via MAUI: {ex.Message}"); } catch { }
                 // Return "Unknown" instead of misleading hardcoded values
                 return ((0, 0), 0.0f);
             }
@@ -101,7 +105,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting graphics profile details: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error getting graphics profile details: {ex.Message}"); } catch { }
                 return ("Unknown", "Unknown", "Unknown", "Unknown");
             }
         }
@@ -135,7 +140,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting GPU resolution via WMI: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error getting GPU resolution via WMI: {ex.Message}"); } catch { }
             }
             
             return (0, 0); // Return 0,0 if failed
@@ -158,7 +164,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting DPI scale: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error getting DPI scale: {ex.Message}"); } catch { }
             }
             
             return 1.0f; // Default scale
@@ -210,7 +217,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error detecting GPU type: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error detecting GPU type: {ex.Message}"); } catch { }
             }
             
             return "iGPU"; // Default fallback
@@ -242,7 +250,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error detecting encoder type: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error detecting encoder type: {ex.Message}"); } catch { }
             }
             
             return "H264 (Software)"; // Fallback
@@ -277,7 +286,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error detecting hardware encoding: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
+                try { lg?.LogWarning(ex, $"Error detecting hardware encoding: {ex.Message}"); } catch { }
             }
             
             return "No"; // Conservative fallback

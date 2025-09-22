@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.Versioning;
+using Microsoft.Extensions.Logging;
 
 namespace PProtocolAnalyzer.Helpers
 {
@@ -117,7 +118,8 @@ namespace PProtocolAnalyzer.Helpers
                         }
                         catch (Exception ex2)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Info: Current Bandwidth counter not available for some adapters: {ex2.Message}");
+                            var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                            try { lg?.LogInformation(ex2, $"Info: Current Bandwidth counter not available for some adapters: {ex2.Message}"); } catch { }
                             _networkCurrentBandwidthCounters = null;
                         }
                         foreach (var c in _networkBytesTotalCounters) c.NextValue();
@@ -169,13 +171,15 @@ namespace PProtocolAnalyzer.Helpers
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Info: failed to detect preferred adapter: {ex.Message}");
+                            var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                            try { lg?.LogInformation(ex, $"Info: failed to detect preferred adapter: {ex.Message}"); } catch { }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Warning: Failed to initialize Network Interface counters: {ex.Message}");
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                    try { lg?.LogWarning(ex, $"Warning: Failed to initialize Network Interface counters: {ex.Message}"); } catch { }
                 }
 
                 _countersInitialized = true;
@@ -183,7 +187,8 @@ namespace PProtocolAnalyzer.Helpers
             catch (Exception ex)
             {
                 _initializationError = $"Error initializing RemoteFX counters: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine(_initializationError);
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                try { lg?.LogError(ex, _initializationError); } catch { }
             }
         }
 
@@ -228,7 +233,8 @@ namespace PProtocolAnalyzer.Helpers
                         }
                         catch (Exception ex)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Warning: reading adapter counter failed: {ex.Message}");
+                            var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                            try { lg?.LogWarning(ex, $"Warning: reading adapter counter failed: {ex.Message}"); } catch { }
                         }
                     }
                 }
@@ -243,7 +249,8 @@ namespace PProtocolAnalyzer.Helpers
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Warning: reading network interface received counters failed: {ex.Message}");
+                        var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                        try { lg?.LogWarning(ex, $"Warning: reading network interface received counters failed: {ex.Message}"); } catch { }
                         nicInputBitsPerSec = 0f;
                     }
                 }
@@ -299,7 +306,8 @@ namespace PProtocolAnalyzer.Helpers
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Warning: reading Current Bandwidth counters failed: {ex.Message}");
+                        var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                        try { lg?.LogWarning(ex, $"Warning: reading Current Bandwidth counters failed: {ex.Message}"); } catch { }
                         capacityKnown = false;
                         nicCapacityBitsPerSec = 0f;
                     }
@@ -326,7 +334,8 @@ namespace PProtocolAnalyzer.Helpers
                 stats.AvailableBandwidthFormatted = capacityKnown ? $"{(int)Math.Round(availableKbps)} Kbps" : "Unknown";
 
                 // Debug output for troubleshooting
-                System.Diagnostics.Debug.WriteLine($"Total bandwidth: {totalBandwidthKbps:F1} Kbps");
+                var lg2 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                try { lg2?.LogDebug($"Total bandwidth: {totalBandwidthKbps:F1} Kbps"); } catch { }
                 // Packet-splitting removed; no per-protocol packet debug output.
 
                 // Get per-session statistics (only RTT is read per-session now)
@@ -347,7 +356,8 @@ namespace PProtocolAnalyzer.Helpers
             catch (Exception ex)
             {
                 stats.ErrorMessage = $"Error reading RemoteFX stats: {ex.Message}";
-                System.Diagnostics.Debug.WriteLine(stats.ErrorMessage);
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                try { lg?.LogError(ex, stats.ErrorMessage); } catch { }
             }
 
             return stats;
@@ -442,7 +452,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting encoder frames dropped: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                try { lg?.LogError(ex, $"Error getting encoder frames dropped: {ex.Message}"); } catch { }
                 return -1;
             }
         }
@@ -462,7 +473,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting input frames per second: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                try { lg?.LogError(ex, $"Error getting input frames per second: {ex.Message}"); } catch { }
                 return -1;
             }
         }
@@ -482,7 +494,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error disposing performance counters: {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                try { lg?.LogWarning(ex, $"Error disposing performance counters: {ex.Message}"); } catch { }
             }
         }
     }

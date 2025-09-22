@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using Microsoft.Extensions.Logging;
 using System.Runtime.InteropServices;
 
 namespace PProtocolAnalyzer.Helpers
@@ -69,7 +70,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:GetDisplayResolutionAndRefreshRate - {ex.Message}");
+                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg?.LogError(ex, $"DetectedSettingsHelper:GetDisplayResolutionAndRefreshRate - {ex.Message}"); } catch { }
                 return (0, 0, 0, 1.0f);
             }
         }
@@ -106,7 +108,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:GetVisualQuality - {ex.Message}");
+                var lg2 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg2?.LogError(ex, $"DetectedSettingsHelper:GetVisualQuality - {ex.Message}"); } catch { }
                 return "Unknown";
             }
         }
@@ -125,7 +128,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:GetMaxFPS - DeviceDisplay read failed: {ex.Message}");
+                var lg3 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg3?.LogInformation($"DetectedSettingsHelper:GetMaxFPS - DeviceDisplay read failed: {ex.Message}"); } catch { }
             }
 
             // 2) Win32 DEVMODE
@@ -137,7 +141,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:GetMaxFPS - GetRefreshRate failed: {ex.Message}");
+                var lg4 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg4?.LogInformation($"DetectedSettingsHelper:GetMaxFPS - GetRefreshRate failed: {ex.Message}"); } catch { }
             }
 
             // 3) WMI fallback
@@ -151,7 +156,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:GetMaxFPS - WMI refresh failed: {ex.Message}");
+                var lg5 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg5?.LogInformation($"DetectedSettingsHelper:GetMaxFPS - WMI refresh failed: {ex.Message}"); } catch { }
             }
 
             return 60;
@@ -180,7 +186,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:IsHardwareEncodingSupported - {ex.Message}");
+                var lg6 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg6?.LogError(ex, $"DetectedSettingsHelper:IsHardwareEncodingSupported - {ex.Message}"); } catch { }
             }
             return false;
         }
@@ -201,7 +208,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:GetEncoderType - {ex.Message}");
+                var lg7 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg7?.LogError(ex, $"DetectedSettingsHelper:GetEncoderType - {ex.Message}"); } catch { }
                 return "Unknown";
             }
         }
@@ -222,7 +230,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error getting refresh rate: {ex.Message}");
+                var lg8 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg8?.LogError(ex, $"Error getting refresh rate: {ex.Message}"); } catch { }
             }
             return -1; // Unknown
         }
@@ -247,7 +256,8 @@ namespace PProtocolAnalyzer.Helpers
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"DetectedSettingsHelper:QueryWmiProperty({propertyName}) - {ex.Message}");
+                var lg9 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
+                try { lg9?.LogError(ex, $"DetectedSettingsHelper:QueryWmiProperty({propertyName}) - {ex.Message}"); } catch { }
             }
 
             return results;

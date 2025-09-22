@@ -1,4 +1,5 @@
 using PProtocolAnalyzer.Helpers;
+using Microsoft.Extensions.Logging;
 using PProtocolAnalyzer.Models;
 using System.Threading.Tasks;
 
@@ -49,7 +50,8 @@ namespace PProtocolAnalyzer.Services
                 }
                 catch (System.Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading GPU information: {ex.Message}");
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
+                    try { lg?.LogError(ex, $"Error loading GPU information: {ex.Message}"); } catch { }
                     // Set fallback values
                     gpuInfo.MainDisplayResolution = "Main Display Resolution: Unknown";
                     gpuInfo.DpiScale = "DPI Scale: Unknown";
@@ -87,7 +89,8 @@ namespace PProtocolAnalyzer.Services
                 }
                 catch (System.Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading detected settings: {ex.Message}");
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
+                    try { lg?.LogError(ex, $"Error loading detected settings: {ex.Message}"); } catch { }
                     // Set fallback values
                     detectedSettings.DisplayResolution = "Display Resolution: Unknown";
                     detectedSettings.DisplayRefreshRate = "Display Refresh Rate: Unknown";
@@ -118,7 +121,8 @@ namespace PProtocolAnalyzer.Services
                 }
                 catch (System.Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading real-time statistics: {ex.Message}");
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
+                    try { lg?.LogError(ex, $"Error loading real-time statistics: {ex.Message}"); } catch { }
                     stats.EncoderFramesDropped = "Encoder Frames Dropped: (waiting for data)";
                     stats.InputFramesPerSecond = "Input Frames Per Second: (waiting for data)";
                 }
@@ -143,7 +147,8 @@ namespace PProtocolAnalyzer.Services
                 }
                 catch (System.Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading session info: {ex.Message}");
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
+                    try { lg?.LogError(ex, $"Error loading session info: {ex.Message}"); } catch { }
                     sessionInfo.SessionId = "Session Id: Unknown";
                     sessionInfo.ClientName = "Client Name: Unknown";
                     sessionInfo.ProtocolVersion = "Protocol Version: Unknown";
@@ -166,7 +171,8 @@ namespace PProtocolAnalyzer.Services
                 }
                 catch (System.Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Error loading custom settings: {ex.Message}");
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
+                    try { lg?.LogError(ex, $"Error loading custom settings: {ex.Message}"); } catch { }
                     customSettings.Settings = "No custom settings found.";
                 }
 

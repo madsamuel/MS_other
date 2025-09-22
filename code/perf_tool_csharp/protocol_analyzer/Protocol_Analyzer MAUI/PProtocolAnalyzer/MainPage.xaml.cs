@@ -1,4 +1,5 @@
 ﻿using PProtocolAnalyzer.Helpers;
+using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Runtime.Versioning;
 
@@ -10,9 +11,11 @@ public partial class MainPage : ContentPage
 	private readonly Color _primaryTextColor = Colors.White;
 	private readonly Color _errorTextColor = Colors.Red;
 	private System.Timers.Timer? _realTimeStatsTimer;
+	private readonly Microsoft.Extensions.Logging.ILogger<MainPage>? _logger;
 
-	public MainPage()
+	public MainPage(Microsoft.Extensions.Logging.ILogger<MainPage> logger)
 	{
+		_logger = logger;
 		try
 		{
 			InitializeComponent();
@@ -207,11 +210,10 @@ public partial class MainPage : ContentPage
 		LoadCustomSettings();
 	}
 
-	private static void LogError(string context, Exception ex)
+	private void LogError(string context, Exception ex)
 	{
 		var message = $"Error in {context}: {ex.Message}";
-		Console.WriteLine(message);
-		System.Diagnostics.Debug.WriteLine(message);
+		try { _logger?.LogError(ex, message); } catch { }
 	}
 
 	private void LoadGpuInformation()
