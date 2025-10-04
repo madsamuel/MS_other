@@ -7,38 +7,88 @@ namespace PProtocolAnalyzer.Helpers
 {
     public static class SessionInfoHelper
     {
+    // Cached snapshot to avoid repeated environment/interop calls. Access synchronized via _cacheLock.
+    private static (string sessionId, string clientName, string protocolVersion)? _cachedSnapshot;
+        private static readonly object _cacheLock = new object();
+
         /// <summary>
         /// Gets session statistics - simplified version for MAUI
         /// In the original WinForms version, this used RdpNative.GetRdpStatistics()
+        /// This implementation is conservative (best-effort): it caches a snapshot and uses multiple heuristics
+        /// to detect remote sessions and resolve client information. Use ClearCache() in tests if needed.
         /// </summary>
         public static (string sessionId, string clientName, string protocolVersion) GetSessionInfo()
         {
+            // Fast-path return cached snapshot
+            var cached = _cachedSnapshot;
+            if (cached.HasValue)
+                return cached.Value;
+
+            lock (_cacheLock)
+            {
+                if (_cachedSnapshot.HasValue)
+                    return _cachedSnapshot.Value;
+
+                try
+                {
+                    var sessionId = GetCurrentSessionId();
+                    var clientName = Environment.MachineName;
+                    var protocolVersion = "Local Session";
+
+                    if (IsRemoteSession())
+                    {
+                        // prefer the CLIENTNAME env var when present
+                        var cn = GetClientName();
+                        if (!string.IsNullOrEmpty(cn))
+                            clientName = cn;
+
+                        // We cannot reliably detect exact RDP minor versions here; provide a helpful label.
+                        protocolVersion = DetectRdpProtocolVersion() ?? "RDP (unknown)";
+                    }
+
+                    var snapshot = (sessionId, clientName, protocolVersion);
+                    _cachedSnapshot = snapshot;
+                    return snapshot;
+                }
+                catch (Exception ex)
+                {
+                    var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SessionInfoHelper));
+                    try { lg?.LogError(ex, $"Error getting session info: {ex.Message}"); } catch { }
+                    return ("Unknown", "Unknown", "Unknown");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Clears the cached snapshot. Useful for unit tests or when environment changes at runtime.
+        /// </summary>
+        public static void ClearCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedSnapshot = null;
+            }
+        }
+
+        /// <summary>
+        /// Best-effort detection of RDP protocol version. Currently uses SESSIONNAME heuristics.
+        /// Future improvement: use WTSQuerySessionInformation / QueryUserConfig APIs when available.
+        /// </summary>
+        private static string? DetectRdpProtocolVersion()
+        {
             try
             {
-                // Get session ID from current process
-                string sessionId = GetCurrentSessionId();
-                
-                // For desktop MAUI apps, client name is typically the local machine
-                string clientName = Environment.MachineName;
-                
-                // Default protocol version for local sessions
-                string protocolVersion = "Local Session";
+                var sessionName = Environment.GetEnvironmentVariable("SESSIONNAME");
+                if (string.IsNullOrEmpty(sessionName)) return null;
 
-                // Check if we're in an RDP session
-                if (IsRemoteSession())
-                {
-                    clientName = GetClientName() ?? "Remote Client";
-                    protocolVersion = "RDP 8.1+";
-                }
+                // SESSIONNAME often contains RDP-Tcp#<n> or RDP-<something>. We can't reliably get exact minor version,
+                // but if we see "RDP-Tcp" or "RDP-" we can at least return a generic RDP label.
+                if (sessionName.StartsWith("RDP-", StringComparison.OrdinalIgnoreCase) || sessionName.StartsWith("RDP-Tcp", StringComparison.OrdinalIgnoreCase))
+                    return "RDP";
 
-                return (sessionId, clientName, protocolVersion);
+                return null;
             }
-            catch (Exception ex)
-            {
-                var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SessionInfoHelper));
-                try { lg?.LogError(ex, $"Error getting session info: {ex.Message}"); } catch { }
-                return ("Unknown", "Unknown", "Unknown");
-            }
+            catch { return null; }
         }
 
         private static string GetCurrentSessionId()
