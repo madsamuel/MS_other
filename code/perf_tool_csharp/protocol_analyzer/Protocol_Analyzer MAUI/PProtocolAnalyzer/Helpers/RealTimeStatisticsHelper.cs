@@ -56,6 +56,11 @@ namespace PProtocolAnalyzer.Helpers
         private static int? _preferredAdapterIndex = null;
         // Synchronize initialization
         private static readonly object _initLock = new object();
+    // Sampling background worker
+    private static CancellationTokenSource? _samplingCts;
+    private static Task? _samplingTask;
+    private static readonly object _statsLock = new object();
+    private static RemoteFXNetworkStats? _latestStats;
 
         /// <summary>
         /// Initializes RemoteFX performance counters
@@ -194,6 +199,8 @@ namespace PProtocolAnalyzer.Helpers
                     }
 
                     _countersInitialized = true;
+                    // Start the background sampler with a 1s interval if not already running
+                    StartSampling(1000);
                 }
                 catch (Exception ex)
                 {
@@ -396,6 +403,83 @@ namespace PProtocolAnalyzer.Helpers
         }
 
         /// <summary>
+        /// Returns the latest sampled stats produced by the background sampler, or null if none yet.
+        /// </summary>
+        public static RemoteFXNetworkStats? GetLatestStats()
+        {
+            lock (_statsLock)
+            {
+                return _latestStats; // snapshot reference is fine; callers should not mutate
+            }
+        }
+
+        /// <summary>
+        /// Starts a background sampling loop with the specified interval in milliseconds.
+        /// Safe to call multiple times; subsequent calls will restart the sampler with the new interval.
+        /// </summary>
+        public static void StartSampling(int intervalMs = 1000)
+        {
+            lock (_initLock)
+            {
+                StopSampling();
+                _samplingCts = new CancellationTokenSource();
+                var token = _samplingCts.Token;
+                _samplingTask = Task.Run(async () =>
+                {
+                    while (!token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            var s = SampleOnce();
+                            lock (_statsLock)
+                            {
+                                _latestStats = s;
+                            }
+                        }
+                        catch (OperationCanceledException) { break; }
+                        catch (Exception ex)
+                        {
+                            var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
+                            try { lg?.LogWarning(ex, $"Sampler error: {ex.Message}"); } catch { }
+                        }
+
+                        try { await Task.Delay(intervalMs, token); } catch (OperationCanceledException) { break; }
+                    }
+                }, token);
+            }
+        }
+
+        /// <summary>
+        /// Stops the background sampler if running.
+        /// </summary>
+        public static void StopSampling()
+        {
+            lock (_initLock)
+            {
+                try
+                {
+                    _samplingCts?.Cancel();
+                }
+                catch { }
+                try { _samplingTask?.Wait(500); } catch { }
+                try { _samplingCts?.Dispose(); } catch { }
+                _samplingCts = null;
+                _samplingTask = null;
+            }
+        }
+
+        /// <summary>
+        /// Samples the counters once and returns a populated RemoteFXNetworkStats instance.
+        /// This re-uses the same sampling logic as GetRemoteFXStats but avoids updating shared state.
+        /// </summary>
+        private static RemoteFXNetworkStats SampleOnce()
+        {
+            // Reuse GetRemoteFXStats internal logic but avoid side-effects; call the method and return its result.
+            // Note: GetRemoteFXStats performs its own error handling and returns a fresh RemoteFXNetworkStats.
+            return GetRemoteFXStats();
+        }
+
+        /// <summary>
         /// Gets encoder frames dropped - simplified version for MAUI
         /// In the original WinForms version, this used WMI queries
         /// </summary>
@@ -518,11 +602,19 @@ namespace PProtocolAnalyzer.Helpers
         {
             try
             {
+                // Stop background sampler first
+                StopSampling();
                 // Dispose only counters that are still present
                 _rfxRttCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesTotalCounters?.ToList().ForEach(c => c.Dispose());
                 _networkBytesReceivedCounters?.ToList().ForEach(c => c.Dispose());
                 _networkCurrentBandwidthCounters?.ToList().ForEach(c => c.Dispose());
+                _rfxRttCounters = null;
+                _networkBytesTotalCounters = null;
+                _networkBytesReceivedCounters = null;
+                _networkCurrentBandwidthCounters = null;
+                _instances = null;
+                _countersInitialized = false;
             }
             catch (Exception ex)
             {
