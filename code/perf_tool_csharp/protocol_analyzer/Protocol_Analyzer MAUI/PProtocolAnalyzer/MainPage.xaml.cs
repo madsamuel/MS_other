@@ -19,12 +19,12 @@ public partial class MainPage : ContentPage
 		try
 		{
 			InitializeComponent();
-			LoadAllSections();
-			InitializeRealTimeStats();
+			this.LoadAllSections();
+			this.InitializeRealTimeStats();
 		}
 		catch (Exception ex)
 		{
-			LogError("MainPage constructor", ex);
+			this.LogError("MainPage constructor", ex);
 		}
 	}
 
@@ -47,13 +47,13 @@ public partial class MainPage : ContentPage
 			else
 			{
 				// Set placeholder values for non-Windows platforms
-				SetRealTimeStatsPlaceholder();
+				this.SetRealTimeStatsPlaceholder();
 			}
 		}
 		catch (Exception ex)
 		{
-			LogError("InitializeRealTimeStats", ex);
-			SetRealTimeStatsPlaceholder();
+			this.LogError("InitializeRealTimeStats", ex);
+			this.SetRealTimeStatsPlaceholder();
 		}
 	}
 
@@ -72,7 +72,7 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			LogError("OnRealTimeStatsTimerElapsed", ex);
+			this.LogError("OnRealTimeStatsTimerElapsed", ex);
 		}
 	}
 
@@ -204,10 +204,10 @@ public partial class MainPage : ContentPage
 
 	private void LoadAllSections()
 	{
-		LoadGpuInformation();
-		LoadDetectedSettings();
-		LoadSessionInformation();
-		LoadCustomSettings();
+		this.LoadGpuInformation();
+		this.LoadDetectedSettings();
+		this.LoadSessionInformation();
+		this.LoadCustomSettings();
 	}
 
 	private void LogError(string context, Exception ex)
@@ -236,8 +236,8 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			LogError("LoadGpuInformation", ex);
-			SetGpuInformationFallbackValues();
+			this.LogError("LoadGpuInformation", ex);
+			this.SetGpuInformationFallbackValues();
 		}
 	}
 
@@ -277,7 +277,7 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			LogError("LoadDetectedSettings", ex);
+			this.LogError("LoadDetectedSettings", ex);
 		}
 	}
 
@@ -293,8 +293,8 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			LogError("LoadSessionInformation", ex);
-			SetSessionInformationFallbackValues();
+			this.LogError("LoadSessionInformation", ex);
+			this.SetSessionInformationFallbackValues();
 		}
 	}
 
@@ -309,22 +309,22 @@ public partial class MainPage : ContentPage
 	{
 		try
 		{
-			ClearExistingCustomSettings();
+			this.ClearExistingCustomSettings();
 			var customSettings = CustomSettingsHelper.GetAllCustomSettings();
 			
 			if (customSettings?.Any() == true)
 			{
-				AddCustomSettingsToUI(customSettings);
+				this.AddCustomSettingsToUI(customSettings);
 			}
 			else
 			{
-				AddNoSettingsMessage();
+				this.AddNoSettingsMessage();
 			}
 		}
 		catch (Exception ex)
 		{
-			LogError("LoadCustomSettings", ex);
-			AddErrorMessage($"Error loading custom settings: {ex.Message}");
+			this.LogError("LoadCustomSettings", ex);
+			this.AddErrorMessage($"Error loading custom settings: {ex.Message}");
 		}
 	}
 
