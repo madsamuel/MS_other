@@ -71,7 +71,7 @@ namespace PProtocolAnalyzer.Helpers
             catch (Exception ex)
             {
                 var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
-                try { lg?.LogError(ex, $"DetectedSettingsHelper:GetDisplayResolutionAndRefreshRate - {ex.Message}"); } catch { }
+                try { lg?.LogError(ex, $"DetectedSettingsHelper:GetDisplayResolutionAndRefreshRate - {ex.Message}"); } catch { /* Logging should never crash the application */ }
                 return (0, 0, 0, 1.0f);
             }
         }
@@ -109,7 +109,7 @@ namespace PProtocolAnalyzer.Helpers
             catch (Exception ex)
             {
                 var lg2 = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(DetectedSettingsHelper));
-                try { lg2?.LogError(ex, $"DetectedSettingsHelper:GetVisualQuality - {ex.Message}"); } catch { }
+                try { lg2?.LogError(ex, $"DetectedSettingsHelper:GetVisualQuality - {ex.Message}"); } catch { /* Logging should never crash the application */ }
                 return "Unknown";
             }
         }
@@ -173,7 +173,9 @@ namespace PProtocolAnalyzer.Helpers
                 foreach (var vp in QueryWmiProperty("SELECT VideoProcessor FROM Win32_VideoController", "VideoProcessor"))
                 {
                     var proc = (vp ?? string.Empty).ToLowerInvariant();
-                    if (proc.Contains("nvidia") || proc.Contains("amd") || proc.Contains("intel"))
+                    if (proc.Contains("nvidia", StringComparison.OrdinalIgnoreCase) || 
+                        proc.Contains("amd", StringComparison.OrdinalIgnoreCase) || 
+                        proc.Contains("intel", StringComparison.OrdinalIgnoreCase))
                         return true;
                 }
 

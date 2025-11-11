@@ -8,12 +8,13 @@ using System.Windows.Input;
 
 namespace PProtocolAnalyzer.ViewModels
 {
-    public class MainPageViewModel : INotifyPropertyChanged
+    public class MainPageViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly ISystemInformationService _systemInformationService;
         private SystemInformation? _systemInformation;
         private bool _isLoading;
         private System.Timers.Timer? _refreshTimer;
+        private bool _disposed;
 
         public MainPageViewModel(ISystemInformationService systemInformationService)
         {
@@ -53,7 +54,7 @@ namespace PProtocolAnalyzer.ViewModels
             catch (System.Exception ex)
             {
                 var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(MainPageViewModel));
-                try { lg?.LogError(ex, $"Error loading system information: {ex.Message}"); } catch { }
+                try { lg?.LogError(ex, $"Error loading system information: {ex.Message}"); } catch { /* Logging should never crash the application */ }
                 // Could show user-friendly error message here
             }
             finally
@@ -83,14 +84,28 @@ namespace PProtocolAnalyzer.ViewModels
             catch (System.Exception ex)
             {
                 var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(MainPageViewModel));
-                try { lg?.LogWarning(ex, $"Error refreshing real-time statistics: {ex.Message}"); } catch { }
+                try { lg?.LogWarning(ex, $"Error refreshing real-time statistics: {ex.Message}"); } catch { /* Logging should never crash the application */ }
             }
         }
 
         public void Dispose()
         {
-            _refreshTimer?.Stop();
-            _refreshTimer?.Dispose();
+            this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!this._disposed)
+            {
+                if (disposing)
+                {
+                    this._refreshTimer?.Stop();
+                    this._refreshTimer?.Dispose();
+                }
+                
+                this._disposed = true;
+            }
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;

@@ -40,7 +40,7 @@ namespace PProtocolAnalyzer.Helpers
                 catch (Exception ex)
                 {
                     var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
-                    try { lg?.LogError(ex, $"Error getting GPU display resolution: {ex.Message}"); } catch { }
+                    try { lg?.LogError(ex, $"Error getting GPU display resolution: {ex.Message}"); } catch { /* Logging should never crash the application */ }
                 }
 
             try
@@ -127,8 +127,8 @@ namespace PProtocolAnalyzer.Helpers
                         
                         if (currentHorizontalResolution != null && currentVerticalResolution != null)
                         {
-                            int width = Convert.ToInt32(currentHorizontalResolution);
-                            int height = Convert.ToInt32(currentVerticalResolution);
+                            int width = Convert.ToInt32(currentHorizontalResolution, System.Globalization.CultureInfo.InvariantCulture);
+                            int height = Convert.ToInt32(currentVerticalResolution, System.Globalization.CultureInfo.InvariantCulture);
                             
                             if (width > 0 && height > 0)
                             {
@@ -203,11 +203,17 @@ namespace PProtocolAnalyzer.Helpers
                         string? gpuName = obj["Name"]?.ToString()?.ToUpper();
                         if (!string.IsNullOrEmpty(gpuName))
                         {
-                            if (gpuName.Contains("NVIDIA") || gpuName.Contains("GEFORCE") || gpuName.Contains("QUADRO"))
+                            if (gpuName.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase) || 
+                                gpuName.Contains("GEFORCE", StringComparison.OrdinalIgnoreCase) || 
+                                gpuName.Contains("QUADRO", StringComparison.OrdinalIgnoreCase))
                                 return "NVIDIA dGPU";
-                            else if (gpuName.Contains("AMD") || gpuName.Contains("RADEON"))
+                            else if (gpuName.Contains("AMD", StringComparison.OrdinalIgnoreCase) || 
+                                     gpuName.Contains("RADEON", StringComparison.OrdinalIgnoreCase))
                                 return "AMD dGPU";
-                            else if (gpuName.Contains("INTEL") || gpuName.Contains("HD GRAPHICS") || gpuName.Contains("UHD GRAPHICS") || gpuName.Contains("IRIS"))
+                            else if (gpuName.Contains("INTEL", StringComparison.OrdinalIgnoreCase) || 
+                                     gpuName.Contains("HD GRAPHICS", StringComparison.OrdinalIgnoreCase) || 
+                                     gpuName.Contains("UHD GRAPHICS", StringComparison.OrdinalIgnoreCase) || 
+                                     gpuName.Contains("IRIS", StringComparison.OrdinalIgnoreCase))
                                 return "iGPU";
                             else
                                 return "dGPU"; // Generic discrete GPU
@@ -239,8 +245,11 @@ namespace PProtocolAnalyzer.Helpers
                         if (!string.IsNullOrEmpty(gpuName))
                         {
                             // Modern GPUs typically support H265 hardware encoding
-                            if (gpuName.Contains("NVIDIA") || gpuName.Contains("AMD") || 
-                                gpuName.Contains("INTEL") || gpuName.Contains("UHD") || gpuName.Contains("HD GRAPHICS"))
+                            if (gpuName.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase) || 
+                                gpuName.Contains("AMD", StringComparison.OrdinalIgnoreCase) || 
+                                gpuName.Contains("INTEL", StringComparison.OrdinalIgnoreCase) || 
+                                gpuName.Contains("UHD", StringComparison.OrdinalIgnoreCase) || 
+                                gpuName.Contains("HD GRAPHICS", StringComparison.OrdinalIgnoreCase))
                             {
                                 return "H265 (Hardware)";
                             }
@@ -274,9 +283,12 @@ namespace PProtocolAnalyzer.Helpers
                         if (!string.IsNullOrEmpty(gpuName))
                         {
                             // Check if it's a modern GPU with sufficient memory for hardware encoding
-                            if ((gpuName.Contains("NVIDIA") || gpuName.Contains("AMD") || 
-                                 gpuName.Contains("INTEL") || gpuName.Contains("UHD") || gpuName.Contains("HD GRAPHICS")) &&
-                                adapterRAM != null && Convert.ToUInt32(adapterRAM) > 1000000000) // > 1GB
+                            if ((gpuName.Contains("NVIDIA", StringComparison.OrdinalIgnoreCase) || 
+                                 gpuName.Contains("AMD", StringComparison.OrdinalIgnoreCase) || 
+                                 gpuName.Contains("INTEL", StringComparison.OrdinalIgnoreCase) || 
+                                 gpuName.Contains("UHD", StringComparison.OrdinalIgnoreCase) || 
+                                 gpuName.Contains("HD GRAPHICS", StringComparison.OrdinalIgnoreCase)) &&
+                                adapterRAM != null && Convert.ToUInt32(adapterRAM, System.Globalization.CultureInfo.InvariantCulture) > 1000000000) // > 1GB
                             {
                                 return "Yes";
                             }

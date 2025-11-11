@@ -48,10 +48,17 @@ namespace PProtocolAnalyzer.Services
                     gpuInfo.Encoding = $"Encoding: {encoderType}";
                     gpuInfo.HwEncode = $"HW Encode: {hwEncode}";
                 }
-                catch (System.Exception ex)
+                catch (System.Exception ex) // Broad catch is intentional - GPU detection can fail in many ways (WMI, registry, platform differences)
                 {
                     var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
-                    try { lg?.LogError(ex, $"Error loading GPU information: {ex.Message}"); } catch { }
+                    try
+                    {
+                        lg?.LogError(ex, $"Error loading GPU information: {ex.Message}");
+                    }
+                    catch
+                    {
+                        // Ignore logging errors
+                    }
                     // Set fallback values
                     gpuInfo.MainDisplayResolution = "Main Display Resolution: Unknown";
                     gpuInfo.DpiScale = "DPI Scale: Unknown";
@@ -87,10 +94,17 @@ namespace PProtocolAnalyzer.Services
                     detectedSettings.HardwareEncode = $"Hardware Encode: {(hwEncodeSupported ? "Active" : "Inactive")}";
                     detectedSettings.EncoderType = $"Encoder type: {encoderType}";
                 }
-                catch (System.Exception ex)
+                catch (System.Exception ex) // Broad catch is intentional - settings detection involves registry, WMI, and display APIs that can fail in various ways
                 {
                     var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
-                    try { lg?.LogError(ex, $"Error loading detected settings: {ex.Message}"); } catch { }
+                    try
+                    {
+                        lg?.LogError(ex, $"Error loading detected settings: {ex.Message}");
+                    }
+                    catch
+                    {
+                        // Ignore logging errors
+                    }
                     // Set fallback values
                     detectedSettings.DisplayResolution = "Display Resolution: Unknown";
                     detectedSettings.DisplayRefreshRate = "Display Refresh Rate: Unknown";
@@ -116,13 +130,20 @@ namespace PProtocolAnalyzer.Services
                     var framesDropped = RealTimeStatisticsHelper.GetEncoderFramesDropped();
                     var inputFps = RealTimeStatisticsHelper.GetInputFramesPerSecond();
 
-                    stats.EncoderFramesDropped = $"Encoder Frames Dropped: {(framesDropped >= 0 ? framesDropped.ToString() : "Unavailable")}";
-                    stats.InputFramesPerSecond = $"Input Frames Per Second: {(inputFps >= 0 ? inputFps.ToString() : "Unavailable")}";
+                    stats.EncoderFramesDropped = $"Encoder Frames Dropped: {(framesDropped >= 0 ? framesDropped.ToString(System.Globalization.CultureInfo.InvariantCulture) : "Unavailable")}";
+                    stats.InputFramesPerSecond = $"Input Frames Per Second: {(inputFps >= 0 ? inputFps.ToString(System.Globalization.CultureInfo.InvariantCulture) : "Unavailable")}";
                 }
-                catch (System.Exception ex)
+                catch (System.Exception ex) // Broad catch is intentional - performance counter access can fail due to permissions, missing counters, or system state
                 {
                     var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
-                    try { lg?.LogError(ex, $"Error loading real-time statistics: {ex.Message}"); } catch { }
+                    try
+                    {
+                        lg?.LogError(ex, $"Error loading real-time statistics: {ex.Message}");
+                    }
+                    catch
+                    {
+                        // Ignore logging errors
+                    }
                     stats.EncoderFramesDropped = "Encoder Frames Dropped: (waiting for data)";
                     stats.InputFramesPerSecond = "Input Frames Per Second: (waiting for data)";
                 }
@@ -148,7 +169,14 @@ namespace PProtocolAnalyzer.Services
                 catch (System.Exception ex)
                 {
                     var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
-                    try { lg?.LogError(ex, $"Error loading session info: {ex.Message}"); } catch { }
+                    try
+                    {
+                        lg?.LogError(ex, $"Error loading session info: {ex.Message}");
+                    }
+                    catch
+                    {
+                        // Ignore logging errors
+                    }
                     sessionInfo.SessionId = "Session Id: Unknown";
                     sessionInfo.ClientName = "Client Name: Unknown";
                     sessionInfo.ProtocolVersion = "Protocol Version: Unknown";
@@ -172,7 +200,14 @@ namespace PProtocolAnalyzer.Services
                 catch (System.Exception ex)
                 {
                     var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SystemInformationService));
-                    try { lg?.LogError(ex, $"Error loading custom settings: {ex.Message}"); } catch { }
+                    try
+                    {
+                        lg?.LogError(ex, $"Error loading custom settings: {ex.Message}");
+                    }
+                    catch
+                    {
+                        // Ignore logging errors
+                    }
                     customSettings.Settings = "No custom settings found.";
                 }
 

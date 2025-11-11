@@ -39,6 +39,13 @@
 		<!-- Exclude non-English satellite assemblies to reduce package size -->
 		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 		<ExcludeNonEnglishResourceFiles>true</ExcludeNonEnglishResourceFiles>
+
+		<!-- Enable all analyzers -->
+		<AnalysisLevel>latest-all</AnalysisLevel>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<WarningsAsErrors />
+		<WarningLevel>5</WarningLevel>
+		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -63,6 +70,10 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
 		<PackageReference Include="System.Management" Version="9.0.7" />
 		<PackageReference Include="System.Diagnostics.PerformanceCounter" Version="9.0.7" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="8.0.0" PrivateAssets="all" />
+		<PackageReference Include="SonarAnalyzer.CSharp" Version="9.32.0.97167" PrivateAssets="all" />
+		<PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="all" />
 	</ItemGroup>
 
 	<!-- Copy configuration file to output directory for user editing -->

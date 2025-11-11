@@ -176,7 +176,7 @@ namespace PProtocolAnalyzer.Helpers
                                         for (int i = 0; i < netInstances.Length; i++)
                                         {
                                             var inst = netInstances[i].ToLowerInvariant();
-                                            if (inst.Contains(desc) || inst.Contains(name))
+                                            if (inst.Contains(desc, StringComparison.OrdinalIgnoreCase) || inst.Contains(name, StringComparison.OrdinalIgnoreCase))
                                             {
                                                 _preferredAdapterIndex = i;
                                                 break;
@@ -293,7 +293,7 @@ namespace PProtocolAnalyzer.Helpers
                         nicTotalBitsPerSec += bitsPerSec;
                         var kbps = bitsPerSec / 1000f;
                         var name = _networkBytesTotalCounters?[i].InstanceName ?? string.Empty;
-                        adapterList.Add(new AdapterStats { Name = name, Kbps = kbps, Formatted = (kbps <= 999f ? ((int)Math.Round(kbps)).ToString() + " Kbps" : (kbps/1000f).ToString("F2") + " Mbps") });
+                        adapterList.Add(new AdapterStats { Name = name, Kbps = kbps, Formatted = (kbps <= 999f ? ((int)Math.Round(kbps)).ToString(System.Globalization.CultureInfo.InvariantCulture) + " Kbps" : (kbps/1000f).ToString("F2", System.Globalization.CultureInfo.InvariantCulture) + " Mbps") });
                     }
                 }
 
@@ -323,7 +323,7 @@ namespace PProtocolAnalyzer.Helpers
                             float sum = 0f;
                             foreach (var c in _networkCurrentBandwidthCounters)
                             {
-                                try { sum += c.NextValue(); } catch { }
+                                try { sum += c.NextValue(); } catch { /* Performance counter may not be available on all systems */ }
                             }
                             nicCapacityBitsPerSec = sum;
                         }
@@ -460,9 +460,28 @@ namespace PProtocolAnalyzer.Helpers
                 {
                     _samplingCts?.Cancel();
                 }
-                catch { }
-                try { _samplingTask?.Wait(500); } catch { }
-                try { _samplingCts?.Dispose(); } catch { }
+                catch
+                {
+                    // Cancellation may already have occurred
+                }
+                
+                try
+                {
+                    _samplingTask?.Wait(500);
+                }
+                catch
+                {
+                    // Task may have already completed or been cancelled
+                }
+                
+                try
+                {
+                    _samplingCts?.Dispose();
+                }
+                catch
+                {
+                    // Already disposed
+                }
                 _samplingCts = null;
                 _samplingTask = null;
             }
@@ -509,9 +528,11 @@ namespace PProtocolAnalyzer.Helpers
                         foreach (var c in cat.GetCounters())
                         {
                             var name = c.CounterName?.ToLowerInvariant() ?? string.Empty;
-                            if (name.Contains("drop") || name.Contains("dropped") || (name.Contains("frame") && name.Contains("drop")))
+                            if (name.Contains("drop", StringComparison.OrdinalIgnoreCase) || 
+                                name.Contains("dropped", StringComparison.OrdinalIgnoreCase) || 
+                                (name.Contains("frame", StringComparison.OrdinalIgnoreCase) && name.Contains("drop", StringComparison.OrdinalIgnoreCase)))
                             {
-                                try { return (int)Math.Round(c.NextValue()); } catch { }
+                                try { return (int)Math.Round(c.NextValue()); } catch { /* Performance counter may not be available on all systems */ }
                             }
                         }
 
@@ -526,13 +547,15 @@ namespace PProtocolAnalyzer.Helpers
                                     foreach (var c in cat.GetCounters(inst))
                                     {
                                         var name = c.CounterName?.ToLowerInvariant() ?? string.Empty;
-                                        if (name.Contains("drop") || name.Contains("dropped") || (name.Contains("frame") && name.Contains("drop")))
+                                        if (name.Contains("drop", StringComparison.OrdinalIgnoreCase) || 
+                                            name.Contains("dropped", StringComparison.OrdinalIgnoreCase) || 
+                                            (name.Contains("frame", StringComparison.OrdinalIgnoreCase) && name.Contains("drop", StringComparison.OrdinalIgnoreCase)))
                                         {
-                                            try { return (int)Math.Round(c.NextValue()); } catch { }
+                                            try { return (int)Math.Round(c.NextValue()); } catch { /* Performance counter may not be available on all systems */ }
                                         }
                                     }
                                 }
-                                catch { /* ignore instance probing errors */ }
+                                catch { /* Ignore instance probing errors - not all performance counters may be available */ }
                             }
                         }
                     }
@@ -553,7 +576,7 @@ namespace PProtocolAnalyzer.Helpers
                             if (v >= 0) return v;
                         }
                     }
-                    catch { }
+                    catch { /* Ignore performance counter category access errors */ }
                 }
 
                 // Fall back to scanning all categories for likely counters
@@ -569,7 +592,14 @@ namespace PProtocolAnalyzer.Helpers
             catch (Exception ex)
             {
                 var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
-                try { lg?.LogError(ex, $"Error getting encoder frames dropped: {ex.Message}"); } catch { }
+                try
+                {
+                    lg?.LogError(ex, $"Error getting encoder frames dropped: {ex.Message}");
+                }
+                catch
+                {
+                    // Ignore logging errors
+                }
                 return -1;
             }
         }
@@ -590,7 +620,14 @@ namespace PProtocolAnalyzer.Helpers
             catch (Exception ex)
             {
                 var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
-                try { lg?.LogError(ex, $"Error getting input frames per second: {ex.Message}"); } catch { }
+                try
+                {
+                    lg?.LogError(ex, $"Error getting input frames per second: {ex.Message}");
+                }
+                catch
+                {
+                    // Ignore logging errors
+                }
                 return -1;
             }
         }
@@ -619,7 +656,14 @@ namespace PProtocolAnalyzer.Helpers
             catch (Exception ex)
             {
                 var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(RealTimeStatisticsHelper));
-                try { lg?.LogWarning(ex, $"Error disposing performance counters: {ex.Message}"); } catch { }
+                try
+                {
+                    lg?.LogWarning(ex, $"Error disposing performance counters: {ex.Message}");
+                }
+                catch
+                {
+                    // Ignore logging errors
+                }
             }
         }
     }

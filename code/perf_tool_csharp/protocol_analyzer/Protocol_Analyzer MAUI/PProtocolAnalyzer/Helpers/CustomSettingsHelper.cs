@@ -137,7 +137,7 @@ namespace PProtocolAnalyzer.Helpers
                 {
                     try
                     {
-                        var intValue = Convert.ToInt32(rawValue);
+                        var intValue = Convert.ToInt32(rawValue, System.Globalization.CultureInfo.InvariantCulture);
                         if (intValue == setting.ExpectedValue)
                             return setting.FriendlyName;
                     }
@@ -146,13 +146,13 @@ namespace PProtocolAnalyzer.Helpers
                 else if (type == "REG_SZ" || type == "STRING")
                 {
                     var s = rawValue.ToString() ?? string.Empty;
-                    if (s.Equals(setting.ExpectedValue.ToString(), StringComparison.OrdinalIgnoreCase))
+                    if (s.Equals(setting.ExpectedValue.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase))
                         return setting.FriendlyName;
                 }
                 else
                 {
                     // Generic numeric comparison attempt
-                    if (int.TryParse(rawValue.ToString(), out var numeric) && numeric == setting.ExpectedValue)
+                    if (int.TryParse(rawValue.ToString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var numeric) && numeric == setting.ExpectedValue)
                         return setting.FriendlyName;
                 }
 
@@ -178,19 +178,19 @@ namespace PProtocolAnalyzer.Helpers
             // Support common prefixes and abbreviations
             if (path.StartsWith("HKEY_LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase) || path.StartsWith("HKLM", StringComparison.OrdinalIgnoreCase))
             {
-                var prefix = path.IndexOf('\\') >= 0 ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                var prefix = path.IndexOf('\\', StringComparison.Ordinal) >= 0 ? path.Substring(path.IndexOf('\\', StringComparison.Ordinal) + 1) : string.Empty;
                 return (Registry.LocalMachine, prefix);
             }
 
             if (path.StartsWith("HKEY_CURRENT_USER", StringComparison.OrdinalIgnoreCase) || path.StartsWith("HKCU", StringComparison.OrdinalIgnoreCase))
             {
-                var prefix = path.IndexOf('\\') >= 0 ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                var prefix = path.IndexOf('\\', StringComparison.Ordinal) >= 0 ? path.Substring(path.IndexOf('\\', StringComparison.Ordinal) + 1) : string.Empty;
                 return (Registry.CurrentUser, prefix);
             }
 
             if (path.StartsWith("HKEY_CLASSES_ROOT", StringComparison.OrdinalIgnoreCase) || path.StartsWith("HKCR", StringComparison.OrdinalIgnoreCase))
             {
-                var prefix = path.IndexOf('\\') >= 0 ? path.Substring(path.IndexOf('\\') + 1) : string.Empty;
+                var prefix = path.IndexOf('\\', StringComparison.Ordinal) >= 0 ? path.Substring(path.IndexOf('\\', StringComparison.Ordinal) + 1) : string.Empty;
                 return (Registry.ClassesRoot, prefix);
             }
 

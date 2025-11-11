@@ -53,7 +53,7 @@ namespace PProtocolAnalyzer.Helpers
                 catch (Exception ex)
                 {
                     var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(SessionInfoHelper));
-                    try { lg?.LogError(ex, $"Error getting session info: {ex.Message}"); } catch { }
+                    try { lg?.LogError(ex, $"Error getting session info: {ex.Message}"); } catch { /* Logging should never crash the application */ }
                     return ("Unknown", "Unknown", "Unknown");
                 }
             }
@@ -97,7 +97,7 @@ namespace PProtocolAnalyzer.Helpers
             {
                 using (var process = Process.GetCurrentProcess())
                 {
-                    return process.SessionId.ToString();
+                    return process.SessionId.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }
             catch

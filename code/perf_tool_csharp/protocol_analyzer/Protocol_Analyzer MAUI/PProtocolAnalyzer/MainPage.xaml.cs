@@ -92,21 +92,21 @@ public partial class MainPage : ContentPage
 				}
 
 				// Show Total observed throughput, Output (sent) and Input (received)
-				BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.SentBandwidthKbps)}";
+				this.BandwidthOutputLabel.Text = $"Bandwidth Output: {FormatBandwidth(stats.SentBandwidthKbps)}";
 				// Show Bandwidth Input using NIC received counters (format same as output)
-				BandwidthInputLabel.Text = $"Bandwidth Input: {FormatBandwidth(stats.InputBandwidthKbps)}";
+				this.BandwidthInputLabel.Text = $"Bandwidth Input: {FormatBandwidth(stats.InputBandwidthKbps)}";
 				// Show available bandwidth (capacity - observed) when known
 				if (stats.AvailableBandwidthKbps > 0)
 				{
-					AvailableBandwidthLabel.Text = $"Available Bandwidth: {FormatBandwidth(stats.AvailableBandwidthKbps)}";
+					this.AvailableBandwidthLabel.Text = $"Available Bandwidth: {FormatBandwidth(stats.AvailableBandwidthKbps)}";
 				}
 				else
 				{
-					AvailableBandwidthLabel.Text = $"Available Bandwidth: {stats.AvailableBandwidthFormatted}";
+					this.AvailableBandwidthLabel.Text = $"Available Bandwidth: {stats.AvailableBandwidthFormatted}";
 				}
 				
 				// Clear existing session stats
-				SessionStatsContainer.Children.Clear();
+				this.SessionStatsContainer.Children.Clear();
 
 				// (Per-adapter details removed; showing system total only)
 				
@@ -117,14 +117,14 @@ public partial class MainPage : ContentPage
 					{
 						var rttLabel = CreateStyledLabel(
 							$"Round Trip Latency: {session.RttMs:F0} ms",
-							_primaryTextColor);
-						SessionStatsContainer.Children.Add(rttLabel);
+							this._primaryTextColor);
+						this.SessionStatsContainer.Children.Add(rttLabel);
 					}
 				}
 				else
 				{
-					var noSessionsLabel = CreateStyledLabel("No active RemoteFX sessions", _primaryTextColor);
-					SessionStatsContainer.Children.Add(noSessionsLabel);
+					var noSessionsLabel = CreateStyledLabel("No active RemoteFX sessions", this._primaryTextColor);
+					this.SessionStatsContainer.Children.Add(noSessionsLabel);
 				}
 
 				// Update advanced real-time statistics (encoder frames dropped, input FPS)
@@ -133,23 +133,23 @@ public partial class MainPage : ContentPage
 					var framesDropped = RealTimeStatisticsHelper.GetEncoderFramesDropped();
 					var inputFps = RealTimeStatisticsHelper.GetInputFramesPerSecond();
 
-					EncoderFramesDroppedLabel.Text = $"Encoder Frames Dropped: {(framesDropped >= 0 ? framesDropped.ToString() : "Unavailable")}";
-					InputFpsLabel.Text = $"Input Frames Per Second: {(inputFps >= 0 ? inputFps.ToString() : "Unavailable")}";
+					this.EncoderFramesDroppedLabel.Text = $"Encoder Frames Dropped: {(framesDropped >= 0 ? framesDropped.ToString(System.Globalization.CultureInfo.InvariantCulture) : "Unavailable")}";
+					this.InputFpsLabel.Text = $"Input Frames Per Second: {(inputFps >= 0 ? inputFps.ToString(System.Globalization.CultureInfo.InvariantCulture) : "Unavailable")}";
 				}
 				catch
 				{
-					EncoderFramesDroppedLabel.Text = "Encoder Frames Dropped: (waiting for data)";
-					InputFpsLabel.Text = "Input Frames Per Second: (waiting for data)";
+					this.EncoderFramesDroppedLabel.Text = "Encoder Frames Dropped: (waiting for data)";
+					this.InputFpsLabel.Text = "Input Frames Per Second: (waiting for data)";
 				}
 			}
 			else
 			{
-				BandwidthOutputLabel.Text = $"Bandwidth Output: {stats.ErrorMessage}";
-				BandwidthInputLabel.Text = "Bandwidth Input: Not available";
+				this.BandwidthOutputLabel.Text = $"Bandwidth Output: {stats.ErrorMessage}";
+				this.BandwidthInputLabel.Text = "Bandwidth Input: Not available";
 				
-				SessionStatsContainer.Children.Clear();
-				var errorLabel = CreateStyledLabel($"RemoteFX counters not available: {stats.ErrorMessage}", _errorTextColor);
-				SessionStatsContainer.Children.Add(errorLabel);
+				this.SessionStatsContainer.Children.Clear();
+				var errorLabel = CreateStyledLabel($"RemoteFX counters not available: {stats.ErrorMessage}", this._errorTextColor);
+				this.SessionStatsContainer.Children.Add(errorLabel);
 			}
 
 				// Always update advanced stats labels (do not depend on RemoteFX counters)
@@ -158,8 +158,8 @@ public partial class MainPage : ContentPage
 					var framesDroppedAlways = RealTimeStatisticsHelper.GetEncoderFramesDropped();
 					var inputFpsAlways = RealTimeStatisticsHelper.GetInputFramesPerSecond();
 
-					EncoderFramesDroppedLabel.Text = $"Encoder Frames Dropped: {(framesDroppedAlways >= 0 ? framesDroppedAlways.ToString() : "Unavailable")}";
-					InputFpsLabel.Text = $"Input Frames Per Second: {(inputFpsAlways >= 0 ? inputFpsAlways.ToString() : "Unavailable")}";
+					this.EncoderFramesDroppedLabel.Text = $"Encoder Frames Dropped: {(framesDroppedAlways >= 0 ? framesDroppedAlways.ToString(System.Globalization.CultureInfo.InvariantCulture) : "Unavailable")}";
+					this.InputFpsLabel.Text = $"Input Frames Per Second: {(inputFpsAlways >= 0 ? inputFpsAlways.ToString(System.Globalization.CultureInfo.InvariantCulture) : "Unavailable")}";
 				}
 				catch
 				{
@@ -168,26 +168,26 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			LogError("UpdateRealTimeStatsUI", ex);
+			this.LogError("UpdateRealTimeStatsUI", ex);
 		}
 	}
 
 	private void SetRealTimeStatsPlaceholder()
 	{
-	BandwidthOutputLabel.Text = "Bandwidth Output: Not available on this platform";
-	BandwidthInputLabel.Text = "Bandwidth Input: Not available on this platform";
+		this.BandwidthOutputLabel.Text = "Bandwidth Output: Not available on this platform";
+		this.BandwidthInputLabel.Text = "Bandwidth Input: Not available on this platform";
 		
-		SessionStatsContainer.Children.Clear();
-		var placeholderLabel = CreateStyledLabel("RemoteFX statistics only available on Windows", _primaryTextColor);
-		SessionStatsContainer.Children.Add(placeholderLabel);
+		this.SessionStatsContainer.Children.Clear();
+		var placeholderLabel = CreateStyledLabel("RemoteFX statistics only available on Windows", this._primaryTextColor);
+		this.SessionStatsContainer.Children.Add(placeholderLabel);
 	}
 
 	protected override void OnDisappearing()
 	{
 		try
 		{
-			_realTimeStatsTimer?.Stop();
-			_realTimeStatsTimer?.Dispose();
+			this._realTimeStatsTimer?.Stop();
+			this._realTimeStatsTimer?.Dispose();
 			
 			if (OperatingSystem.IsWindows())
 			{
@@ -196,7 +196,7 @@ public partial class MainPage : ContentPage
 		}
 		catch (Exception ex)
 		{
-			LogError("OnDisappearing", ex);
+			this.LogError("OnDisappearing", ex);
 		}
 		
 		base.OnDisappearing();
@@ -213,7 +213,7 @@ public partial class MainPage : ContentPage
 	private void LogError(string context, Exception ex)
 	{
 		var message = $"Error in {context}: {ex.Message}";
-		try { _logger?.LogError(ex, message); } catch { }
+		try { _logger?.LogError(ex, message); } catch { /* Logging should never crash the application */ }
 	}
 
 	private void LoadGpuInformation()
