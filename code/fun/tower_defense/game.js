@@ -361,7 +361,7 @@ function placeTower(x, y) {
 }
 
 // Check if position is on path
-function isOnPath(x, y, tolerance = 30) {
+function isOnPath(x, y, tolerance = 60) {
     for (let point of gameState.path) {
         const dist = Math.sqrt((x - point.x) ** 2 + (y - point.y) ** 2);
         if (dist < tolerance) return true;
