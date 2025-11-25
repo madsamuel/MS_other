@@ -855,21 +855,6 @@ function draw() {
         const isBoss = enemy.type === 'boss';
         const fontSize = 24 * enemy.size;
         
-        // Draw boss background glow
-        if (isBoss) {
-            ctx.fillStyle = 'rgba(255, 100, 0, 0.3)';
-            ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, (fontSize / 2) + 15, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Outer ring
-            ctx.strokeStyle = '#ff6600';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, (fontSize / 2) + 12, 0, Math.PI * 2);
-            ctx.stroke();
-        }
-        
         ctx.font = `${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
