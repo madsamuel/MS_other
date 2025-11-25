@@ -894,7 +894,6 @@ function draw() {
         
         // Boss label above health bar
         if (isBoss) {
-            ctx.fillStyle = '#ff6600';
             ctx.font = 'bold 12px Arial';
             ctx.fillText('👑', enemy.x, barY - 10);
             ctx.font = `${fontSize}px Arial`;
