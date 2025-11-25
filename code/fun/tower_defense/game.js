@@ -691,7 +691,7 @@ function updateEnemies() {
         }
         
         // Move along path
-        enemy.pathProgress += enemy.speed;
+        enemy.pathProgress += enemy.speed * gameState.speedMultiplier;
         
         const currentPoint = gameState.path[enemy.pathIndex];
         const nextPoint = gameState.path[enemy.pathIndex + 1];
