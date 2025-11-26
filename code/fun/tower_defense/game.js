@@ -922,65 +922,49 @@ function drawStartGate() {
 // Draw end gate with damage progression
 function drawEndGate() {
     // Position at the bottom-right exit where enemies leave
-    const x = 820;
-    const y = 650;
+    const x = 884;
+    const y = 680;
     
     // Damage level (0-100%)
     const damagePercent = Math.min(gameState.endGateDamage * 10, 100); // Each enemy = 10% damage
     
-    // Gate posts
-    ctx.fillStyle = damagePercent > 50 ? '#8B4513' : '#A0522D';
-    ctx.fillRect(x - 35, y - 30, 15, 60); // Left post
-    ctx.fillRect(x + 20, y - 30, 15, 60); // Right post
+    // Draw checkered finish line pattern - vertical across the road
+    const squareSize = 15;
+    const cols = 2;  // 2 columns wide (across the road width)
+    const rows = 4;  // 4 rows tall
     
-    // Top crossbar - gets more damaged
-    const crossbarColor = damagePercent > 70 ? '#654321' : damagePercent > 40 ? '#8B6914' : '#DAA520';
-    ctx.fillStyle = crossbarColor;
-    ctx.fillRect(x - 35, y - 32, 70, 8);
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            // Alternate between black and white to create checkered pattern
+            const isBlack = (row + col) % 2 === 0;
+            ctx.fillStyle = isBlack ? '#000000' : '#FFFFFF';
+            ctx.fillRect(x - 15 + (col * squareSize), y - 30 + (row * squareSize), squareSize, squareSize);
+        }
+    }
     
-    // Gate bars - progressively broken
-    const barsIntact = Math.max(0, 4 - Math.floor(damagePercent / 30));
+    // Add border to finish line
+    ctx.strokeStyle = '#FFD700';
     ctx.lineWidth = 3;
+    ctx.strokeRect(x - 15, y - 30, cols * squareSize, rows * squareSize);
     
-    // Draw damage cracks
-    if (damagePercent > 20) {
-        ctx.strokeStyle = 'rgba(139, 0, 0, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x - 20, y - 15);
-        ctx.lineTo(x - 15, y + 15);
-        ctx.stroke();
+    // Draw damage indicator above the finish line
+    if (damagePercent > 0) {
+        // Damage bar background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(x - 15, y - 50, cols * squareSize, 15);
+        
+        // Damage bar fill
+        const damageColor = damagePercent > 70 ? '#DC143C' : damagePercent > 40 ? '#FFA500' : '#FFD700';
+        ctx.fillStyle = damageColor;
+        ctx.fillRect(x - 15, y - 50, (cols * squareSize * damagePercent) / 100, 15);
+        
+        // Damage text
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 10px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`${Math.floor(damagePercent)}%`, x, y - 42);
     }
-    if (damagePercent > 50) {
-        ctx.strokeStyle = 'rgba(139, 0, 0, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(x + 5, y - 15);
-        ctx.lineTo(x + 10, y + 15);
-        ctx.stroke();
-    }
-    
-    // Intact bars
-    ctx.strokeStyle = damagePercent > 70 ? '#DC143C' : '#FFD700';
-    if (barsIntact > 0) {
-        ctx.beginPath();
-        ctx.moveTo(x - 25, y - 20);
-        ctx.lineTo(x + 10, y + 20);
-        ctx.stroke();
-    }
-    if (barsIntact > 1) {
-        ctx.beginPath();
-        ctx.moveTo(x + 10, y - 20);
-        ctx.lineTo(x - 25, y + 20);
-        ctx.stroke();
-    }
-    
-    // Gate label with damage indicator
-    ctx.fillStyle = damagePercent > 70 ? '#DC143C' : '#FFD700';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(`END (${gameState.endGateDamage}%)`, x - 7, y + 40);
 }
 
 // Draw everything
@@ -1030,9 +1014,6 @@ function draw() {
     
     // Draw start gate
     drawStartGate();
-    
-    // Draw end gate (with damage)
-    drawEndGate();
     
     // Draw towers
     for (let i = 0; i < gameState.towers.length; i++) {
@@ -1136,6 +1117,9 @@ function draw() {
             ctx.fill();
         }
     }
+    
+    // Draw end gate (with damage) - drawn last so it appears on top of the road
+    drawEndGate();
 }
 
 // Update UI
