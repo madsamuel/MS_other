@@ -40,6 +40,15 @@ const TOWERS = {
         fireRate: 1.2,
         icon: '🍄',
         description: 'Slows enemies and deals damage'
+    },
+    cannon: {
+        name: 'Cannon',
+        cost: 180,
+        damage: 35,
+        range: 140,
+        fireRate: 0.6,
+        icon: '🔫',
+        description: 'Anti-air tower, effective against flying enemies'
     }
 };
 
@@ -98,6 +107,36 @@ const ENEMIES = {
         icon: '👑',
         damage: 8,
         size: 1.8
+    },
+    buzzy: {
+        name: 'Buzzy Beetle',
+        health: 25,
+        speed: 1.5,
+        reward: 35,
+        icon: '🐝',
+        damage: 2,
+        size: 0.9,
+        isFlying: true
+    },
+    lakitu: {
+        name: 'Lakitu',
+        health: 40,
+        speed: 1.2,
+        reward: 60,
+        icon: '☁️',
+        damage: 3,
+        size: 1.1,
+        isFlying: true
+    },
+    birdo: {
+        name: 'Birdo',
+        health: 35,
+        speed: 1.8,
+        reward: 50,
+        icon: '🦅',
+        damage: 4,
+        size: 1.0,
+        isFlying: true
     }
 };
 
@@ -133,7 +172,8 @@ const LEVELS = [
     { // Level 4
         waves: [
             { type: 'piranha', count: 8, interval: 400 },
-            { type: 'koopa', count: 10, interval: 300 }
+            { type: 'koopa', count: 10, interval: 300 },
+            { type: 'buzzy', count: 5, interval: 500 }
         ],
         initialGold: 250,
         multiplier: 1.25,
@@ -142,7 +182,8 @@ const LEVELS = [
     { // Level 5
         waves: [
             { type: 'goomba', count: 18, interval: 150 },
-            { type: 'piranha', count: 10, interval: 400 }
+            { type: 'piranha', count: 10, interval: 400 },
+            { type: 'buzzy', count: 8, interval: 350 }
         ],
         initialGold: 200,
         multiplier: 1.35,
@@ -151,7 +192,8 @@ const LEVELS = [
     { // Level 6
         waves: [
             { type: 'koopa', count: 15, interval: 200 },
-            { type: 'bill', count: 10, interval: 250 }
+            { type: 'bill', count: 10, interval: 250 },
+            { type: 'lakitu', count: 6, interval: 400 }
         ],
         initialGold: 300,
         multiplier: 1.4,
@@ -161,7 +203,8 @@ const LEVELS = [
         waves: [
             { type: 'piranha', count: 12, interval: 300 },
             { type: 'bill', count: 12, interval: 200 },
-            { type: 'koopa', count: 10, interval: 250 }
+            { type: 'koopa', count: 10, interval: 250 },
+            { type: 'lakitu', count: 8, interval: 300 }
         ],
         initialGold: 250,
         multiplier: 1.45,
@@ -170,7 +213,8 @@ const LEVELS = [
     { // Level 8
         waves: [
             { type: 'bill', count: 15, interval: 150 },
-            { type: 'piranha', count: 12, interval: 300 }
+            { type: 'piranha', count: 12, interval: 300 },
+            { type: 'birdo', count: 7, interval: 350 }
         ],
         initialGold: 200,
         multiplier: 1.5,
@@ -180,7 +224,8 @@ const LEVELS = [
         waves: [
             { type: 'koopa', count: 18, interval: 150 },
             { type: 'piranha', count: 14, interval: 250 },
-            { type: 'bill', count: 10, interval: 200 }
+            { type: 'bill', count: 10, interval: 200 },
+            { type: 'birdo', count: 10, interval: 300 }
         ],
         initialGold: 250,
         multiplier: 1.55,
@@ -189,7 +234,9 @@ const LEVELS = [
     { // Level 10 - Final Level
         waves: [
             { type: 'bill', count: 20, interval: 100 },
-            { type: 'piranha', count: 15, interval: 200 }
+            { type: 'piranha', count: 15, interval: 200 },
+            { type: 'lakitu', count: 12, interval: 250 },
+            { type: 'birdo', count: 10, interval: 200 }
         ],
         initialGold: 300,
         multiplier: 1.6,
@@ -221,7 +268,8 @@ const gameState = {
     gameStarted: false,
     gameLoopRunning: false,
     speedMultiplier: 1,
-    selectedTowerIndex: null
+    selectedTowerIndex: null,
+    endGateDamage: 0
 };
 
 // Canvas and context
@@ -683,7 +731,8 @@ function updateEnemies() {
         const enemy = gameState.enemies[i];
         
         if (enemy.pathIndex >= gameState.path.length - 1) {
-            // Enemy reached end
+            // Enemy reached end - damage the gate
+            gameState.endGateDamage += 1;
             gameState.lives--;
             gameState.enemies.splice(i, 1);
             updateUI();
@@ -747,18 +796,54 @@ function updateTowers() {
     for (let tower of gameState.towers) {
         tower.lastShot += timeStep; // ~60fps or 2x with double speed
         
-        // Find target
+        // Find target - aim at the leading enemy (furthest along path)
         let target = null;
-        for (let enemy of gameState.enemies) {
-            const dist = Math.sqrt((tower.x - enemy.x) ** 2 + (tower.y - enemy.y) ** 2);
-            if (dist < TOWERS[tower.type].range) {
-                target = enemy;
-                break;
+        let maxPathProgress = -1;
+        
+        // Cannon prioritizes flying enemies
+        if (tower.type === 'cannon') {
+            // First pass: look for flying enemies in range
+            for (let enemy of gameState.enemies) {
+                const dist = Math.sqrt((tower.x - enemy.x) ** 2 + (tower.y - enemy.y) ** 2);
+                if (dist < TOWERS[tower.type].range && ENEMIES[enemy.type].isFlying) {
+                    // Calculate path progress: pathIndex + pathProgress
+                    const pathProgress = enemy.pathIndex + enemy.pathProgress;
+                    if (pathProgress > maxPathProgress) {
+                        maxPathProgress = pathProgress;
+                        target = enemy;
+                    }
+                }
+            }
+            // If no flying enemies in range, target any enemy (still aiming at leading one)
+            if (!target) {
+                maxPathProgress = -1;
+                for (let enemy of gameState.enemies) {
+                    const dist = Math.sqrt((tower.x - enemy.x) ** 2 + (tower.y - enemy.y) ** 2);
+                    if (dist < TOWERS[tower.type].range) {
+                        const pathProgress = enemy.pathIndex + enemy.pathProgress;
+                        if (pathProgress > maxPathProgress) {
+                            maxPathProgress = pathProgress;
+                            target = enemy;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Other towers: target the leading enemy in range
+            for (let enemy of gameState.enemies) {
+                const dist = Math.sqrt((tower.x - enemy.x) ** 2 + (tower.y - enemy.y) ** 2);
+                if (dist < TOWERS[tower.type].range) {
+                    const pathProgress = enemy.pathIndex + enemy.pathProgress;
+                    if (pathProgress > maxPathProgress) {
+                        maxPathProgress = pathProgress;
+                        target = enemy;
+                    }
+                }
             }
         }
         
         // Shoot
-        if (target && tower.lastShot >= 1000 / TOWERS[tower.type].fireRate) {
+        if (target && tower.lastShot >= (1000 / TOWERS[tower.type].fireRate) / gameState.speedMultiplier) {
             gameState.projectiles.push({
                 x: tower.x,
                 y: tower.y,
@@ -808,15 +893,113 @@ function updateProjectiles() {
     }
 }
 
+// Draw start gate
+function drawStartGate() {
+    // Position at the top-left entrance where enemies enter
+    const x = 40;
+    const y = 120;
+    
+    // Gate posts
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(x - 35, y - 30, 15, 60); // Left post
+    ctx.fillRect(x + 20, y - 30, 15, 60); // Right post
+    
+    // Top crossbar
+    ctx.fillStyle = '#654321';
+    ctx.fillRect(x - 35, y - 32, 70, 8);
+    
+    // Gate bars
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x - 25, y - 20);
+    ctx.lineTo(x + 10, y + 20);
+    ctx.moveTo(x + 10, y - 20);
+    ctx.lineTo(x - 25, y + 20);
+    ctx.stroke();
+    
+    // Gate label
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('START', x - 7, y + 40);
+}
+
+// Draw end gate with damage progression
+function drawEndGate() {
+    // Position at the bottom-right exit where enemies leave
+    const x = 820;
+    const y = 650;
+    
+    // Damage level (0-100%)
+    const damagePercent = Math.min(gameState.endGateDamage * 10, 100); // Each enemy = 10% damage
+    
+    // Gate posts
+    ctx.fillStyle = damagePercent > 50 ? '#8B4513' : '#A0522D';
+    ctx.fillRect(x - 35, y - 30, 15, 60); // Left post
+    ctx.fillRect(x + 20, y - 30, 15, 60); // Right post
+    
+    // Top crossbar - gets more damaged
+    const crossbarColor = damagePercent > 70 ? '#654321' : damagePercent > 40 ? '#8B6914' : '#DAA520';
+    ctx.fillStyle = crossbarColor;
+    ctx.fillRect(x - 35, y - 32, 70, 8);
+    
+    // Gate bars - progressively broken
+    const barsIntact = Math.max(0, 4 - Math.floor(damagePercent / 30));
+    ctx.lineWidth = 3;
+    
+    // Draw damage cracks
+    if (damagePercent > 20) {
+        ctx.strokeStyle = 'rgba(139, 0, 0, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - 20, y - 15);
+        ctx.lineTo(x - 15, y + 15);
+        ctx.stroke();
+    }
+    if (damagePercent > 50) {
+        ctx.strokeStyle = 'rgba(139, 0, 0, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 5, y - 15);
+        ctx.lineTo(x + 10, y + 15);
+        ctx.stroke();
+    }
+    
+    // Intact bars
+    ctx.strokeStyle = damagePercent > 70 ? '#DC143C' : '#FFD700';
+    if (barsIntact > 0) {
+        ctx.beginPath();
+        ctx.moveTo(x - 25, y - 20);
+        ctx.lineTo(x + 10, y + 20);
+        ctx.stroke();
+    }
+    if (barsIntact > 1) {
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y - 20);
+        ctx.lineTo(x - 25, y + 20);
+        ctx.stroke();
+    }
+    
+    // Gate label with damage indicator
+    ctx.fillStyle = damagePercent > 70 ? '#DC143C' : '#FFD700';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`END (${gameState.endGateDamage}%)`, x - 7, y + 40);
+}
+
 // Draw everything
 function draw() {
     // Clear canvas
     ctx.fillStyle = '#87ceeb';
     ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
     
-    // Draw path
-    ctx.strokeStyle = '#8B7355';
-    ctx.lineWidth = 60;
+    // Draw path with road texture
+    // Main road asphalt
+    ctx.strokeStyle = '#2C2C2C';
+    ctx.lineWidth = 62;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -825,6 +1008,38 @@ function draw() {
         ctx.lineTo(gameState.path[i].x, gameState.path[i].y);
     }
     ctx.stroke();
+    
+    // Road surface (lighter shade)
+    ctx.strokeStyle = '#4A4A4A';
+    ctx.lineWidth = 58;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(gameState.path[0].x, gameState.path[0].y);
+    for (let i = 1; i < gameState.path.length; i++) {
+        ctx.lineTo(gameState.path[i].x, gameState.path[i].y);
+    }
+    ctx.stroke();
+    
+    // Yellow center line markings
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([10, 10]);
+    ctx.beginPath();
+    ctx.moveTo(gameState.path[0].x, gameState.path[0].y);
+    for (let i = 1; i < gameState.path.length; i++) {
+        ctx.lineTo(gameState.path[i].x, gameState.path[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Draw start gate
+    drawStartGate();
+    
+    // Draw end gate (with damage)
+    drawEndGate();
     
     // Draw towers
     for (let i = 0; i < gameState.towers.length; i++) {
@@ -853,11 +1068,21 @@ function draw() {
     // Draw enemies
     for (let enemy of gameState.enemies) {
         const isBoss = enemy.type === 'boss';
+        const isFlying = ENEMIES[enemy.type].isFlying;
         const fontSize = 24 * enemy.size;
         
         ctx.font = `${fontSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        
+        // Draw shadow under flying enemies
+        if (isFlying) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.beginPath();
+            ctx.ellipse(enemy.x, enemy.y + 15 * enemy.size, 15 * enemy.size, 8 * enemy.size, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
         ctx.fillText(ENEMIES[enemy.type].icon, enemy.x, enemy.y);
         
         // Draw health bar (scaled for boss size)
@@ -951,6 +1176,7 @@ function newGame() {
     gameState.currentWaveData = [];
     gameState.enemySpawnIndex = 0;
     gameState.lastEnemySpawnTime = 0;
+    gameState.endGateDamage = 0;
     gameState.speedMultiplier = 1;
     gameState.selectedTowerIndex = null;
     
