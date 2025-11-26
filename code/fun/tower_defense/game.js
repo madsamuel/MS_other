@@ -899,31 +899,24 @@ function drawStartGate() {
     const x = 40;
     const y = 120;
     
-    // Gate posts
-    ctx.fillStyle = '#8B4513';
-    ctx.fillRect(x - 35, y - 30, 15, 60); // Left post
-    ctx.fillRect(x + 20, y - 30, 15, 60); // Right post
-    
-    // Top crossbar
-    ctx.fillStyle = '#654321';
-    ctx.fillRect(x - 35, y - 32, 70, 8);
-    
-    // Gate bars
+    // Draw arrow pointing right into the path
+    ctx.fillStyle = '#FFD700';
     ctx.strokeStyle = '#FFD700';
     ctx.lineWidth = 3;
+    
+    // Arrow shaft
     ctx.beginPath();
-    ctx.moveTo(x - 25, y - 20);
-    ctx.lineTo(x + 10, y + 20);
-    ctx.moveTo(x + 10, y - 20);
-    ctx.lineTo(x - 25, y + 20);
+    ctx.moveTo(x - 30, y);
+    ctx.lineTo(x + 15, y);
     ctx.stroke();
     
-    // Gate label
-    ctx.fillStyle = '#FFD700';
-    ctx.font = 'bold 14px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('START', x - 7, y + 40);
+    // Arrow head (pointing right)
+    ctx.beginPath();
+    ctx.moveTo(x + 15, y);
+    ctx.lineTo(x + 5, y - 12);
+    ctx.lineTo(x + 5, y + 12);
+    ctx.closePath();
+    ctx.fill();
 }
 
 // Draw end gate with damage progression
