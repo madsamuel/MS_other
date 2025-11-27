@@ -22,7 +22,6 @@ class GeneratorViewModel(
             is GeneratorIntent.SetDuration -> updateState { copy(durationMinutes = intent.minutes) }
             GeneratorIntent.RequestGenerate -> generate()
             GeneratorIntent.MessageConsumed -> updateState { copy(message = null) }
-            GeneratorIntent.DismissPermissionDialog -> updateState { copy(showPermissionDialog = false) }
         }
     }
 
@@ -57,4 +56,3 @@ class GeneratorViewModel(
         _uiState.value = _uiState.value.reducer()
     }
 }
-
