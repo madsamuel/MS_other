@@ -32,14 +32,22 @@ response = requests.get("https://git.io/JJkYN")
 labels = response.text.split("\n")
 
 def predict(inp):
-    inp = transforms.ToTensor()(inp).unsqueeze(0)
-    with torch.no_grad():
-        prediction = torch.nn.functional.softmax(model(inp)[0], dim=0)
-        confidences = {labels[i]: float(prediction[i]) for i in range(1000)}
-    return confidences
+    try:
+        print(f"Input received: {type(inp)}")
+        inp = transforms.ToTensor()(inp).unsqueeze(0)
+        print(f"Tensor shape: {inp.shape}")
+        with torch.no_grad():
+            prediction = torch.nn.functional.softmax(model(inp)[0], dim=0)
+            confidences = {labels[i]: float(prediction[i]) for i in range(1000)}
+        print("Prediction completed successfully")
+        return confidences
+    except Exception as e:
+        print(f"Error in prediction: {e}")
+        return {"Error": 1.0}
 
 import gradio as gr
-gr.Interface(fn=predict,
+demo = gr.Interface(fn=predict,
        inputs=gr.Image(type="pil"),
        outputs=gr.Label(num_top_classes=3),
-       examples=["https://raw.githubusercontent.com/pytorch/hub/master/images/dog.jpg"]).launch()
+       examples=["https://raw.githubusercontent.com/pytorch/hub/master/images/dog.jpg"])
+demo.launch(debug=True)

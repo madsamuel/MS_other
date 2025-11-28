@@ -46,22 +46,48 @@ def transcribe_audio():
     try:
         audio_file = request.files["audio"]
         if audio_file.filename == '':
-            return {"error": "No file selected"}, 400
+            return render_template_string("""
+                <h2>Error: No file selected</h2>
+                <a href="/">Go back</a>
+            """)
         
-        # Save uploaded file to temporary location
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.filename)[1]) as temp_file:
-            audio_file.save(temp_file.name)
-            
-            # Transcribe the audio file
-            result = model.transcribe(temp_file.name)
-            
-            # Clean up temporary file
-            os.unlink(temp_file.name)
-            
-        return {"transcription": result["text"]}
+        # Create temporary file and save audio
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.filename)[1])
+        temp_file_path = temp_file.name
+        temp_file.close()  # Close the file before saving to it
+        
+        audio_file.save(temp_file_path)
+        
+        # Transcribe the audio file
+        result = model.transcribe(temp_file_path)
+        transcription = result["text"]
+        
+        # Clean up temporary file
+        try:
+            os.unlink(temp_file_path)
+        except:
+            pass  # Ignore cleanup errors
+        
+        # Return HTML page with transcription
+        return render_template_string("""
+            <html>
+            <head><title>Transcription Result</title></head>
+            <body>
+                <h2>Transcription Result:</h2>
+                <p style="border: 1px solid #ccc; padding: 10px; background-color: #f9f9f9;">
+                    {{ transcription }}
+                </p>
+                <a href="/">Transcribe another file</a>
+            </body>
+            </html>
+        """, transcription=transcription)
     
     except Exception as e:
-        return {"error": str(e)}, 500
+        return render_template_string("""
+            <h2>Error occurred during transcription:</h2>
+            <p>{{ error }}</p>
+            <a href="/">Go back</a>
+        """, error=str(e))
 
 if __name__ == "__main__":
     app.run(debug=True)
