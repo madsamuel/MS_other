@@ -2,7 +2,6 @@ package com.seattledevcamp.rainmaker.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -12,6 +11,7 @@ import com.seattledevcamp.rainmaker.ui.generator.GeneratorScreen
 import com.seattledevcamp.rainmaker.ui.generator.GeneratorViewModel
 import com.seattledevcamp.rainmaker.ui.library.LibraryScreen
 import com.seattledevcamp.rainmaker.ui.library.LibraryViewModel
+import org.koin.androidx.compose.koinViewModel
 
 sealed class RainmakerDestination(val route: String) {
     data object Generator : RainmakerDestination("generator")
@@ -26,7 +26,7 @@ fun RainmakerNavHost(modifier: Modifier = Modifier, navController: NavHostContro
         modifier = modifier
     ) {
         composable(RainmakerDestination.Generator.route) {
-            val viewModel: GeneratorViewModel = viewModel()
+            val viewModel: GeneratorViewModel = koinViewModel()
             val uiState = viewModel.uiState.collectAsStateWithLifecycle()
             GeneratorScreen(
                 state = uiState.value,
@@ -35,7 +35,7 @@ fun RainmakerNavHost(modifier: Modifier = Modifier, navController: NavHostContro
             )
         }
         composable(RainmakerDestination.Library.route) {
-            val viewModel: LibraryViewModel = viewModel()
+            val viewModel: LibraryViewModel = koinViewModel()
             val uiState = viewModel.uiState.collectAsStateWithLifecycle()
             LibraryScreen(
                 state = uiState.value,
