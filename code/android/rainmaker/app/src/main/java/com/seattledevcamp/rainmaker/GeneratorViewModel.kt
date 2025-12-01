@@ -8,6 +8,8 @@ import androidx.lifecycle.ViewModelProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
+import com.seattledevcamp.rainmaker.audio.RainGenerator
+import com.seattledevcamp.rainmaker.audio.WavWriter
 
 class GeneratorViewModel(application: Application) : AndroidViewModel(application) {
     private val _status = MutableStateFlow("idle")
@@ -32,13 +34,14 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
                     // Call native bridge if available
                     NativeBridge.generate(file.absolutePath, 44100, durationSec, intensityCode, modifiers)
                 } catch (_: Throwable) {
-                    // If native bridge missing, return false
-                    false
+                    // Fallback: generate WAV in pure Kotlin
+                    val pcm = RainGenerator.generate(44100, durationSec, intensityCode, modifiers)
+                    WavWriter.writeWav(getApplication(), filename, 44100, pcm)
+                    true
                 }
                 if (ok) {
                     _status.value = "saved:${file.absolutePath}"
                 } else {
-                    // Fallback: simple silent WAV writer or error
                     _status.value = "error:native-failed"
                 }
             } catch (e: Exception) {
