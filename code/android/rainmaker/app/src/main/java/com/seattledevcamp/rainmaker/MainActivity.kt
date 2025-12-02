@@ -33,6 +33,8 @@ class MainActivity : ComponentActivity() {
                 val vm: GeneratorViewModel = viewModel<GeneratorViewModel>(factory = GeneratorViewModel.Factory(application))
                 val status by vm.status.collectAsState(initial = "idle")
                 val recordings by vm.recordings.collectAsState(initial = emptyList())
+                val currentPlaying by vm.currentPlaying.collectAsState(initial = null)
+                val isPlayingGlobal by vm.isPlaying.collectAsState(initial = false)
 
                 var currentScreen by remember { mutableStateOf(Screen.GENERATOR) }
 
@@ -74,9 +76,11 @@ class MainActivity : ComponentActivity() {
                                 )
                                 Screen.RECORDINGS -> RecordingsContent(
                                     recordings = recordings,
-                                    onPlay = { vm.playFile(it) },
+                                    currentPlaying = currentPlaying,
+                                    isPlayingGlobal = isPlayingGlobal,
+                                    onPlay = { vm.togglePlay(it) },
                                     onDelete = { vm.deleteFile(it) },
-                                    onRefresh = { vm.refreshList() }
+                                    onRefresh = { vm.refreshList() },
                                 )
                             }
                         }
@@ -118,7 +122,15 @@ private fun GeneratorContent(
         Text("Intensity")
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(RainIntensity.LIGHT, RainIntensity.MEDIUM, RainIntensity.HEAVY).forEach { r ->
-                Button(onClick = { onSelectIntensity(r) }, modifier = Modifier.weight(1f)) {
+                val isSelected = r == selectedIntensity
+                Button(
+                    onClick = { onSelectIntensity(r) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSecondary
+                    )
+                ) {
                     Text(r.label)
                 }
             }
@@ -150,6 +162,8 @@ private fun GeneratorContent(
 @Composable
 private fun RecordingsContent(
     recordings: List<File>,
+    currentPlaying: String?,
+    isPlayingGlobal: Boolean,
     onPlay: (File) -> Unit,
     onDelete: (File) -> Unit,
     onRefresh: () -> Unit
@@ -162,7 +176,8 @@ private fun RecordingsContent(
         Spacer(Modifier.height(8.dp))
         LazyColumn {
             items(recordings) { f ->
-                RecordingRow(file = f, onPlay = { onPlay(f) }, onDelete = { onDelete(f) })
+                val playingForThis = (currentPlaying == f.absolutePath) && isPlayingGlobal
+                RecordingRow(file = f, isPlaying = playingForThis, onTogglePlay = { onPlay(f) }, onDelete = { onDelete(f) })
             }
         }
     }
@@ -183,7 +198,7 @@ private fun FlowRow(keys: List<String>, content: @Composable (String) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecordingRow(file: File, onPlay: () -> Unit, onDelete: () -> Unit) {
+private fun RecordingRow(file: File, isPlaying: Boolean, onTogglePlay: () -> Unit, onDelete: () -> Unit) {
     Card(modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 4.dp)) {
@@ -193,7 +208,11 @@ private fun RecordingRow(file: File, onPlay: () -> Unit, onDelete: () -> Unit) {
                 Text("${file.length()/1024} KB", style = MaterialTheme.typography.bodySmall)
             }
             Row {
-                IconButton(onClick = onPlay) { Icon(Icons.Default.PlayArrow, contentDescription = "Play") }
+                if (isPlaying) {
+                    TextButton(onClick = onTogglePlay) { Text("Pause") }
+                } else {
+                    IconButton(onClick = onTogglePlay) { Icon(Icons.Default.PlayArrow, contentDescription = "Play") }
+                }
                 IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
             }
         }

@@ -401,7 +401,8 @@ function placeTower(x, y) {
         x: x,
         y: y,
         lastShot: 0,
-        targeting: null
+        targeting: null,
+        upgradeLevel: 0
     });
     
     gameState.gold -= towerCost;
@@ -488,24 +489,69 @@ function selectTower(index) {
     gameState.selectedTowerIndex = index;
     const tower = gameState.towers[index];
     const refund = Math.floor(TOWERS[tower.type].cost * 0.75);
+    const upgradeCosts = [Math.floor(TOWERS[tower.type].cost * 2), Math.floor(TOWERS[tower.type].cost * 3), Math.floor(TOWERS[tower.type].cost * 4)];
+    const nextUpgradeCost = tower.upgradeLevel < 3 ? upgradeCosts[tower.upgradeLevel] : 'MAX';
+    const damageMultipliers = [1, 1.1, 1.2, 1.4];
+    const currentDamage = TOWERS[tower.type].damage * damageMultipliers[tower.upgradeLevel];
+    
+    let upgradeButtonHTML = '';
+    if (tower.upgradeLevel < 3) {
+        upgradeButtonHTML = `<button id="upgradeTowerBtn" style="margin-top: 10px; padding: 8px 12px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer;">Upgrade (${nextUpgradeCost}G)</button>`;
+    } else {
+        upgradeButtonHTML = `<div style="margin-top: 10px; color: #888; font-size: 12px;">Upgrade: MAX LEVEL</div>`;
+    }
     
     document.getElementById('towerDetails').innerHTML = `
         <div style="margin-bottom: 10px;">
             <strong>${TOWERS[tower.type].name}</strong><br/>
             Cost: ${TOWERS[tower.type].cost}G<br/>
+            Damage: ${currentDamage.toFixed(1)}<br/>
+            Upgrade Level: ${tower.upgradeLevel}/3<br/>
             Sell Price: ${refund}G
         </div>
+        ${upgradeButtonHTML}
     `;
     
     document.getElementById('towerInfo').classList.remove('hidden');
     document.querySelectorAll('.tower-item').forEach(i => i.classList.remove('active'));
     gameState.selectedTower = null;
+    
+    // Attach upgrade button listener if not at max level
+    if (tower.upgradeLevel < 3) {
+        setTimeout(() => {
+            const upgradeBtn = document.getElementById('upgradeTowerBtn');
+            if (upgradeBtn) {
+                upgradeBtn.addEventListener('click', upgradeTower);
+            }
+        }, 0);
+    }
 }
 
 // Deselect tower
 function deselectTower() {
     gameState.selectedTowerIndex = null;
     document.getElementById('towerInfo').classList.add('hidden');
+}
+
+// Upgrade tower
+function upgradeTower() {
+    if (gameState.selectedTowerIndex === null) return;
+    
+    const tower = gameState.towers[gameState.selectedTowerIndex];
+    if (tower.upgradeLevel >= 3) return; // Already at max level
+    
+    const upgradeCosts = [Math.floor(TOWERS[tower.type].cost * 2), Math.floor(TOWERS[tower.type].cost * 3), Math.floor(TOWERS[tower.type].cost * 4)];
+    const upgradeCost = upgradeCosts[tower.upgradeLevel];
+    
+    if (gameState.gold < upgradeCost) {
+        alert('Not enough gold to upgrade!');
+        return;
+    }
+    
+    gameState.gold -= upgradeCost;
+    tower.upgradeLevel++;
+    updateUI();
+    selectTower(gameState.selectedTowerIndex); // Refresh tower info display
 }
 
 // Sell selected tower
@@ -844,12 +890,16 @@ function updateTowers() {
         
         // Shoot
         if (target && tower.lastShot >= (1000 / TOWERS[tower.type].fireRate) / gameState.speedMultiplier) {
+            // Apply upgrade damage multiplier
+            const damageMultipliers = [1, 1.1, 1.2, 1.4];
+            const upgradedDamage = TOWERS[tower.type].damage * damageMultipliers[tower.upgradeLevel];
+            
             gameState.projectiles.push({
                 x: tower.x,
                 y: tower.y,
                 targetEnemy: target,
                 towerType: tower.type,
-                damage: TOWERS[tower.type].damage
+                damage: upgradedDamage
             });
             tower.lastShot = 0;
         }
@@ -1023,8 +1073,25 @@ function draw() {
         ctx.textBaseline = 'middle';
         ctx.fillText(TOWERS[tower.type].icon, tower.x, tower.y);
         
-        // Highlight selected tower
+        // Draw upgrade stars below tower
+        if (tower.upgradeLevel > 0) {
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#FFD700';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            const stars = '⭐'.repeat(tower.upgradeLevel);
+            ctx.fillText(stars, tower.x, tower.y + 20);
+        }
+        
+        // Highlight selected tower and show range
         if (gameState.selectedTowerIndex === i) {
+            // Draw range circle - slightly darker transparent
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.beginPath();
+            ctx.arc(tower.x, tower.y, TOWERS[tower.type].range, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw tower selection ring
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 3;
             ctx.beginPath();

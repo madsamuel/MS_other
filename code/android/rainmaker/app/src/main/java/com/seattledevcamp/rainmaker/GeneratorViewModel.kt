@@ -18,6 +18,12 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     private val _recordings = MutableStateFlow<List<File>>(emptyList())
     val recordings = _recordings.asStateFlow()
 
+    // Playback state
+    private val _currentPlaying = MutableStateFlow<String?>(null)
+    val currentPlaying = _currentPlaying.asStateFlow()
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying = _isPlaying.asStateFlow()
+
     private var player: MediaPlayer? = null
 
     init {
@@ -57,14 +63,34 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         _recordings.value = files.sortedByDescending { it.lastModified() }
     }
 
-    fun playFile(file: File) {
+    /** Toggle playback for a file: play if not playing, pause if playing the same file, switch otherwise. */
+    fun togglePlay(file: File) {
         try {
+            val path = file.absolutePath
+            // If same file
+            if (_currentPlaying.value == path) {
+                // toggle pause/resume
+                if (player?.isPlaying == true) {
+                    player?.pause()
+                    _isPlaying.value = false
+                    _status.value = "paused:${file.name}"
+                } else {
+                    player?.start()
+                    _isPlaying.value = true
+                    _status.value = "playing:${file.name}"
+                }
+                return
+            }
+
+            // Different file: stop previous and start new
             player?.release()
             player = MediaPlayer().apply {
-                setDataSource(file.absolutePath)
+                setDataSource(path)
                 prepare()
                 start()
             }
+            _currentPlaying.value = path
+            _isPlaying.value = true
             _status.value = "playing:${file.name}"
         } catch (e: Exception) {
             _status.value = "error:${e.message}"
@@ -72,6 +98,20 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun deleteFile(file: File) {
+        // If deleting the currently playing file, stop playback
+        try {
+            val path = file.absolutePath
+            if (_currentPlaying.value == path) {
+                player?.stop()
+                player?.release()
+                player = null
+                _currentPlaying.value = null
+                _isPlaying.value = false
+            }
+        } catch (_: Exception) {
+            // ignore
+        }
+
         if (file.exists() && file.delete()) {
             _status.value = "deleted:${file.name}"
             refreshList()
