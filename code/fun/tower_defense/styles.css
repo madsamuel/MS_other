@@ -111,6 +111,60 @@ canvas {
     color: #ffd700;
 }
 
+#hazards {
+    margin-bottom: 20px;
+    border-top: 2px solid #ff6b35;
+    padding-top: 10px;
+}
+
+.hazard-label {
+    font-weight: bold;
+    color: #ff6b35;
+    margin-bottom: 8px;
+    font-size: 12px;
+}
+
+.hazard-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    margin: 5px 0;
+    background: rgba(255, 107, 53, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.hazard-item:hover {
+    background: rgba(255, 107, 53, 0.2);
+    border-color: #ff6b35;
+}
+
+.hazard-item.active {
+    background: rgba(255, 107, 53, 0.3);
+    border-color: #ff6b35;
+}
+
+.hazard-icon {
+    font-size: 28px;
+    margin-right: 10px;
+}
+
+.hazard-info {
+    flex: 1;
+}
+
+.hazard-name {
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.hazard-cost {
+    font-size: 12px;
+    color: #ff6b35;
+}
+
 #waveInfo {
     border-top: 2px solid #ffd700;
     padding-top: 15px;

@@ -47,8 +47,28 @@ const TOWERS = {
         damage: 35,
         range: 140,
         fireRate: 0.6,
-        icon: '🔫',
+        icon: '🏹',
         description: 'Anti-air tower, effective against flying enemies'
+    }
+};
+
+// Road hazards - bombs and traps
+const HAZARDS = {
+    bomb: {
+        name: 'Bomb',
+        cost: 75,
+        damage: 60,
+        radius: 80,
+        icon: '💣',
+        description: 'Explodes when enemy passes, damages all nearby'
+    },
+    trap: {
+        name: 'Spike Trap',
+        cost: 50,
+        damage: 40,
+        slowDuration: 2000,
+        icon: '🌹',
+        description: 'Damages and slows enemies that hit it'
     }
 };
 
@@ -258,6 +278,7 @@ const gameState = {
     enemies: [],
     projectiles: [],
     explosions: [],
+    hazards: [],
     path: [],
     currentWave: 0,
     waveInProgress: false,
@@ -269,7 +290,10 @@ const gameState = {
     gameLoopRunning: false,
     speedMultiplier: 1,
     selectedTowerIndex: null,
-    endGateDamage: 0
+    endGateDamage: 0,
+    moveMode: false,
+    movingTowerIndex: null,
+    selectedHazard: null
 };
 
 // Canvas and context
@@ -327,8 +351,23 @@ function attachEventListeners() {
     document.querySelectorAll('.tower-item').forEach(item => {
         item.addEventListener('click', () => {
             document.querySelectorAll('.tower-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.hazard-item').forEach(i => i.classList.remove('active'));
             item.classList.add('active');
             gameState.selectedTower = item.dataset.tower;
+            gameState.selectedHazard = null;
+            gameState.selectedTowerIndex = null;
+            document.getElementById('towerInfo').classList.add('hidden');
+        });
+    });
+    
+    // Hazard selection
+    document.querySelectorAll('.hazard-item').forEach(item => {
+        item.addEventListener('click', () => {
+            document.querySelectorAll('.hazard-item').forEach(i => i.classList.remove('active'));
+            document.querySelectorAll('.tower-item').forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+            gameState.selectedHazard = item.dataset.hazard;
+            gameState.selectedTower = null;
             gameState.selectedTowerIndex = null;
             document.getElementById('towerInfo').classList.add('hidden');
         });
@@ -337,6 +376,15 @@ function attachEventListeners() {
     // Canvas click for tower placement or tower selection
     canvas.addEventListener('click', (e) => {
         if (gameState.isPaused || !gameState.gameStarted) return;
+        
+        // If in move mode, try to place tower at new location
+        if (gameState.moveMode) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            moveTowerToLocation(gameState.movingTowerIndex, x, y);
+            return;
+        }
         
         const rect = canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -359,8 +407,35 @@ function attachEventListeners() {
         }
         
         // Place new tower
-        if (!gameState.selectedTower) return;
-        placeTower(x, y);
+        if (gameState.selectedTower) {
+            placeTower(x, y);
+            return;
+        }
+        
+        // Place hazard on road
+        if (gameState.selectedHazard) {
+            placeHazard(x, y);
+            return;
+        }
+    });
+    
+    // Canvas double-click for move mode
+    canvas.addEventListener('dblclick', (e) => {
+        if (gameState.isPaused || !gameState.gameStarted) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Check if double-clicking on existing tower
+        for (let i = 0; i < gameState.towers.length; i++) {
+            const tower = gameState.towers[i];
+            const dist = Math.sqrt((x - tower.x) ** 2 + (y - tower.y) ** 2);
+            if (dist < 25) {
+                enterMoveMode(i);
+                return;
+            }
+        }
     });
     
     // Buttons
@@ -409,13 +484,65 @@ function placeTower(x, y) {
     updateUI();
 }
 
-// Check if position is on path
-function isOnPath(x, y, tolerance = 60) {
-    for (let point of gameState.path) {
-        const dist = Math.sqrt((x - point.x) ** 2 + (y - point.y) ** 2);
+// Place hazard on road
+function placeHazard(x, y) {
+    const hazardType = gameState.selectedHazard;
+    const hazardCost = HAZARDS[hazardType].cost;
+    
+    if (gameState.gold < hazardCost) {
+        alert('Not enough gold!');
+        return;
+    }
+    
+    // Check if hazard is on path (required for road hazards)
+    if (!isOnPath(x, y, 40)) {
+        alert('Hazard must be placed on the road!');
+        return;
+    }
+    
+    gameState.hazards.push({
+        type: hazardType,
+        x: x,
+        y: y,
+        active: true,
+        triggered: false
+    });
+    
+    gameState.gold -= hazardCost;
+    updateUI();
+}
+
+// Check if position is on path - check distance to road line segments
+function isOnPath(x, y, tolerance = 35) {
+    for (let i = 0; i < gameState.path.length - 1; i++) {
+        const p1 = gameState.path[i];
+        const p2 = gameState.path[i + 1];
+        
+        // Calculate distance from point (x, y) to line segment p1-p2
+        const dist = distanceToLineSegment(x, y, p1.x, p1.y, p2.x, p2.y);
         if (dist < tolerance) return true;
     }
     return false;
+}
+
+// Helper function: distance from point to line segment
+function distanceToLineSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lengthSq = dx * dx + dy * dy;
+    
+    if (lengthSq === 0) {
+        // Segment is a point
+        return Math.sqrt((px - x1) ** 2 + (py - y1) ** 2);
+    }
+    
+    let t = ((px - x1) * dx + (py - y1) * dy) / lengthSq;
+    t = Math.max(0, Math.min(1, t));
+    
+    const closestX = x1 + t * dx;
+    const closestY = y1 + t * dy;
+    
+    return Math.sqrt((px - closestX) ** 2 + (py - closestY) ** 2);
 }
 
 // Start wave
@@ -491,8 +618,8 @@ function selectTower(index) {
     const refund = Math.floor(TOWERS[tower.type].cost * 0.75);
     const upgradeCosts = [Math.floor(TOWERS[tower.type].cost * 2), Math.floor(TOWERS[tower.type].cost * 3), Math.floor(TOWERS[tower.type].cost * 4)];
     const nextUpgradeCost = tower.upgradeLevel < 3 ? upgradeCosts[tower.upgradeLevel] : 'MAX';
-    const damageMultipliers = [1, 1.1, 1.2, 1.4];
-    const currentDamage = TOWERS[tower.type].damage * damageMultipliers[tower.upgradeLevel];
+    const currentDamage = getTowerDamage(tower);
+    const upgradedRange = getTowerRange(tower);
     
     let upgradeButtonHTML = '';
     if (tower.upgradeLevel < 3) {
@@ -506,6 +633,7 @@ function selectTower(index) {
             <strong>${TOWERS[tower.type].name}</strong><br/>
             Cost: ${TOWERS[tower.type].cost}G<br/>
             Damage: ${currentDamage.toFixed(1)}<br/>
+            Range: ${upgradedRange.toFixed(1)}<br/>
             Upgrade Level: ${tower.upgradeLevel}/3<br/>
             Sell Price: ${refund}G
         </div>
@@ -526,6 +654,63 @@ function selectTower(index) {
         }, 0);
     }
 }
+
+// Enter move mode for a tower
+function enterMoveMode(towerIndex) {
+    gameState.moveMode = true;
+    gameState.movingTowerIndex = towerIndex;
+    gameState.selectedTowerIndex = towerIndex;
+    
+    document.getElementById('towerDetails').innerHTML = `
+        <div style="margin-bottom: 10px; padding: 10px; background-color: #FFA500; border-radius: 4px;">
+            <strong>MOVE MODE</strong><br/>
+            Click to place tower at new location<br/>
+            <button id="cancelMoveBtn" style="margin-top: 8px; padding: 6px 12px; background-color: #f44336; color: white; border: none; border-radius: 4px; cursor: pointer; width: 100%;">Cancel Move</button>
+        </div>
+    `;
+    
+    document.getElementById('towerInfo').classList.remove('hidden');
+    
+    // Attach cancel button listener
+    setTimeout(() => {
+        const cancelBtn = document.getElementById('cancelMoveBtn');
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', cancelMoveMode);
+        }
+    }, 0);
+}
+
+// Exit move mode without moving
+function cancelMoveMode() {
+    gameState.moveMode = false;
+    gameState.movingTowerIndex = null;
+    deselectTower();
+}
+
+// Move tower to new location
+function moveTowerToLocation(towerIndex, newX, newY) {
+    const tower = gameState.towers[towerIndex];
+    
+    // Check if new location is valid (not on path)
+    if (isOnPath(newX, newY)) {
+        alert('Cannot place tower on path!');
+        return;
+    }
+    
+    // Update tower position
+    tower.x = newX;
+    tower.y = newY;
+    
+    // Exit move mode
+    gameState.moveMode = false;
+    gameState.movingTowerIndex = null;
+    gameState.selectedTowerIndex = towerIndex;
+    
+    // Show updated tower info
+    selectTower(towerIndex);
+    updateUI();
+}
+
 
 // Deselect tower
 function deselectTower() {
@@ -786,7 +971,8 @@ function updateEnemies() {
         }
         
         // Move along path
-        enemy.pathProgress += enemy.speed * gameState.speedMultiplier;
+        const speedMultiplier = enemy.slowedUntil && Date.now() < enemy.slowedUntil ? 0.5 : 1;
+        enemy.pathProgress += enemy.speed * speedMultiplier * gameState.speedMultiplier;
         
         const currentPoint = gameState.path[enemy.pathIndex];
         const nextPoint = gameState.path[enemy.pathIndex + 1];
@@ -812,6 +998,9 @@ function updateEnemies() {
             enemy.y = curr.y + (dy / dist) * enemy.pathProgress;
         }
         
+        // Check hazard collisions
+        checkHazardCollisions(enemy, i);
+        
         // Remove if dead
         if (enemy.health <= 0) {
             // Create explosion animation
@@ -835,6 +1024,82 @@ function updateEnemies() {
     }
 }
 
+// Check if enemy hits any hazards on the road
+function checkHazardCollisions(enemy, enemyIndex) {
+    for (let i = gameState.hazards.length - 1; i >= 0; i--) {
+        const hazard = gameState.hazards[i];
+        if (!hazard.active) continue;
+        
+        const dist = Math.sqrt((enemy.x - hazard.x) ** 2 + (enemy.y - hazard.y) ** 2);
+        
+        if (dist < 25) {  // Hazard collision radius
+            if (hazard.type === 'bomb') {
+                // Bomb explodes - damages all enemies in radius
+                const bombDamage = HAZARDS['bomb'].damage;
+                const explosionRadius = HAZARDS['bomb'].radius;
+                
+                for (let j = 0; j < gameState.enemies.length; j++) {
+                    const targetEnemy = gameState.enemies[j];
+                    const distToBomb = Math.sqrt((targetEnemy.x - hazard.x) ** 2 + (targetEnemy.y - hazard.y) ** 2);
+                    if (distToBomb < explosionRadius) {
+                        targetEnemy.health -= bombDamage;
+                    }
+                }
+                
+                // Create explosion effect
+                gameState.explosions.push({
+                    x: hazard.x,
+                    y: hazard.y,
+                    radius: 5,
+                    maxRadius: explosionRadius,
+                    lifetime: 30,
+                    maxLifetime: 30,
+                    particles: createExplosionParticles(hazard.x, hazard.y)
+                });
+                
+                hazard.active = false;
+            } else if (hazard.type === 'trap') {
+                // Trap damages and slows enemy
+                if (!hazard.triggered) {
+                    enemy.health -= HAZARDS['trap'].damage;
+                    if (!enemy.slowedUntil) {
+                        enemy.slowedUntil = Date.now() + HAZARDS['trap'].slowDuration;
+                        enemy.slowMultiplier = 0.5;
+                    }
+                    hazard.triggered = true;
+                    
+                    // Trap can trigger multiple times (resets after 1 second)
+                    setTimeout(() => {
+                        hazard.triggered = false;
+                    }, 1000);
+                }
+            }
+            
+            updateUI();
+        }
+    }
+    
+    // Apply slow effect if active
+    if (enemy.slowedUntil && Date.now() < enemy.slowedUntil) {
+        // Slow is already applied via slowMultiplier in speed calculation
+    } else if (enemy.slowedUntil) {
+        enemy.slowMultiplier = 1;
+        enemy.slowedUntil = null;
+    }
+}
+
+// Get upgraded tower range based on upgrade level
+function getTowerRange(tower) {
+    const rangeMultipliers = [1, 1.1, 1.2, 1.4];
+    return TOWERS[tower.type].range * rangeMultipliers[tower.upgradeLevel];
+}
+
+// Get upgraded tower damage based on upgrade level
+function getTowerDamage(tower) {
+    const damageMultipliers = [1, 1.1, 1.2, 1.4];
+    return TOWERS[tower.type].damage * damageMultipliers[tower.upgradeLevel];
+}
+
 // Update towers
 function updateTowers() {
     const timeStep = 16 * gameState.speedMultiplier;
@@ -851,7 +1116,7 @@ function updateTowers() {
             // First pass: look for flying enemies in range
             for (let enemy of gameState.enemies) {
                 const dist = Math.sqrt((tower.x - enemy.x) ** 2 + (tower.y - enemy.y) ** 2);
-                if (dist < TOWERS[tower.type].range && ENEMIES[enemy.type].isFlying) {
+                if (dist < getTowerRange(tower) && ENEMIES[enemy.type].isFlying) {
                     // Calculate path progress: pathIndex + pathProgress
                     const pathProgress = enemy.pathIndex + enemy.pathProgress;
                     if (pathProgress > maxPathProgress) {
@@ -865,7 +1130,7 @@ function updateTowers() {
                 maxPathProgress = -1;
                 for (let enemy of gameState.enemies) {
                     const dist = Math.sqrt((tower.x - enemy.x) ** 2 + (tower.y - enemy.y) ** 2);
-                    if (dist < TOWERS[tower.type].range) {
+                    if (dist < getTowerRange(tower)) {
                         const pathProgress = enemy.pathIndex + enemy.pathProgress;
                         if (pathProgress > maxPathProgress) {
                             maxPathProgress = pathProgress;
@@ -878,7 +1143,7 @@ function updateTowers() {
             // Other towers: target the leading enemy in range
             for (let enemy of gameState.enemies) {
                 const dist = Math.sqrt((tower.x - enemy.x) ** 2 + (tower.y - enemy.y) ** 2);
-                if (dist < TOWERS[tower.type].range) {
+                if (dist < getTowerRange(tower)) {
                     const pathProgress = enemy.pathIndex + enemy.pathProgress;
                     if (pathProgress > maxPathProgress) {
                         maxPathProgress = pathProgress;
@@ -890,16 +1155,12 @@ function updateTowers() {
         
         // Shoot
         if (target && tower.lastShot >= (1000 / TOWERS[tower.type].fireRate) / gameState.speedMultiplier) {
-            // Apply upgrade damage multiplier
-            const damageMultipliers = [1, 1.1, 1.2, 1.4];
-            const upgradedDamage = TOWERS[tower.type].damage * damageMultipliers[tower.upgradeLevel];
-            
             gameState.projectiles.push({
                 x: tower.x,
                 y: tower.y,
                 targetEnemy: target,
                 towerType: tower.type,
-                damage: upgradedDamage
+                damage: getTowerDamage(tower)
             });
             tower.lastShot = 0;
         }
@@ -1071,6 +1332,7 @@ function draw() {
         ctx.font = '32px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#000000';  // Reset fill style to black
         ctx.fillText(TOWERS[tower.type].icon, tower.x, tower.y);
         
         // Draw upgrade stars below tower
@@ -1088,15 +1350,26 @@ function draw() {
             // Draw range circle - slightly darker transparent
             ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
             ctx.beginPath();
-            ctx.arc(tower.x, tower.y, TOWERS[tower.type].range, 0, Math.PI * 2);
+            ctx.arc(tower.x, tower.y, getTowerRange(tower), 0, Math.PI * 2);
             ctx.fill();
             
-            // Draw tower selection ring
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(tower.x, tower.y, 28, 0, Math.PI * 2);
-            ctx.stroke();
+            // If in move mode, draw special indicator
+            if (gameState.moveMode) {
+                ctx.strokeStyle = '#FF6B35';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(tower.x, tower.y, 35, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            } else {
+                // Draw tower selection ring
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(tower.x, tower.y, 28, 0, Math.PI * 2);
+                ctx.stroke();
+            }
         }
         
         // Draw range (debug)
@@ -1104,6 +1377,26 @@ function draw() {
         // ctx.beginPath();
         // ctx.arc(tower.x, tower.y, TOWERS[tower.type].range, 0, Math.PI * 2);
         // ctx.stroke();
+    }
+    
+    // Draw hazards
+    for (let hazard of gameState.hazards) {
+        if (!hazard.active) continue;
+        
+        ctx.font = '24px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#000000';  // Reset fill style to black
+        ctx.fillText(HAZARDS[hazard.type].icon, hazard.x, hazard.y);
+        
+        // Draw hazard radius indicator
+        if (hazard.type === 'bomb') {
+            ctx.strokeStyle = 'rgba(200, 100, 0, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(hazard.x, hazard.y, HAZARDS['bomb'].radius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
     }
     
     // Draw enemies
@@ -1212,6 +1505,7 @@ function newGame() {
     gameState.enemies = [];
     gameState.projectiles = [];
     gameState.explosions = [];
+    gameState.hazards = [];
     gameState.currentWave = 0;
     gameState.waveInProgress = false;
     gameState.waveIndex = 0;
