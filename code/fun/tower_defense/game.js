@@ -1198,8 +1198,9 @@ function updateProjectiles() {
             
             gameState.projectiles.splice(i, 1);
         } else {
-            proj.x += (dx / dist) * 5;
-            proj.y += (dy / dist) * 5;
+            const projSpeed = 8 * gameState.speedMultiplier;  // Increased speed and account for game speed
+            proj.x += (dx / dist) * projSpeed;
+            proj.y += (dy / dist) * projSpeed;
         }
     }
 }
