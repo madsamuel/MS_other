@@ -1279,6 +1279,141 @@ function drawEndGate() {
     }
 }
 
+// Draw custom boss monster
+function drawBossMonster(x, y, size) {
+    const scale = size * 15;  // Scale based on enemy size
+    
+    // Animate walking - create sine wave based on time
+    const walkCycle = Math.sin(Date.now() / 150) * 0.25;  // Oscillates between -0.25 and 0.25 (more visible)
+    const legSwing = Math.sin(Date.now() / 150) * 0.5;    // Leg swing amount (increased for bigger movement)
+    
+    // Body (green)
+    ctx.fillStyle = '#2d5016';
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    
+    // Main body - round shape (bobs up and down slightly)
+    ctx.beginPath();
+    ctx.ellipse(x, y + scale * 0.1 + walkCycle * scale * 0.1, scale * 0.35, scale * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Left arm (swings with walk cycle)
+    const leftArmRotation = legSwing * 0.5;
+    ctx.save();
+    ctx.translate(x - scale * 0.35, y + scale * 0.05);
+    ctx.rotate(leftArmRotation);
+    ctx.fillRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.35);
+    ctx.strokeRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.35);
+    ctx.restore();
+    
+    // Right arm (swings opposite to left)
+    const rightArmRotation = -legSwing * 0.5;
+    ctx.save();
+    ctx.translate(x + scale * 0.35, y + scale * 0.05);
+    ctx.rotate(rightArmRotation);
+    ctx.fillRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.35);
+    ctx.strokeRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.35);
+    ctx.restore();
+    
+    // Left leg (walks forward and back)
+    ctx.save();
+    ctx.translate(x - scale * 0.15, y + scale * 0.6);
+    ctx.rotate(legSwing * 0.3);
+    ctx.fillRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.25);
+    ctx.strokeRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.25);
+    ctx.restore();
+    
+    // Right leg (walks opposite to left)
+    ctx.save();
+    ctx.translate(x + scale * 0.15, y + scale * 0.6);
+    ctx.rotate(-legSwing * 0.3);
+    ctx.fillRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.25);
+    ctx.strokeRect(-scale * 0.1, -scale * 0.05, scale * 0.2, scale * 0.25);
+    ctx.restore();
+    
+    // Head
+    ctx.fillStyle = '#3d6b21';
+    ctx.beginPath();
+    ctx.ellipse(x, y - scale * 0.25 + walkCycle * scale * 0.1, scale * 0.28, scale * 0.32, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Left horn
+    ctx.fillStyle = '#c9b391';
+    ctx.beginPath();
+    ctx.moveTo(x - scale * 0.18, y - scale * 0.52 + walkCycle * scale * 0.1);
+    ctx.lineTo(x - scale * 0.22, y - scale * 0.7 + walkCycle * scale * 0.1);
+    ctx.lineTo(x - scale * 0.12, y - scale * 0.55 + walkCycle * scale * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+    
+    // Right horn
+    ctx.fillStyle = '#c9b391';
+    ctx.beginPath();
+    ctx.moveTo(x + scale * 0.18, y - scale * 0.52 + walkCycle * scale * 0.1);
+    ctx.lineTo(x + scale * 0.22, y - scale * 0.7 + walkCycle * scale * 0.1);
+    ctx.lineTo(x + scale * 0.12, y - scale * 0.55 + walkCycle * scale * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+    
+    // Left eye
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x - scale * 0.12, y - scale * 0.25 + walkCycle * scale * 0.1, scale * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Left pupil
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(x - scale * 0.12, y - scale * 0.25 + walkCycle * scale * 0.1, scale * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Right eye
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(x + scale * 0.12, y - scale * 0.25 + walkCycle * scale * 0.1, scale * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#000000';
+    ctx.stroke();
+    
+    // Right pupil
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(x + scale * 0.12, y - scale * 0.25 + walkCycle * scale * 0.1, scale * 0.06, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Mouth
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x - scale * 0.1, y - scale * 0.05 + walkCycle * scale * 0.1);
+    ctx.lineTo(x - scale * 0.05, y + scale * 0.05 + walkCycle * scale * 0.1);
+    ctx.lineTo(x, y + scale * 0.08 + walkCycle * scale * 0.1);
+    ctx.lineTo(x + scale * 0.05, y + scale * 0.05 + walkCycle * scale * 0.1);
+    ctx.lineTo(x + scale * 0.1, y - scale * 0.05 + walkCycle * scale * 0.1);
+    ctx.stroke();
+    
+    // Teeth
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 1;
+    for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(x + i * scale * 0.04, y + scale * 0.05 + walkCycle * scale * 0.1);
+        ctx.lineTo(x + i * scale * 0.04, y + scale * 0.1 + walkCycle * scale * 0.1);
+        ctx.stroke();
+    }
+}
+
 // Draw everything
 function draw() {
     // Clear canvas
@@ -1418,7 +1553,13 @@ function draw() {
             ctx.fill();
         }
         
-        ctx.fillText(ENEMIES[enemy.type].icon, enemy.x, enemy.y);
+        // Draw custom monster for boss enemies instead of emoji
+        if (isBoss) {
+            drawBossMonster(enemy.x, enemy.y, enemy.size);
+        } else {
+            // Draw regular enemy emoji
+            ctx.fillText(ENEMIES[enemy.type].icon, enemy.x, enemy.y);
+        }
         
         // Draw health bar (scaled for boss size)
         const barWidth = 30 * enemy.size;
