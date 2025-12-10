@@ -9,9 +9,17 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     display: flex;
     justify-content: center;
+    align-items: flex-start;
+    padding-top: 20px;
+    min-height: 100vh;
+    overflow-y: auto;
+}
+
+#mainWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     align-items: center;
-    height: 100vh;
-    overflow: hidden;
 }
 
 #gameContainer {
@@ -20,8 +28,7 @@ body {
     height: 800px;
     background: #f0f0f0;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-    border-radius: 8px;
-    overflow: hidden;
+    border-radius: 8px 8px 0 0;
 }
 
 canvas {
@@ -30,22 +37,57 @@ canvas {
     cursor: crosshair;
 }
 
-#ui {
+#ui-right {
     position: absolute;
     top: 0;
     right: 0;
     width: 300px;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    height: auto;
+    max-height: 800px;
+    background: #f0f0f0;
     padding: 20px;
-    color: white;
+    color: #333;
     overflow-y: auto;
     font-size: 14px;
 }
 
+#ui-bottom {
+    position: static;
+    width: 1200px;
+    background: #f0f0f0;
+    padding: 15px 20px;
+    color: #333;
+    font-size: 14px;
+    display: flex;
+    gap: 40px;
+    overflow-x: auto;
+    border-top: 2px solid #333;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+#ui-bottom #towers {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+#ui-bottom #hazards {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.towers-label {
+    font-weight: bold;
+    color: #333;
+    white-space: nowrap;
+    margin-right: 5px;
+}
+
 #stats {
     margin-bottom: 20px;
-    border-bottom: 2px solid #ffd700;
+    border-bottom: 2px solid #333;
     padding-bottom: 15px;
 }
 
@@ -58,15 +100,15 @@ canvas {
 
 .stat-label {
     font-weight: bold;
-    color: #ffd700;
+    color: #333;
 }
 
 .stat-value {
-    color: #00ff00;
+    color: #ff6b6b;
     font-weight: bold;
 }
 
-#towers {
+#ui-right #towers {
     margin-bottom: 20px;
 }
 
@@ -75,21 +117,27 @@ canvas {
     align-items: center;
     padding: 10px;
     margin: 5px 0;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
     cursor: pointer;
     border: 2px solid transparent;
     transition: all 0.2s;
 }
 
+#ui-bottom .tower-item {
+    flex-direction: column;
+    padding: 8px;
+    gap: 5px;
+}
+
 .tower-item:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: #ffd700;
+    background: rgba(0, 0, 0, 0.15);
+    border-color: #333;
 }
 
 .tower-item.active {
-    background: rgba(255, 215, 0, 0.3);
-    border-color: #ffd700;
+    background: rgba(0, 0, 0, 0.2);
+    border-color: #333;
 }
 
 .tower-icon {
@@ -97,8 +145,17 @@ canvas {
     margin-right: 10px;
 }
 
+#ui-bottom .tower-icon {
+    font-size: 28px;
+    margin-right: 0;
+}
+
 .tower-info {
     flex: 1;
+}
+
+#ui-bottom .tower-info {
+    text-align: center;
 }
 
 .tower-name {
@@ -106,22 +163,37 @@ canvas {
     margin-bottom: 3px;
 }
 
-.tower-cost {
+#ui-bottom .tower-name {
+    margin-bottom: 2px;
     font-size: 12px;
-    color: #ffd700;
 }
 
-#hazards {
+.tower-cost {
+    font-size: 12px;
+    color: #ff6b6b;
+}
+
+#ui-bottom .tower-cost {
+    font-size: 11px;
+}
+
+#ui-right #hazards {
     margin-bottom: 20px;
-    border-top: 2px solid #ff6b35;
+    border-top: 2px solid #333;
     padding-top: 10px;
 }
 
 .hazard-label {
     font-weight: bold;
-    color: #ff6b35;
+    color: #333;
     margin-bottom: 8px;
     font-size: 12px;
+}
+
+#ui-bottom .hazard-label {
+    margin-bottom: 0;
+    white-space: nowrap;
+    margin-right: 5px;
 }
 
 .hazard-item {
@@ -129,21 +201,28 @@ canvas {
     align-items: center;
     padding: 10px;
     margin: 5px 0;
-    background: rgba(255, 107, 53, 0.1);
+    background: rgba(0, 0, 0, 0.1);
     border-radius: 4px;
     cursor: pointer;
     border: 2px solid transparent;
     transition: all 0.2s;
 }
 
+#ui-bottom .hazard-item {
+    flex-direction: column;
+    padding: 8px;
+    gap: 5px;
+    margin: 0;
+}
+
 .hazard-item:hover {
-    background: rgba(255, 107, 53, 0.2);
-    border-color: #ff6b35;
+    background: rgba(0, 0, 0, 0.15);
+    border-color: #333;
 }
 
 .hazard-item.active {
-    background: rgba(255, 107, 53, 0.3);
-    border-color: #ff6b35;
+    background: rgba(0, 0, 0, 0.2);
+    border-color: #333;
 }
 
 .hazard-icon {
@@ -151,8 +230,17 @@ canvas {
     margin-right: 10px;
 }
 
+#ui-bottom .hazard-icon {
+    font-size: 24px;
+    margin-right: 0;
+}
+
 .hazard-info {
     flex: 1;
+}
+
+#ui-bottom .hazard-info {
+    text-align: center;
 }
 
 .hazard-name {
@@ -160,21 +248,30 @@ canvas {
     margin-bottom: 3px;
 }
 
-.hazard-cost {
+#ui-bottom .hazard-name {
+    margin-bottom: 2px;
     font-size: 12px;
-    color: #ff6b35;
 }
 
-#waveInfo {
-    border-top: 2px solid #ffd700;
+.hazard-cost {
+    font-size: 12px;
+    color: #ff6b6b;
+}
+
+#ui-bottom .hazard-cost {
+    font-size: 11px;
+}
+
+#ui-right #waveInfo {
     padding-top: 15px;
+    border-top: 2px solid #333;
 }
 
 #waveStatus {
     margin-bottom: 10px;
     font-size: 16px;
     font-weight: bold;
-    color: #00ff00;
+    color: #00a86b;
 }
 
 #waveInfo button {
@@ -204,8 +301,8 @@ canvas {
     background: #4caf50;
 }
 
-#towerInfo {
-    border-top: 2px solid #ffd700;
+#ui-right #towerInfo {
+    border-top: 2px solid #333;
     padding-top: 15px;
     margin-top: 15px;
     min-height: 120px;

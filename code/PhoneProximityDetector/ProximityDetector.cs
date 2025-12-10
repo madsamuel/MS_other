@@ -13,6 +13,7 @@ namespace PhoneProximityDetector
         private bool _isRunning;
 
         public event EventHandler<DetectedDevice>? OnDeviceDetected;
+        public event EventHandler<DetectedDevice>? OnDeviceUpdated;
         public event EventHandler<DetectedDevice>? OnDeviceLost;
         public event EventHandler<string>? OnError;
 
@@ -114,6 +115,7 @@ namespace PhoneProximityDetector
                 if (_detectedDevices.ContainsKey(device.Id))
                 {
                     _detectedDevices[device.Id] = device;
+                    OnDeviceUpdated?.Invoke(this, device);
                 }
             }
         }

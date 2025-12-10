@@ -7,28 +7,68 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="1200" height="800"></canvas>
-        <div id="ui">
-            <div id="stats">
-                <div class="stat-item">
-                    <span class="stat-label">Level:</span>
-                    <span class="stat-value" id="levelDisplay">1</span>
+    <div id="mainWrapper">
+        <div id="gameContainer">
+            <canvas id="gameCanvas" width="1200" height="800"></canvas>
+            <!-- Right Side Controls -->
+            <div id="ui-right">
+                <div id="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Level:</span>
+                        <span class="stat-value" id="levelDisplay">1</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value" id="scoreDisplay">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Gold:</span>
+                        <span class="stat-value" id="goldDisplay">500</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Lives:</span>
+                        <span class="stat-value" id="livesDisplay">20</span>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Score:</span>
-                    <span class="stat-value" id="scoreDisplay">0</span>
+                <div id="waveInfo">
+                    <div id="waveStatus">Wave: 1/10</div>
+                    <button id="startWaveBtn">Start Wave</button>
+                    <button id="pauseBtn">Pause</button>
+                    <button id="speedBtn">Speed: 1x</button>
+                    <button id="saveBtn">Save Game</button>
+                    <button id="loadBtn">Load Game</button>
+                    <button id="resetBtn">Reset Game</button>
                 </div>
-                <div class="stat-item">
-                    <span class="stat-label">Gold:</span>
-                    <span class="stat-value" id="goldDisplay">500</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">Lives:</span>
-                    <span class="stat-value" id="livesDisplay">20</span>
+                <div id="towerInfo" class="tower-info-panel hidden">
+                    <div id="towerDetails"></div>
+                    <button id="sellTowerBtn">Sell (Get 75% back)</button>
+                    <button id="cancelBtn">Cancel</button>
                 </div>
             </div>
+            <div id="waveNotification" class="wave-notification hidden">
+                <div id="waveMessage"></div>
+            </div>
+            <div id="menu" class="menu">
+                <div class="menu-content">
+                    <h1>Mario Tower Defense</h1>
+                    <button id="newGameBtn">New Game</button>
+                    <button id="loadGameBtn">Load Game</button>
+                    <button id="settingsBtn">Settings</button>
+                </div>
+            </div>
+            <div id="gameOverMenu" class="menu hidden">
+                <div class="menu-content">
+                    <h1 id="gameOverTitle">Game Over!</h1>
+                    <div id="gameOverStats"></div>
+                    <button id="retryBtn">Try Again</button>
+                    <button id="menuBtn">Main Menu</button>
+                </div>
+            </div>
+        </div>
+        <!-- Bottom Shopping Menu - Outside gameContainer -->
+        <div id="ui-bottom">
             <div id="towers">
+                <div class="towers-label">Towers:</div>
                 <div class="tower-item" data-tower="pipe">
                     <div class="tower-icon">🔴</div>
                     <div class="tower-info">
@@ -81,39 +121,6 @@
                         <div class="hazard-cost">50</div>
                     </div>
                 </div>
-            </div>
-            <div id="waveInfo">
-                <div id="waveStatus">Wave: 1/10</div>
-                <button id="startWaveBtn">Start Wave</button>
-                <button id="pauseBtn">Pause</button>
-                <button id="speedBtn">Speed: 1x</button>
-                <button id="saveBtn">Save Game</button>
-                <button id="loadBtn">Load Game</button>
-                <button id="resetBtn">Reset Game</button>
-            </div>
-            <div id="towerInfo" class="tower-info-panel hidden">
-                <div id="towerDetails"></div>
-                <button id="sellTowerBtn">Sell (Get 75% back)</button>
-                <button id="cancelBtn">Cancel</button>
-            </div>
-        </div>
-        <div id="waveNotification" class="wave-notification hidden">
-            <div id="waveMessage"></div>
-        </div>
-        <div id="menu" class="menu">
-            <div class="menu-content">
-                <h1>Mario Tower Defense</h1>
-                <button id="newGameBtn">New Game</button>
-                <button id="loadGameBtn">Load Game</button>
-                <button id="settingsBtn">Settings</button>
-            </div>
-        </div>
-        <div id="gameOverMenu" class="menu hidden">
-            <div class="menu-content">
-                <h1 id="gameOverTitle">Game Over!</h1>
-                <div id="gameOverStats"></div>
-                <button id="retryBtn">Try Again</button>
-                <button id="menuBtn">Main Menu</button>
             </div>
         </div>
     </div>

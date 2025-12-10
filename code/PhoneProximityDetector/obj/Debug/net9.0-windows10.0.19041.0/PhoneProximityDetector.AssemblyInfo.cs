@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PhoneProximityDetector")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+88db390b1e5d525c3f456c985390fc8bf8f84177")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e3431927a0ba9fb1aa71bd718d062609d03c82f4")]
 [assembly: System.Reflection.AssemblyProductAttribute("PhoneProximityDetector")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PhoneProximityDetector")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
