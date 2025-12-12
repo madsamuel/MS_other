@@ -82,8 +82,9 @@ class MainActivity : ComponentActivity() {
                                     onDurationChange = { durationSec = it },
                                     onGenerate = {
                                         val mask = modifiers.entries.fold(0) { acc, e -> if (e.value) acc or modifierMask(e.key) else acc }
-                                        val filename = "rain_${System.currentTimeMillis()}.wav"
-                                        vm.generateRainFile(durationSec.toInt(), selectedIntensity.code, mask, filename)
+                                        val seed = kotlin.random.Random.nextLong()
+                                        val filename = "rain_${System.currentTimeMillis()}_${kotlin.math.abs(seed)}.wav"
+                                        vm.generateRainFile(durationSec.toInt(), selectedIntensity.code, mask, filename, seed)
                                     },
                                     status = status,
                                     onRefresh = { vm.refreshList() }

@@ -30,23 +30,28 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         refreshList()
     }
 
-    fun generateRainFile(durationSec: Int, intensityCode: Int, modifiers: Int, filename: String) {
+    fun generateRainFile(durationSec: Int, intensityCode: Int, modifiers: Int, filename: String, seed: Long = kotlin.random.Random.nextLong()) {
         _status.value = "starting"
         val file = File(getApplication<Application>().filesDir, filename)
         Thread {
             try {
                 _status.value = "generating"
                 val ok = try {
-                    // Call native bridge if available
-                    NativeBridge.generate(file.absolutePath, 44100, durationSec, intensityCode, modifiers)
-                } catch (_: Throwable) {
-                    // Fallback: generate WAV in pure Kotlin
-                    val pcm = RainGenerator.generate(44100, durationSec, intensityCode, modifiers)
+                    // Prefer seed-aware native if present
+                    try {
+                        NativeBridge.generateWithSeed(file.absolutePath, 44100, durationSec, intensityCode, modifiers, seed)
+                    } catch (t: Throwable) {
+                        // Fallback to legacy native
+                        NativeBridge.generate(file.absolutePath, 44100, durationSec, intensityCode, modifiers)
+                    }
+                } catch (t: Throwable) {
+                    // Fallback: generate WAV in pure Kotlin using provided seed
+                    val pcm = RainGenerator.generate(44100, durationSec, intensityCode, modifiers, seed)
                     WavWriter.writeWav(getApplication(), filename, 44100, pcm)
                     true
                 }
                 if (ok) {
-                    _status.value = "saved:${file.absolutePath}"
+                    _status.value = "saved:${file.absolutePath}:seed=$seed"
                 } else {
                     _status.value = "error:native-failed"
                 }

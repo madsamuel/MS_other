@@ -8,9 +8,11 @@ import kotlin.random.Random
 object RainGenerator {
     data class Layer(val amplitude: Float, val cutoffHz: Float, val density: Float)
 
-    fun generate(sampleRate: Int = 44100, durationSec: Int = 10, intensity: Int = 1, modifiersMask: Int = 0): ShortArray {
+    // Added `seed` parameter to guarantee unique output per run when seed differs.
+    fun generate(sampleRate: Int = 44100, durationSec: Int = 10, intensity: Int = 1, modifiersMask: Int = 0, seed: Long = Random.nextLong()): ShortArray {
         val totalSamples = sampleRate * durationSec
-        val rnd = Random(0)
+        // Initialize PRNG with provided seed so same settings + different seed => different audio
+        val rnd = Random(seed)
         val mix = FloatArray(totalSamples)
 
         val layers = when (intensity) {
@@ -67,4 +69,3 @@ object RainGenerator {
         return out
     }
 }
-
