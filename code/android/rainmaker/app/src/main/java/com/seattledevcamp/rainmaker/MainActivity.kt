@@ -8,12 +8,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.Alignment
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
 
@@ -39,11 +40,18 @@ class MainActivity : ComponentActivity() {
                 var currentScreen by remember { mutableStateOf(Screen.GENERATOR) }
 
                 var selectedIntensity by remember { mutableStateOf(RainIntensity.MEDIUM) }
-                val modifiers = remember { mutableStateMapOf(
-                    "sea" to false, "cliffs" to false, "forest" to false,
-                    "river" to false, "city" to false, "countryside" to false, "cafe" to false
-                ) }
-                var durationSec by remember { mutableStateOf(30f) } // in seconds
+                val modifiers = remember {
+                    mutableStateMapOf(
+                        "sea" to false,
+                        "cliffs" to false,
+                        "forest" to false,
+                        "river" to false,
+                        "city" to false,
+                        "countryside" to false,
+                        "cafe" to false
+                    )
+                }
+                var durationSec by remember { mutableStateOf(30f) }
 
                 // Auto-navigate to recordings when generation completes with saved:path
                 LaunchedEffect(status) {
@@ -55,24 +63,28 @@ class MainActivity : ComponentActivity() {
 
                 Scaffold(
                     topBar = {
-                        AppTopBar(currentScreen = currentScreen, onOpenRecordings = { currentScreen = Screen.RECORDINGS }, onBack = { currentScreen = Screen.GENERATOR })
+                        AppTopBar(
+                            currentScreen = currentScreen,
+                            onOpenRecordings = { currentScreen = Screen.RECORDINGS },
+                            onBack = { currentScreen = Screen.GENERATOR }
+                        )
                     },
                     content = { innerPadding ->
                         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                             when (currentScreen) {
                                 Screen.GENERATOR -> GeneratorContent(
-                                     selectedIntensity = selectedIntensity,
-                                     onSelectIntensity = { selectedIntensity = it },
-                                     modifiers = modifiers,
-                                     durationSec = durationSec,
-                                     onDurationChange = { durationSec = it },
-                                     onGenerate = {
-                                         val mask = modifiers.entries.fold(0) { acc, e -> if (e.value) acc or modifierMask(e.key) else acc }
-                                         val filename = "rain_${System.currentTimeMillis()}.wav"
+                                    selectedIntensity = selectedIntensity,
+                                    onSelectIntensity = { selectedIntensity = it },
+                                    modifiers = modifiers,
+                                    durationSec = durationSec,
+                                    onDurationChange = { durationSec = it },
+                                    onGenerate = {
+                                        val mask = modifiers.entries.fold(0) { acc, e -> if (e.value) acc or modifierMask(e.key) else acc }
+                                        val filename = "rain_${System.currentTimeMillis()}.wav"
                                         vm.generateRainFile(durationSec.toInt(), selectedIntensity.code, mask, filename)
-                                     },
-                                     status = status,
-                                     onRefresh = { vm.refreshList() }
+                                    },
+                                    status = status,
+                                    onRefresh = { vm.refreshList() }
                                 )
                                 Screen.RECORDINGS -> RecordingsContent(
                                     recordings = recordings,
@@ -81,6 +93,26 @@ class MainActivity : ComponentActivity() {
                                     onPlay = { vm.togglePlay(it) },
                                     onDelete = { vm.deleteFile(it) },
                                     onRefresh = { vm.refreshList() },
+                                    onRename = { file, newName ->
+                                        val trimmed = newName.trim()
+                                        if (trimmed.isNotEmpty()) {
+                                            val safeName = if (trimmed.endsWith(".wav", ignoreCase = true)) trimmed else "$trimmed.wav"
+                                            val dir = file.parentFile
+                                            if (dir != null) {
+                                                val target = File(dir, safeName)
+                                                when {
+                                                    target.exists() -> vm.updateStatus("error: rename target exists")
+                                                    file.renameTo(target) -> {
+                                                        vm.updateStatus("renamed:${target.name}")
+                                                    }
+                                                    else -> {
+                                                        vm.updateStatus("error: rename failed")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        vm.refreshList()
+                                    }
                                 )
                             }
                         }
@@ -145,12 +177,11 @@ private fun GeneratorContent(
 
         Spacer(Modifier.height(12.dp))
         Text("Duration: ${durationSec.toInt()}s")
-        Slider(value = durationSec, onValueChange = { onDurationChange(it) }, valueRange = 10f..300f)
+        Slider(value = durationSec, onValueChange = onDurationChange, valueRange = 10f..300f)
 
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onGenerate) { Text("Generate") }
-
             Button(onClick = onRefresh) { Text("Refresh") }
         }
 
@@ -166,7 +197,8 @@ private fun RecordingsContent(
     isPlayingGlobal: Boolean,
     onPlay: (File) -> Unit,
     onDelete: (File) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onRename: (File, String) -> Unit
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
@@ -174,10 +206,16 @@ private fun RecordingsContent(
             Button(onClick = onRefresh) { Text("Refresh") }
         }
         Spacer(Modifier.height(8.dp))
-        LazyColumn {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(recordings) { f ->
                 val playingForThis = (currentPlaying == f.absolutePath) && isPlayingGlobal
-                RecordingRow(file = f, isPlaying = playingForThis, onTogglePlay = { onPlay(f) }, onDelete = { onDelete(f) })
+                RecordingRow(
+                    file = f,
+                    isPlaying = playingForThis,
+                    onTogglePlay = { onPlay(f) },
+                    onDelete = { onDelete(f) },
+                    onRename = { newName -> onRename(f, newName) }
+                )
             }
         }
     }
@@ -198,14 +236,29 @@ private fun FlowRow(keys: List<String>, content: @Composable (String) -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RecordingRow(file: File, isPlaying: Boolean, onTogglePlay: () -> Unit, onDelete: () -> Unit) {
+private fun RecordingRow(
+    file: File,
+    isPlaying: Boolean,
+    onTogglePlay: () -> Unit,
+    onDelete: () -> Unit,
+    onRename: (String) -> Unit
+) {
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf(file.name) }
+
     Card(modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 4.dp)) {
-        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column {
                 Text(file.name, style = MaterialTheme.typography.bodyLarge)
-                Text("${file.length()/1024} KB", style = MaterialTheme.typography.bodySmall)
+                Text("${file.length() / 1024} KB", style = MaterialTheme.typography.bodySmall)
             }
             Row {
                 if (isPlaying) {
@@ -213,18 +266,43 @@ private fun RecordingRow(file: File, isPlaying: Boolean, onTogglePlay: () -> Uni
                 } else {
                     IconButton(onClick = onTogglePlay) { Icon(Icons.Default.PlayArrow, contentDescription = "Play") }
                 }
+                IconButton(onClick = { showRenameDialog = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "Rename")
+                }
                 IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
             }
         }
+    }
+
+    if (showRenameDialog) {
+        AlertDialog(
+            onDismissRequest = { showRenameDialog = false },
+            title = { Text("Rename recording") },
+            text = {
+                Column {
+                    Text("Enter a new name (without extension). .wav will be added if missing.")
+                    Spacer(Modifier.height(8.dp))
+                    TextField(value = newName, onValueChange = { newName = it }, singleLine = true)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    onRename(newName)
+                    showRenameDialog = false
+                }) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel") }
+            }
+        )
     }
 }
 
 @Composable
 private fun AppTopBar(currentScreen: Screen, onOpenRecordings: () -> Unit, onBack: () -> Unit) {
-    Surface(
-        tonalElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
-    ) {
+    Surface(tonalElevation = 4.dp, modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -232,7 +310,10 @@ private fun AppTopBar(currentScreen: Screen, onOpenRecordings: () -> Unit, onBac
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(if (currentScreen == Screen.GENERATOR) "Rain Mix Generator" else "Recordings", style = MaterialTheme.typography.titleLarge)
+            Text(
+                if (currentScreen == Screen.GENERATOR) "Rain Mix Generator" else "Recordings",
+                style = MaterialTheme.typography.titleLarge
+            )
             if (currentScreen == Screen.GENERATOR) {
                 TextButton(onClick = onOpenRecordings) { Text("Recordings") }
             } else {

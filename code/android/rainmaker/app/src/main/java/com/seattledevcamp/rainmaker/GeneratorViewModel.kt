@@ -120,6 +120,10 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun updateStatus(message: String) {
+        _status.value = message
+    }
+
     override fun onCleared() {
         player?.release()
         super.onCleared()
