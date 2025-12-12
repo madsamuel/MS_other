@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -148,7 +150,7 @@ private fun GeneratorContent(
     status: String,
     onRefresh: () -> Unit
 ) {
-    Column(modifier = Modifier.padding(16.dp)) {
+    Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
         Spacer(Modifier.height(8.dp))
 
         Text("Intensity")
@@ -177,7 +179,7 @@ private fun GeneratorContent(
 
         Spacer(Modifier.height(12.dp))
         Text("Duration: ${durationSec.toInt()}s")
-        Slider(value = durationSec, onValueChange = onDurationChange, valueRange = 10f..300f)
+        Slider(value = durationSec, onValueChange = onDurationChange, valueRange = 10f..3000f)
 
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
