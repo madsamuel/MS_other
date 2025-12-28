@@ -42,8 +42,8 @@ class MainActivity : ComponentActivity() {
                 val currentPlaying by vm.currentPlaying.collectAsState(initial = null)
                 val isPlayingGlobal by vm.isPlaying.collectAsState(initial = false)
 
-                // Persist the current screen across rotation by saving the enum ordinal.
-                var currentScreenOrdinal by rememberSaveable { mutableStateOf(Screen.GENERATOR.ordinal) }
+                // Persist the current screen across rotation by saving the enum value directly.
+                var currentScreen by rememberSaveable { mutableStateOf(Screen.GENERATOR) }
 
                 // No intensity selected by default; Reset should restore this 'no selection' state.
                 var selectedIntensity by remember { mutableStateOf<RainIntensity?>(null) }
@@ -58,42 +58,42 @@ class MainActivity : ComponentActivity() {
                         "cafe" to false
                     )
                 }
-                var durationSec by remember { mutableStateOf(30f) }
+                var durationSec by remember { mutableFloatStateOf(30f) }
 
                 // Auto-navigate to recordings when generation completes with saved:path.
                 // Use lastHandledStatus (rememberSaveable) to avoid re-triggering on rotation where
                 // the same status value is restored; only navigate when the status actually
                 // changes to a new saved event.
-                var lastHandledStatus by rememberSaveable { mutableStateOf(status) }
+                val lastHandledStatusState = rememberSaveable { mutableStateOf(status) }
                 // Only navigate to Recordings if a new saved event occurred while we're on Generator.
-                LaunchedEffect(status, currentScreenOrdinal) {
-                    if (status != lastHandledStatus && status.startsWith("saved:") && currentScreenOrdinal == Screen.GENERATOR.ordinal) {
-                        currentScreenOrdinal = Screen.RECORDINGS.ordinal
+                LaunchedEffect(status, currentScreen) {
+                    if (status != lastHandledStatusState.value && status.startsWith("saved:") && currentScreen == Screen.GENERATOR) {
+                        currentScreen = Screen.RECORDINGS
                         vm.refreshList()
-                        lastHandledStatus = status
+                        lastHandledStatusState.value = status
                     } else {
                         // keep lastHandledStatus in sync so we don't retrigger on rotation
-                        lastHandledStatus = status
+                        lastHandledStatusState.value = status
                     }
                 }
 
                 // Intercept system Back presses when we're on the Recordings screen so Back returns
                 // to the Generator (main) view instead of exiting the app.
-                BackHandler(enabled = (currentScreenOrdinal == Screen.RECORDINGS.ordinal)) {
-                    currentScreenOrdinal = Screen.GENERATOR.ordinal
+                BackHandler(enabled = (currentScreen == Screen.RECORDINGS)) {
+                    currentScreen = Screen.GENERATOR
                 }
 
                 Scaffold(
                     topBar = {
                         AppTopBar(
-                            currentScreen = Screen.values()[currentScreenOrdinal],
-                            onOpenRecordings = { currentScreenOrdinal = Screen.RECORDINGS.ordinal },
-                            onBack = { currentScreenOrdinal = Screen.GENERATOR.ordinal }
+                            currentScreen = currentScreen,
+                            onOpenRecordings = { currentScreen = Screen.RECORDINGS },
+                            onBack = { currentScreen = Screen.GENERATOR }
                         )
                     },
                     content = { innerPadding ->
                         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                            when (Screen.values()[currentScreenOrdinal]) {
+                            when (currentScreen) {
                                 Screen.GENERATOR -> GeneratorContent(
                                     selectedIntensity = selectedIntensity,
                                     onSelectIntensity = { selectedIntensity = it },
@@ -125,7 +125,6 @@ class MainActivity : ComponentActivity() {
                                     isPlayingGlobal = isPlayingGlobal,
                                     onPlay = { vm.togglePlay(it) },
                                     onDelete = { vm.deleteFile(it) },
-                                    onRefresh = { vm.refreshList() },
                                     onRename = { file, newName ->
                                         val trimmed = newName.trim()
                                         if (trimmed.isNotEmpty()) {
@@ -230,7 +229,6 @@ private fun RecordingsContent(
     isPlayingGlobal: Boolean,
     onPlay: (File) -> Unit,
     onDelete: (File) -> Unit,
-    onRefresh: () -> Unit,
     onRename: (File, String) -> Unit
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
@@ -275,8 +273,8 @@ private fun RecordingRow(
     onDelete: () -> Unit,
     onRename: (String) -> Unit
 ) {
-    var showRenameDialog by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf(file.name) }
+    val showRenameDialogState = rememberSaveable { mutableStateOf(false) }
+    var newName by rememberSaveable { mutableStateOf(file.name) }
 
     Card(modifier = Modifier
         .fillMaxWidth()
@@ -309,7 +307,7 @@ private fun RecordingRow(
                 } else {
                     IconButton(onClick = onTogglePlay) { Icon(Icons.Default.PlayArrow, contentDescription = "Play") }
                 }
-                IconButton(onClick = { showRenameDialog = true }) {
+                IconButton(onClick = { showRenameDialogState.value = true }) {
                     Icon(Icons.Default.Edit, contentDescription = "Rename")
                 }
                 IconButton(onClick = onDelete) { Icon(Icons.Default.Delete, contentDescription = "Delete") }
@@ -317,9 +315,9 @@ private fun RecordingRow(
         }
     }
 
-    if (showRenameDialog) {
+    if (showRenameDialogState.value) {
         AlertDialog(
-            onDismissRequest = { showRenameDialog = false },
+            onDismissRequest = { showRenameDialogState.value = false },
             title = { Text("Rename recording") },
             text = {
                 Column {
@@ -331,13 +329,13 @@ private fun RecordingRow(
             confirmButton = {
                 TextButton(onClick = {
                     onRename(newName)
-                    showRenameDialog = false
+                    showRenameDialogState.value = false
                 }) {
                     Text("OK")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRenameDialog = false }) { Text("Cancel") }
+                TextButton(onClick = { showRenameDialogState.value = false }) { Text("Cancel") }
             }
         )
     }
