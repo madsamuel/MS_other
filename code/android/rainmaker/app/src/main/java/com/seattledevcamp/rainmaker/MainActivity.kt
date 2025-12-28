@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
@@ -43,7 +44,8 @@ class MainActivity : ComponentActivity() {
                 // Persist the current screen across rotation by saving the enum ordinal.
                 var currentScreenOrdinal by rememberSaveable { mutableStateOf(Screen.GENERATOR.ordinal) }
 
-                var selectedIntensity by remember { mutableStateOf(RainIntensity.MEDIUM) }
+                // No intensity selected by default; Reset should restore this 'no selection' state.
+                var selectedIntensity by remember { mutableStateOf<RainIntensity?>(null) }
                 val modifiers = remember {
                     mutableStateMapOf(
                         "sea" to false,
@@ -86,10 +88,19 @@ class MainActivity : ComponentActivity() {
                                         val mask = modifiers.entries.fold(0) { acc, e -> if (e.value) acc or modifierMask(e.key) else acc }
                                         val seed = kotlin.random.Random.nextLong()
                                         val filename = "rain_${System.currentTimeMillis()}_${kotlin.math.abs(seed)}.wav"
-                                        vm.generateRainFile(durationSec.toInt(), selectedIntensity.code, mask, filename, seed)
+                                        // If user hasn't picked an intensity, fall back to MEDIUM for generation
+                                        val intensityCode = (selectedIntensity ?: RainIntensity.MEDIUM).code
+                                        vm.generateRainFile(durationSec.toInt(), intensityCode, mask, filename, seed)
                                     },
                                     status = status,
-                                    onRefresh = { vm.refreshList() }
+                                    onRefresh = {
+                                        // Reset UI to initial state: no intensity selected, clear modifiers, restore default duration
+                                        selectedIntensity = null
+                                        modifiers.keys.forEach { modifiers[it] = false }
+                                        durationSec = 30f
+                                        // also refresh recordings list in case caller expects it
+                                        vm.refreshList()
+                                    }
                                 )
                                 Screen.RECORDINGS -> RecordingsContent(
                                     recordings = recordings,
@@ -144,7 +155,7 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GeneratorContent(
-    selectedIntensity: RainIntensity,
+    selectedIntensity: RainIntensity?,
     onSelectIntensity: (RainIntensity) -> Unit,
     modifiers: MutableMap<String, Boolean>,
     durationSec: Float,
@@ -187,7 +198,7 @@ private fun GeneratorContent(
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Button(onClick = onGenerate) { Text("Generate") }
-            Button(onClick = onRefresh) { Text("Refresh") }
+            Button(onClick = onRefresh) { Text("Reset") }
         }
 
         Spacer(Modifier.height(8.dp))
@@ -208,7 +219,7 @@ private fun RecordingsContent(
     Column(modifier = Modifier.padding(16.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
             Text("Recordings", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = onRefresh) { Text("Refresh") }
+            Button(onClick = onRefresh) { Text("Reset") }
         }
         Spacer(Modifier.height(8.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -261,9 +272,20 @@ private fun RecordingRow(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(file.name, style = MaterialTheme.typography.bodyLarge)
-                Text("${file.length() / 1024} KB", style = MaterialTheme.typography.bodySmall)
+            // Constrain the text column so action buttons keep space on narrow screens.
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = file.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${file.length() / 1024} KB",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
             Row {
                 if (isPlaying) {
