@@ -93,13 +93,16 @@ object RainGenerator {
             var dropRemSamples = 0
             var dropTotalSamples = 1
             var dropAmp = 0f
+            var dropFreq = 2000f
+            var dropPhase = 0f
 
             // base probability per sample for a drop; tuned low and then scaled by density/intensity
             val baseProbPerSample = 0.00012f // baseline ~5.3 drops/sec at density=1 and 44.1kHz
 
             for (i in 0 until totalSamples) {
                 // ambient filtered noise (low-level continuous background)
-                val ambientWhite = (rnd.nextFloat() * 2f - 1f) * layer.amplitude * 0.28f
+                // reduce ambient background level so it doesn't become perceived as white noise
+                val ambientWhite = (rnd.nextFloat() * 2f - 1f) * layer.amplitude * 0.12f
                 prev += alpha * (ambientWhite - prev)
 
                 // maybe trigger a drop: probability scaled by layer density and intensity factor
@@ -111,13 +114,21 @@ object RainGenerator {
                     // drop amplitude relative to layer amplitude, add some randomness
                     val (lowAmp, highAmp) = dropAmpRange
                     dropAmp = lowAmp + rnd.nextFloat() * (highAmp - lowAmp)
+                    // pick a random impact frequency per drop for tonal content (avoid pure broadband)
+                    dropFreq = (800f + rnd.nextFloat() * 7000f).coerceIn(800f, 8000f)
+                    dropPhase = rnd.nextFloat() * 2f * PI.toFloat()
                 }
 
                 var dropSample = 0f
                 if (dropRemSamples > 0) {
+                    // create a damped sine impact plus a small filtered noise component to simulate splashes
                     val env = dropRemSamples.toFloat() / dropTotalSamples.toFloat() // linear decay envelope
-                    val dropWhite = (rnd.nextFloat() * 2f - 1f) * layer.amplitude * dropAmp
-                    dropSample = dropWhite * env
+                    val omega = 2f * PI.toFloat() * dropFreq / sampleRate.toFloat()
+                    val tonal = kotlin.math.sin(dropPhase) * layer.amplitude * dropAmp * env
+                    dropPhase += omega
+                    // small high-frequency noise to simulate spray
+                    val splash = (rnd.nextFloat() * 2f - 1f) * layer.amplitude * (dropAmp * 0.35f) * env
+                    dropSample = tonal + splash
                     dropRemSamples--
                 }
 

@@ -27,7 +27,10 @@ val appModule = module {
 
     single { RecordingRepository(get()) }
 
-    single { RainAudioEngine(get()) }
+    // Provide a ModelAudioEngine implementation. Replace the asset name with your .tflite model in assets/.
+    single { com.seattledevcamp.rainmaker.audio.model.TfliteModelEngine("rain_model.tflite") as com.seattledevcamp.rainmaker.audio.model.ModelAudioEngine }
+
+    single { RainAudioEngine(get(), get()) }
 
     single { ExoPlayer.Builder(get()).build() }
 

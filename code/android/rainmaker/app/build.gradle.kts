@@ -81,6 +81,9 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
+    // TensorFlow Lite: on-device AI audio generator (change version if desired)
+    implementation("org.tensorflow:tensorflow-lite:2.11.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
