@@ -3,6 +3,7 @@ package com.seattledevcamp.rainmaker
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -59,12 +60,27 @@ class MainActivity : ComponentActivity() {
                 }
                 var durationSec by remember { mutableStateOf(30f) }
 
-                // Auto-navigate to recordings when generation completes with saved:path
-                LaunchedEffect(status) {
-                    if (status.startsWith("saved:")) {
+                // Auto-navigate to recordings when generation completes with saved:path.
+                // Use lastHandledStatus (rememberSaveable) to avoid re-triggering on rotation where
+                // the same status value is restored; only navigate when the status actually
+                // changes to a new saved event.
+                var lastHandledStatus by rememberSaveable { mutableStateOf(status) }
+                // Only navigate to Recordings if a new saved event occurred while we're on Generator.
+                LaunchedEffect(status, currentScreenOrdinal) {
+                    if (status != lastHandledStatus && status.startsWith("saved:") && currentScreenOrdinal == Screen.GENERATOR.ordinal) {
                         currentScreenOrdinal = Screen.RECORDINGS.ordinal
                         vm.refreshList()
+                        lastHandledStatus = status
+                    } else {
+                        // keep lastHandledStatus in sync so we don't retrigger on rotation
+                        lastHandledStatus = status
                     }
+                }
+
+                // Intercept system Back presses when we're on the Recordings screen so Back returns
+                // to the Generator (main) view instead of exiting the app.
+                BackHandler(enabled = (currentScreenOrdinal == Screen.RECORDINGS.ordinal)) {
+                    currentScreenOrdinal = Screen.GENERATOR.ordinal
                 }
 
                 Scaffold(
@@ -98,7 +114,8 @@ class MainActivity : ComponentActivity() {
                                         selectedIntensity = null
                                         modifiers.keys.forEach { modifiers[it] = false }
                                         durationSec = 30f
-                                        // also refresh recordings list in case caller expects it
+                                        // also clear status and refresh recordings list in case caller expects it
+                                        vm.updateStatus("idle")
                                         vm.refreshList()
                                     }
                                 )
@@ -217,9 +234,8 @@ private fun RecordingsContent(
     onRename: (File, String) -> Unit
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+        Row(horizontalArrangement = Arrangement.Start, modifier = Modifier.fillMaxWidth()) {
             Text("Recordings", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = onRefresh) { Text("Reset") }
         }
         Spacer(Modifier.height(8.dp))
         LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
