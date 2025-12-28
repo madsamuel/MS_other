@@ -26,6 +26,41 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
 
     private var player: MediaPlayer? = null
 
+    private fun stopPlayback() {
+        // Post changes to main thread to ensure Compose and observers see updates reliably
+        try {
+            val handler = android.os.Handler(android.os.Looper.getMainLooper())
+            handler.post {
+                try {
+                    player?.stop()
+                } catch (_: Exception) {
+                }
+                try {
+                    player?.release()
+                } catch (_: Exception) {
+                }
+                player = null
+                _isPlaying.value = false
+                _currentPlaying.value = null
+                _status.value = "idle"
+            }
+        } catch (_: Exception) {
+            // fallback: best-effort
+            try {
+                player?.stop()
+            } catch (_: Exception) {
+            }
+            try {
+                player?.release()
+            } catch (_: Exception) {
+            }
+            player = null
+            _isPlaying.value = false
+            _currentPlaying.value = null
+            _status.value = "idle"
+        }
+    }
+
     init {
         refreshList()
     }
@@ -91,6 +126,28 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
             player?.release()
             player = MediaPlayer().apply {
                 setDataSource(path)
+                // ensure we update state when playback naturally completes
+                val fname = file.name
+                setOnCompletionListener { mp ->
+                    // Ensure we stop and clear playback state when done
+                    try {
+                        mp.reset()
+                        mp.release()
+                    } catch (_: Exception) {
+                    }
+                    stopPlayback()
+                    // Refresh recordings in case metadata changed (optional)
+                    refreshList()
+                }
+                setOnErrorListener { mp, what, extra ->
+                    try {
+                        mp.reset()
+                        mp.release()
+                    } catch (_: Exception) {
+                    }
+                    stopPlayback()
+                    true
+                }
                 prepare()
                 start()
             }
@@ -107,11 +164,7 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         try {
             val path = file.absolutePath
             if (_currentPlaying.value == path) {
-                player?.stop()
-                player?.release()
-                player = null
-                _currentPlaying.value = null
-                _isPlaying.value = false
+                stopPlayback()
             }
         } catch (_: Exception) {
             // ignore
