@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -39,7 +40,8 @@ class MainActivity : ComponentActivity() {
                 val currentPlaying by vm.currentPlaying.collectAsState(initial = null)
                 val isPlayingGlobal by vm.isPlaying.collectAsState(initial = false)
 
-                var currentScreen by remember { mutableStateOf(Screen.GENERATOR) }
+                // Persist the current screen across rotation by saving the enum ordinal.
+                var currentScreenOrdinal by rememberSaveable { mutableStateOf(Screen.GENERATOR.ordinal) }
 
                 var selectedIntensity by remember { mutableStateOf(RainIntensity.MEDIUM) }
                 val modifiers = remember {
@@ -58,7 +60,7 @@ class MainActivity : ComponentActivity() {
                 // Auto-navigate to recordings when generation completes with saved:path
                 LaunchedEffect(status) {
                     if (status.startsWith("saved:")) {
-                        currentScreen = Screen.RECORDINGS
+                        currentScreenOrdinal = Screen.RECORDINGS.ordinal
                         vm.refreshList()
                     }
                 }
@@ -66,14 +68,14 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     topBar = {
                         AppTopBar(
-                            currentScreen = currentScreen,
-                            onOpenRecordings = { currentScreen = Screen.RECORDINGS },
-                            onBack = { currentScreen = Screen.GENERATOR }
+                            currentScreen = Screen.values()[currentScreenOrdinal],
+                            onOpenRecordings = { currentScreenOrdinal = Screen.RECORDINGS.ordinal },
+                            onBack = { currentScreenOrdinal = Screen.GENERATOR.ordinal }
                         )
                     },
                     content = { innerPadding ->
                         Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-                            when (currentScreen) {
+                            when (Screen.values()[currentScreenOrdinal]) {
                                 Screen.GENERATOR -> GeneratorContent(
                                     selectedIntensity = selectedIntensity,
                                     onSelectIntensity = { selectedIntensity = it },

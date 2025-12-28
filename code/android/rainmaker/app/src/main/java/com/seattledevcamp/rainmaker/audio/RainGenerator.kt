@@ -44,16 +44,46 @@ object RainGenerator {
             Layer(amp, layer.cutoffHz, density)
         }
 
+        // Replace fully-continuous filtered white noise with a drop-based generator plus low-level ambient
         for (layer in adjustedLayers) {
             var prev = 0f
             val rc = 1f / (2f * PI.toFloat() * layer.cutoffHz)
             val dt = 1f / sampleRate.toFloat()
             val alpha = dt / (rc + dt)
+
+            // per-layer drop state
+            var dropRemSamples = 0
+            var dropTotalSamples = 1
+            var dropAmp = 0f
+
+            // base probability per sample for a drop; lowered from previous implementation to avoid near-white noise
+            val baseProbPerSample = 0.0002f // ~8.8 drops/sec at density=1 and 44.1kHz
+
             for (i in 0 until totalSamples) {
-                val white = (rnd.nextFloat() * 2f - 1f) * layer.amplitude
-                prev += alpha * (white - prev)
-                val env = if (rnd.nextFloat() < (0.002f * layer.density)) 1f else 0.9f
-                mix[i] += prev * env
+                // ambient filtered noise (low-level continuous background)
+                val ambientWhite = (rnd.nextFloat() * 2f - 1f) * layer.amplitude * 0.35f
+                prev += alpha * (ambientWhite - prev)
+
+                // maybe trigger a drop
+                if (dropRemSamples <= 0 && rnd.nextFloat() < (baseProbPerSample * layer.density)) {
+                    // drop duration between ~10ms and ~70ms
+                    val durSec = 0.01f + rnd.nextFloat() * 0.06f
+                    dropTotalSamples = (durSec * sampleRate).toInt().coerceAtLeast(1)
+                    dropRemSamples = dropTotalSamples
+                    // drop amplitude relative to layer amplitude, add some randomness
+                    dropAmp = 0.8f + rnd.nextFloat() * 1.4f
+                }
+
+                var dropSample = 0f
+                if (dropRemSamples > 0) {
+                    val env = dropRemSamples.toFloat() / dropTotalSamples.toFloat() // linear decay envelope
+                    val dropWhite = (rnd.nextFloat() * 2f - 1f) * layer.amplitude * dropAmp
+                    dropSample = dropWhite * env
+                    dropRemSamples--
+                }
+
+                // mix: ambient filtered value plus the drop sample (drops are more prominent)
+                mix[i] += prev * 0.8f + dropSample
             }
         }
 
