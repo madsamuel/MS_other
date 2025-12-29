@@ -2,9 +2,9 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.kapt)
 }
 
-apply(plugin = "org.jetbrains.kotlin.kapt")
 
 android {
     namespace = "com.seattledevcamp.rainmaker"
@@ -55,6 +55,7 @@ android {
     }
     packaging {
         resources.excludes += "META-INF/licenses/**"
+        jniLibs.useLegacyPackaging = true
     }
 }
 
@@ -75,14 +76,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    // Use the generic add(...) API so the build script doesn't require the kapt dependency accessor to be present at configuration time
-    add("kapt", libs.androidx.room.compiler)
+    // Use kapt for Room annotation processor
+    kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.session)
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
-    // TensorFlow Lite: on-device AI audio generator (change version if desired)
-    implementation("org.tensorflow:tensorflow-lite:2.11.0")
+    // PyTorch Mobile (lite) for on-device TorchScript models (Stable Audio / Open Small)
+    implementation("org.pytorch:pytorch_android_lite:2.1.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

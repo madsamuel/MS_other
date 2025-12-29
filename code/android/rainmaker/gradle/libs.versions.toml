@@ -1,5 +1,5 @@
 [versions]
-agp = "8.12.3"
+agp = "8.13.2"
 kotlin = "2.0.21"
 coreKtx = "1.10.1"
 junit = "4.13.2"
@@ -17,6 +17,7 @@ room = "2.6.1"
 media3 = "1.4.1"
 koin = "3.5.6"
 profileInstaller = "1.4.1"
+pytorch = "2.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,6 +47,7 @@ androidx-media3-session = { group = "androidx.media3", name = "media3-session", 
 koin-android = { group = "io.insert-koin", name = "koin-android", version.ref = "koin" }
 koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compose", version.ref = "koin" }
 androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileInstaller" }
+pytorch-android-lite = { group = "org.pytorch", name = "pytorch_android_lite", version.ref = "pytorch" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

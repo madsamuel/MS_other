@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import org.koin.androidx.compose.koinViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
 
@@ -36,7 +37,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MaterialTheme {
-                val vm: GeneratorViewModel = viewModel<GeneratorViewModel>(factory = GeneratorViewModel.Factory(application))
+                val vm: GeneratorViewModel = koinViewModel()
                 val status by vm.status.collectAsState(initial = "idle")
                 val recordings by vm.recordings.collectAsState(initial = emptyList())
                 val currentPlaying by vm.currentPlaying.collectAsState(initial = null)

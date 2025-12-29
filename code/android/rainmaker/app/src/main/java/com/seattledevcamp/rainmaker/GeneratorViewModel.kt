@@ -5,13 +5,16 @@ import android.media.MediaPlayer
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.io.File
-import com.seattledevcamp.rainmaker.audio.RainGenerator
-import com.seattledevcamp.rainmaker.audio.WavWriter
+import com.seattledevcamp.rainmaker.audio.RainAudioEngine
+import com.seattledevcamp.rainmaker.data.model.RainIntensity
+import com.seattledevcamp.rainmaker.data.model.EnvironmentModifier
 
-class GeneratorViewModel(application: Application) : AndroidViewModel(application) {
+class GeneratorViewModel(application: Application, private val audioEngine: RainAudioEngine) : AndroidViewModel(application) {
     private val _status = MutableStateFlow("idle")
     val status = _status.asStateFlow()
 
@@ -27,33 +30,19 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
     private var player: MediaPlayer? = null
 
     private fun stopPlayback() {
-        // Post changes to main thread to ensure Compose and observers see updates reliably
         try {
             val handler = android.os.Handler(android.os.Looper.getMainLooper())
             handler.post {
-                try {
-                    player?.stop()
-                } catch (_: Exception) {
-                }
-                try {
-                    player?.release()
-                } catch (_: Exception) {
-                }
+                try { player?.stop() } catch (_: Exception) {}
+                try { player?.release() } catch (_: Exception) {}
                 player = null
                 _isPlaying.value = false
                 _currentPlaying.value = null
                 _status.value = "idle"
             }
         } catch (_: Exception) {
-            // fallback: best-effort
-            try {
-                player?.stop()
-            } catch (_: Exception) {
-            }
-            try {
-                player?.release()
-            } catch (_: Exception) {
-            }
+            try { player?.stop() } catch (_: Exception) {}
+            try { player?.release() } catch (_: Exception) {}
             player = null
             _isPlaying.value = false
             _currentPlaying.value = null
@@ -61,41 +50,43 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    init {
-        refreshList()
-    }
+    init { refreshList() }
 
-    fun generateRainFile(durationSec: Int, intensityCode: Int, modifiers: Int, filename: String, seed: Long = kotlin.random.Random.nextLong()) {
+    fun generateRainFile(durationSec: Int, intensityCode: Int, modifiersMask: Int, filename: String, seed: Long = kotlin.random.Random.nextLong()) {
         _status.value = "starting"
-        val file = File(getApplication<Application>().filesDir, filename)
-        Thread {
+
+        // Map numeric intensity code to data model enum
+        val intensity = when (intensityCode) {
+            0 -> RainIntensity.LIGHT
+            2 -> RainIntensity.HEAVY
+            else -> RainIntensity.MEDIUM
+        }
+        // Convert modifier bitmask to Set<EnvironmentModifier>
+        val modifiers = mutableSetOf<EnvironmentModifier>()
+        if (modifiersMask and (1 shl 0) != 0) modifiers.add(EnvironmentModifier.SEA)
+        if (modifiersMask and (1 shl 1) != 0) modifiers.add(EnvironmentModifier.CLIFFS)
+        if (modifiersMask and (1 shl 2) != 0) modifiers.add(EnvironmentModifier.FOREST)
+        if (modifiersMask and (1 shl 3) != 0) modifiers.add(EnvironmentModifier.RIVER)
+        if (modifiersMask and (1 shl 4) != 0) modifiers.add(EnvironmentModifier.CITY)
+        if (modifiersMask and (1 shl 5) != 0) modifiers.add(EnvironmentModifier.COUNTRYSIDE)
+        if (modifiersMask and (1 shl 6) != 0) modifiers.add(EnvironmentModifier.CAFE)
+
+        val durationMinutes = (durationSec + 59) / 60
+
+        viewModelScope.launch {
+            _status.value = "generating"
             try {
-                _status.value = "generating"
-                val ok = try {
-                    // Prefer seed-aware native if present
-                    try {
-                        NativeBridge.generateWithSeed(file.absolutePath, 44100, durationSec, intensityCode, modifiers, seed)
-                    } catch (t: Throwable) {
-                        // Fallback to legacy native
-                        NativeBridge.generate(file.absolutePath, 44100, durationSec, intensityCode, modifiers)
-                    }
-                } catch (t: Throwable) {
-                    // Fallback: generate WAV in pure Kotlin using provided seed
-                    val pcm = RainGenerator.generate(44100, durationSec, intensityCode, modifiers, seed)
-                    WavWriter.writeWav(getApplication(), filename, 44100, pcm)
-                    true
-                }
-                if (ok) {
-                    _status.value = "saved:${file.absolutePath}:seed=$seed"
-                } else {
-                    _status.value = "error:native-failed"
-                }
+                // Delegate to injected RainAudioEngine (backed by StableAudioEngine via DI)
+                val file = audioEngine.generateAudio(intensity, modifiers, durationMinutes)
+                _status.value = "saved:${file.absolutePath}:seed=$seed"
+            } catch (e: java.io.FileNotFoundException) {
+                _status.value = "error:model-missing:${e.message}"
             } catch (e: Exception) {
                 _status.value = "error:${e.message}"
             } finally {
                 refreshList()
             }
-        }.start()
+        }
     }
 
     fun refreshList() {
@@ -130,26 +121,11 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
                 val fname = file.name
                 setOnCompletionListener { mp ->
                     // Ensure we stop and clear playback state when done
-                    try {
-                        mp.reset()
-                        mp.release()
-                    } catch (_: Exception) {
-                    }
-                    stopPlayback()
-                    // Refresh recordings in case metadata changed (optional)
-                    refreshList()
+                    try { mp.reset(); mp.release() } catch (_: Exception) {}
+                    stopPlayback(); refreshList()
                 }
-                setOnErrorListener { mp, what, extra ->
-                    try {
-                        mp.reset()
-                        mp.release()
-                    } catch (_: Exception) {
-                    }
-                    stopPlayback()
-                    true
-                }
-                prepare()
-                start()
+                setOnErrorListener { mp, _, _ -> try { mp.reset(); mp.release() } catch (_: Exception) {} ; stopPlayback(); true }
+                prepare(); start()
             }
             _currentPlaying.value = path
             _isPlaying.value = true
@@ -178,19 +154,14 @@ class GeneratorViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun updateStatus(message: String) {
-        _status.value = message
-    }
+    fun updateStatus(message: String) { _status.value = message }
 
-    override fun onCleared() {
-        player?.release()
-        super.onCleared()
-    }
+    override fun onCleared() { player?.release(); super.onCleared() }
 
-    class Factory(private val app: Application) : ViewModelProvider.Factory {
+    class Factory(private val app: Application, private val engine: RainAudioEngine) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            return GeneratorViewModel(app) as T
+            return GeneratorViewModel(app, engine) as T
         }
     }
 }
