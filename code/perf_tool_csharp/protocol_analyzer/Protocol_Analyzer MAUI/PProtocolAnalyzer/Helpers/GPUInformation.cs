@@ -262,7 +262,6 @@ namespace PProtocolAnalyzer.Helpers
                 var lg = PProtocolAnalyzer.Logging.LoggerAccessor.GetLogger(typeof(GPUInformation));
                 try { lg?.LogWarning(ex, $"Error detecting encoder type: {ex.Message}"); } catch { }
             }
-            
             return "H264 (Software)"; // Fallback
         }
 

@@ -111,8 +111,7 @@ return ((x_left + x_right) / 2.0);
  *   3      2
  *  5x  - 2x  + 3
  */
-double
-g(double x)
+double g(double x)
 {
     return (5 * pow(x, 3.0) - 2 * pow(x, 2.0) + 3);
 }
@@ -121,8 +120,7 @@ g(double x)
  *   4      2
  *  x  - 3x  - 8
  */
-double
-h(double x)
+double h(double x)
 {
     return (pow(x, 4.0) - 3 * pow(x, 2.0) - 8);
 }
