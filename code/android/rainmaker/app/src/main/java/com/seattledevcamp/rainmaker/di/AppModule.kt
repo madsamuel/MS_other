@@ -6,7 +6,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.room.Room
 import com.seattledevcamp.rainmaker.GeneratorViewModel
 import com.seattledevcamp.rainmaker.audio.RainAudioEngine
-import com.seattledevcamp.rainmaker.audio.model.StableAudioEngine
+import com.seattledevcamp.rainmaker.audio.model.TfliteModelEngine
 import com.seattledevcamp.rainmaker.data.local.RainmakerDatabase
 import com.seattledevcamp.rainmaker.data.repository.RecordingRepository
 import com.seattledevcamp.rainmaker.domain.DeleteRecordingUseCase
@@ -30,9 +30,8 @@ val appModule = module {
 
     single { RecordingRepository(get()) }
 
-    // Provide StableAudioEngine as the ModelAudioEngine. Place your Stable Audio files in
-    // app/src/main/assets/stable_audio/ (directory) so StableAudioEngine can extract them.
-    single<com.seattledevcamp.rainmaker.audio.model.ModelAudioEngine> { StableAudioEngine("stable_audio") }
+    // Use the local TfliteModelEngine (procedural chunked fallback) as the ModelAudioEngine implementation
+    single<com.seattledevcamp.rainmaker.audio.model.ModelAudioEngine> { TfliteModelEngine("rain_model.tflite") }
 
     // RainAudioEngine needs a Context and a ModelAudioEngine; make get() types explicit so Koin can resolve them
     single { RainAudioEngine(get<Context>(), get<com.seattledevcamp.rainmaker.audio.model.ModelAudioEngine>()) }
