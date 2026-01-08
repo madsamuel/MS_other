@@ -3,31 +3,53 @@ package com.seattledevcamp.rainmaker.audio.model
 import android.content.Context
 import com.seattledevcamp.rainmaker.data.model.EnvironmentModifier
 import com.seattledevcamp.rainmaker.data.model.RainIntensity
+import org.tensorflow.lite.DataType
+import org.tensorflow.lite.Interpreter
 import java.io.File
 import java.io.FileOutputStream
+import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import kotlin.math.PI
-import kotlin.math.abs
+import java.nio.MappedByteBuffer
+import java.nio.channels.FileChannel
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
-import kotlin.random.Random
 
 /**
- * Minimal chunked generator placed in `TfliteModelEngine` so all generation paths funnel here.
+ * TfliteModelEngine: chunked on-device TFLite inference.
  *
- * This implementation provides a working on-device generator even when TensorFlow Lite
- * is not available during development. It splits the requested duration into 5s chunks,
- * synthesizes PCM for each chunk (using procedural methods influenced by intensity/modifiers
- * and the provided seed), stitches the chunks and writes a WAV file.
- *
- * The file format is 16-bit PCM, 44100 Hz, mono.
- *
- * If a real TFLite model is added later, this class is the single place to implement
- * the interpreter calls and keep the chunking/stitching logic.
+ * This implementation requires a TFLite model file present in the APK assets at [modelAssetPath].
+ * If the model asset is missing or the interpreter cannot be created, the engine will throw a
+ * clear runtime exception with an explanatory message. Procedural generation is intentionally
+ * NOT allowed in this strict mode.
  */
 class TfliteModelEngine(private val modelAssetPath: String) : ModelAudioEngine {
+
+    @Volatile
+    private var interpreter: Interpreter? = null
+
+    private fun loadModelMapped(context: Context): MappedByteBuffer {
+        val afd = try {
+            context.assets.openFd(modelAssetPath)
+        } catch (e: Exception) {
+            throw java.io.FileNotFoundException("model-missing:$modelAssetPath")
+        }
+        FileInputStream(afd.fileDescriptor).channel.use { fc ->
+            return fc.map(FileChannel.MapMode.READ_ONLY, afd.startOffset, afd.length)
+        }
+    }
+
+    private fun ensureInterpreter(context: Context) {
+        if (interpreter != null) return
+        val model = loadModelMapped(context)
+        val options = Interpreter.Options().apply { setNumThreads(2) }
+        try {
+            interpreter = Interpreter(model, options)
+        } catch (e: Exception) {
+            // If Interpreter can't be created (missing native libs or incompatible model) rethrow
+            throw RuntimeException("failed-to-create-interpreter:${e.message}")
+        }
+    }
 
     override suspend fun generate(
         context: Context,
@@ -36,194 +58,108 @@ class TfliteModelEngine(private val modelAssetPath: String) : ModelAudioEngine {
         durationMinutes: Int,
         seed: Long
     ): File {
-        // Normalize duration and compute samples
+        // Require the interpreter; if it's not available, throw descriptive error.
+        try {
+            ensureInterpreter(context)
+        } catch (e: Exception) {
+            // Normalize FileNotFoundException into a consistent message for callers
+            if (e is java.io.FileNotFoundException && e.message?.startsWith("model-missing:") == true) {
+                throw RuntimeException(e.message)
+            }
+            throw RuntimeException("model-unavailable:${e.message}")
+        }
+
+        val interp = interpreter ?: throw RuntimeException("model-unavailable:interpreter-null")
+
+        // Determine model input/output sizes and dtypes
+        val inputTensor = interp.getInputTensor(0)
+        val outputTensor = interp.getOutputTensor(0)
+        val inputShape = inputTensor.shape()
+        val outputShape = outputTensor.shape()
+        val inputLen = if (inputShape.size >= 2) inputShape[1] else inputShape.reduce { a, b -> a * b }
+        val outputLen = if (outputShape.size >= 2) outputShape[1] else outputShape.reduce { a, b -> a * b }
+
+        if (inputTensor.dataType() != DataType.FLOAT32 || outputTensor.dataType() != DataType.FLOAT32) {
+            throw IllegalStateException("TFLite model tensors must be FLOAT32 for this engine; found input=${inputTensor.dataType()} output=${outputTensor.dataType()}")
+        }
+
         val sampleRate = 44100
         val totalSeconds = max(1, durationMinutes * 60)
         val totalSamples = totalSeconds * sampleRate
 
-        val chunkSec = 5
-        val chunkSamples = chunkSec * sampleRate
+        // We'll run the interpreter over windows of size modelWindow (samples)
+        val modelWindow = min(inputLen, outputLen).coerceAtLeast(1)
+        if (modelWindow <= 0) throw IllegalStateException("Invalid model IO length: input=$inputLen output=$outputLen")
 
-        // target directory
+        // Prepare output file
         val outDir = File(context.filesDir, "rain_records")
         if (!outDir.exists()) outDir.mkdirs()
-
         val fileName = "rain_${System.currentTimeMillis()}_${seed}.wav"
         val outFile = File(outDir, fileName)
 
-        // We'll accumulate PCM16 bytes into a ByteBuffer then write a WAV header + data
-        val pcmBuffer = ByteBuffer.allocateDirect(totalSamples * 2).order(ByteOrder.LITTLE_ENDIAN)
-
-        var written = 0
-        var chunkIndex = 0
-        while (written < totalSamples) {
-            val remaining = totalSamples - written
-            val thisChunkSamples = min(chunkSamples, remaining)
-            val chunk = synthesizeChunk(
-                sampleRate,
-                thisChunkSamples,
-                intensity,
-                modifiers,
-                seed + chunkIndex,
-                chunkIndex
-            )
-            // convert floats (-1..1) to pcm16
-            for (s in 0 until thisChunkSamples) {
-                val f = chunk[s]
-                val v = (max(-1f, min(1f, f)) * Short.MAX_VALUE).toInt().toShort()
-                pcmBuffer.putShort(v)
-            }
-            written += thisChunkSamples
-            chunkIndex++
-        }
-
-        // write WAV file (header + pcmBuffer)
-        pcmBuffer.rewind()
         FileOutputStream(outFile).use { fos ->
+            // write WAV header (we know sizes upfront)
             writeWavHeader(fos, totalSamples.toLong(), sampleRate, 1, 16)
-            val data = ByteArray(pcmBuffer.remaining())
-            pcmBuffer.get(data)
-            fos.write(data)
+
+            var written = 0
+            var chunkIndex = 0
+
+            // Reusable buffers
+            val inputBuffer = ByteBuffer.allocateDirect(modelWindow * 4).order(ByteOrder.nativeOrder())
+            val outputBuffer = ByteBuffer.allocateDirect(modelWindow * 4).order(ByteOrder.nativeOrder())
+
+            val inputFloats = FloatArray(modelWindow)
+            val outputFloats = FloatArray(modelWindow)
+
+            while (written < totalSamples) {
+                val remaining = totalSamples - written
+                val thisWindow = min(modelWindow, remaining)
+
+                // Prepare input: zero and pack a small header so the model can be conditioned if designed to.
+                for (i in 0 until modelWindow) inputFloats[i] = 0f
+                if (modelWindow > 0) inputFloats[0] = (seed and 0xffffffffL).toFloat()
+                if (modelWindow > 1) inputFloats[1] = chunkIndex.toFloat()
+                if (modelWindow > 2) inputFloats[2] = intensity.ordinal.toFloat()
+                if (modelWindow > 3) inputFloats[3] = modifiers.fold(0) { acc, m -> acc or m.ordinal } .toFloat()
+
+                inputBuffer.rewind()
+                for (i in 0 until modelWindow) inputBuffer.putFloat(inputFloats[i])
+                inputBuffer.rewind()
+
+                outputBuffer.rewind()
+                try {
+                    interp.run(inputBuffer, outputBuffer)
+                } catch (e: Exception) {
+                    throw RuntimeException("inference-failed:${e.message}")
+                }
+                outputBuffer.rewind()
+
+                // Read output floats
+                for (i in 0 until modelWindow) {
+                    outputFloats[i] = outputBuffer.float
+                }
+
+                // Convert first thisWindow samples to PCM and write
+                val temp = ByteArray(thisWindow * 2)
+                var ti = 0
+                for (i in 0 until thisWindow) {
+                    val f = outputFloats[i]
+                    val scaled = (f * Short.MAX_VALUE).toInt()
+                    val clamped = max(Short.MIN_VALUE.toInt(), min(Short.MAX_VALUE.toInt(), scaled))
+                    val s = clamped.toShort()
+                    // little endian
+                    temp[ti++] = (s.toInt() and 0xff).toByte()
+                    temp[ti++] = ((s.toInt() shr 8) and 0xff).toByte()
+                }
+                fos.write(temp)
+
+                written += thisWindow
+                chunkIndex++
+            }
             fos.flush()
         }
 
         return outFile
-    }
-
-    // synthesize a chunk using seeded RNG so repeated runs with same seed produce same output
-    private fun synthesizeChunk(
-        sampleRate: Int,
-        samples: Int,
-        intensity: RainIntensity,
-        modifiers: Set<EnvironmentModifier>,
-        seed: Long,
-        chunkIndex: Int
-    ): FloatArray {
-        val out = FloatArray(samples)
-        val rng = Random(seed)
-
-        // intensity base amplitude
-        val baseAmp = when (intensity) {
-            RainIntensity.LIGHT -> 0.18f
-            RainIntensity.MEDIUM -> 0.45f
-            RainIntensity.HEAVY -> 0.9f
-        }
-
-        // base rain: filtered noise (simple smoothed white noise)
-        var prev = 0f
-        val smoothFactor = when (intensity) {
-            RainIntensity.LIGHT -> 0.995f
-            RainIntensity.MEDIUM -> 0.99f
-            RainIntensity.HEAVY -> 0.985f
-        }
-
-        // modifier influences
-        val hasSea = modifiers.contains(EnvironmentModifier.SEA)
-        val hasRiver = modifiers.contains(EnvironmentModifier.RIVER)
-        val hasForest = modifiers.contains(EnvironmentModifier.FOREST)
-        val hasCity = modifiers.contains(EnvironmentModifier.CITY)
-        val hasCliffs = modifiers.contains(EnvironmentModifier.CLIFFS)
-        val hasCountry = modifiers.contains(EnvironmentModifier.COUNTRYSIDE)
-        val hasCafe = modifiers.contains(EnvironmentModifier.CAFE)
-
-        // create deterministic phasors for waves/wind
-        val seaPhaseStart = rng.nextDouble() * 2.0 * PI
-        val windPhaseStart = rng.nextDouble() * 2.0 * PI
-
-        // small random variation per sample
-        for (i in 0 until samples) {
-            // white noise
-            val white = (rng.nextDouble() * 2.0 - 1.0).toFloat()
-            // simple one-pole lowpass to simulate droplet blur
-            prev = prev * smoothFactor + white * (1f - smoothFactor)
-            var sample = prev
-
-            // apply intensity envelope subtle variation
-            val t = i.toFloat() / sampleRate
-            val intensityRandom = (sin((t + chunkIndex) * (0.1f + (rng.nextFloat() * 0.05f))).toFloat() * 0.5f + 0.5f)
-            sample *= baseAmp * (0.75f + 0.5f * intensityRandom)
-
-            // apply modifiers
-            if (hasSea) {
-                // waves: low-frequency sine + amplitude modulation
-                val waveFreq = 0.15 + rng.nextDouble() * 0.05
-                val wave = sin(2.0 * PI * waveFreq * t + seaPhaseStart).toFloat()
-                sample += wave * 0.25f * baseAmp
-            }
-
-            if (hasRiver) {
-                // river: low-pass heavier noise (simulate flow) - use additional smoothed noise
-                val riverNoise = (rng.nextDouble() * 2.0 - 1.0).toFloat()
-                val river = (riverNoise * 0.5f + sin(2.0 * PI * 1.0 * t).toFloat() * 0.2f) * 0.35f * baseAmp
-                sample += river
-            }
-
-            if (hasForest) {
-                // forest: occasional rustle bursts
-                val rustleProb = 0.002 + rng.nextFloat() * 0.003f
-                if (rng.nextDouble() < rustleProb) {
-                    // short burst
-                    val burstLen = (0.1f * sampleRate).toInt().coerceAtLeast(1)
-                    val burstAt = i
-                    val end = min(samples, burstAt + burstLen)
-                    for (j in burstAt until end) {
-                        val idx = j - burstAt
-                        val env = 1f - idx.toFloat() / burstLen
-                        out[j] += ((rng.nextDouble() * 2.0 - 1.0).toFloat() * 0.6f * env * baseAmp)
-                    }
-                }
-            }
-
-            if (hasCity) {
-                // city: add discrete metallic taptone events (small probability)
-                if (rng.nextDouble() < 0.0006) {
-                    // short click
-                    val clickLen = 64
-                    for (k in 0 until clickLen) {
-                        val pos = i + k
-                        if (pos >= samples) break
-                        val env = 1f - k.toFloat() / clickLen
-                        out[pos] += (rng.nextDouble().toFloat() * 0.7f * env * baseAmp)
-                    }
-                }
-            }
-
-            if (hasCliffs) {
-                // cliffs: windy low frequency rumble + sharper impacts
-                val wind = sin(2.0 * PI * (0.07 + 0.02 * rng.nextDouble()) * t + windPhaseStart).toFloat()
-                sample += wind * 0.18f * baseAmp
-                if (rng.nextDouble() < 0.0004) {
-                    // rock impact
-                    val impactLen = 120
-                    for (k in 0 until impactLen) {
-                        val pos = i + k
-                        if (pos >= samples) break
-                        val env = 1f - k.toFloat() / impactLen
-                        out[pos] += ((rng.nextDouble() * 2.0 - 1.0).toFloat() * 0.9f * env * baseAmp)
-                    }
-                }
-            }
-
-            if (hasCountry) {
-                // countryside: wind over fields - gentle low freq noise
-                val cw = sin(2.0 * PI * 0.08 * t).toFloat()
-                sample += cw * 0.12f * baseAmp
-            }
-
-            if (hasCafe) {
-                // cafe: distant indoor ambience (low level) - add soft bandpassed noise
-                sample += (rng.nextDouble() * 2.0 - 1.0).toFloat() * 0.04f * baseAmp
-            }
-
-            // write into out (mix with any previously added bursts)
-            out[i] += sample
-
-            // subtle clipping protection
-            if (out[i] > 1f) out[i] = 1f
-            if (out[i] < -1f) out[i] = -1f
-        }
-
-        return out
     }
 
     private fun writeWavHeader(out: FileOutputStream, totalSamples: Long, sampleRate: Int, channels: Int, bitsPerSample: Int) {
@@ -248,4 +184,5 @@ class TfliteModelEngine(private val modelAssetPath: String) : ModelAudioEngine {
         header.putInt(dataSize.toInt())
         out.write(header.array())
     }
+
 }

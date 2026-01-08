@@ -85,6 +85,9 @@ dependencies {
     // PyTorch Mobile (lite) for on-device TorchScript models (Stable Audio / Open Small)
     implementation("org.pytorch:pytorch_android_lite:2.1.0")
 
+    // TensorFlow Lite runtime for on-device TFLite models
+    implementation("org.tensorflow:tensorflow-lite:2.11.0")
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

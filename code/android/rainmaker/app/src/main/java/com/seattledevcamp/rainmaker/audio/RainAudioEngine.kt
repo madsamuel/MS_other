@@ -31,7 +31,8 @@ class RainAudioEngine(private val context: Context, private val modelEngine: Mod
             val file = File(context.filesDir, filename)
             file.parentFile?.mkdirs()
             val pcm = withContext(Dispatchers.Default) {
-                RainGenerator.generate(44100, durationMinutes * 60, intensity.ordinal, modifiersMask(modifiers), seed)
+                // Use the context-taking RainGenerator API
+                RainGenerator.generate(context, 44100, durationMinutes * 60, intensity.ordinal, modifiersMask(modifiers), seed)
             }
             // write WAV on IO dispatcher
             withContext(Dispatchers.IO) {

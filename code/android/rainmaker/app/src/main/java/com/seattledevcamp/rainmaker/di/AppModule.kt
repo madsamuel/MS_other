@@ -7,6 +7,7 @@ import androidx.room.Room
 import com.seattledevcamp.rainmaker.GeneratorViewModel
 import com.seattledevcamp.rainmaker.audio.RainAudioEngine
 import com.seattledevcamp.rainmaker.audio.model.TfliteModelEngine
+import com.seattledevcamp.rainmaker.audio.model.ModelAudioEngine
 import com.seattledevcamp.rainmaker.data.local.RainmakerDatabase
 import com.seattledevcamp.rainmaker.data.repository.RecordingRepository
 import com.seattledevcamp.rainmaker.domain.DeleteRecordingUseCase
@@ -30,11 +31,11 @@ val appModule = module {
 
     single { RecordingRepository(get()) }
 
-    // Use the local TfliteModelEngine (procedural chunked fallback) as the ModelAudioEngine implementation
-    single<com.seattledevcamp.rainmaker.audio.model.ModelAudioEngine> { TfliteModelEngine("rain_model.tflite") }
+    // Bind ModelAudioEngine to the TfliteModelEngine that will load rain_model.tflite from assets
+    single<ModelAudioEngine> { TfliteModelEngine("rain_model.tflite") }
 
     // RainAudioEngine needs a Context and a ModelAudioEngine; make get() types explicit so Koin can resolve them
-    single { RainAudioEngine(get<Context>(), get<com.seattledevcamp.rainmaker.audio.model.ModelAudioEngine>()) }
+    single { RainAudioEngine(get<Context>(), get<ModelAudioEngine>()) }
 
     single { ExoPlayer.Builder(get<Context>()).build() }
 
