@@ -104,7 +104,7 @@ class SystemTrayIcon(QSystemTrayIcon):
         
         # Create a simple colored square icon
         pixmap = QPixmap(16, 16)
-        pixmap.fill(Qt.Color.transparent)
+        pixmap.fill(Qt.transparent)
         
         painter = QPainter(pixmap)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
