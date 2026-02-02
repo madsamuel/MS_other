@@ -17,10 +17,10 @@ class MetricCard(QFrame):
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Raised)
         self.setStyleSheet("""
             QFrame {
-                border: 1px solid #ddd;
+                border: 1px solid #e0e0e0;
                 border-radius: 4px;
                 padding: 12px;
-                background-color: #f9f9f9;
+                background-color: #fafafa;
             }
         """)
         
@@ -33,6 +33,7 @@ class MetricCard(QFrame):
         title_font.setPointSize(10)
         title_font.setBold(True)
         title_label.setFont(title_font)
+        title_label.setStyleSheet("color: #0a0a0a;")
         layout.addWidget(title_label)
         
         # Value
@@ -59,7 +60,7 @@ class MetricCard(QFrame):
         
         # Set status color
         colors = {
-            "normal": QColor(76, 175, 80),  # Green
+            "normal": QColor(0, 120, 212),  # Fluent Blue
             "warning": QColor(255, 193, 7),  # Yellow
             "critical": QColor(244, 67, 54),  # Red
         }
@@ -88,25 +89,27 @@ class DetailsWindow(QWidget):
         self.setGeometry(100, 100, 600, 500)
         self.setStyleSheet("""
             QWidget {
-                background-color: white;
+                background-color: #ffffff;
             }
         """)
         
         # Main layout
         layout = QVBoxLayout(self)
-        layout.setSpacing(12)
-        layout.setContentsMargins(16, 16, 16, 16)
+        layout.setSpacing(16)
+        layout.setContentsMargins(20, 20, 20, 20)
         
         # Header
         header_layout = QHBoxLayout()
         self.hostname_label = QLabel("System")
         hostname_font = QFont()
-        hostname_font.setPointSize(12)
+        hostname_font.setPointSize(13)
         hostname_font.setBold(True)
         self.hostname_label.setFont(hostname_font)
+        self.hostname_label.setStyleSheet("color: #0a0a0a;")
         header_layout.addWidget(self.hostname_label)
         
         self.uptime_label = QLabel("Uptime: --")
+        self.uptime_label.setStyleSheet("color: #616161; font-size: 12px;")
         header_layout.addStretch()
         header_layout.addWidget(self.uptime_label)
         
@@ -132,7 +135,7 @@ class DetailsWindow(QWidget):
         
         # Footer
         self.update_time_label = QLabel("Last update: --")
-        self.update_time_label.setStyleSheet("color: #666; font-size: 10px;")
+        self.update_time_label.setStyleSheet("color: #999; font-size: 11px;")
         layout.addWidget(self.update_time_label)
         
         layout.addStretch()
