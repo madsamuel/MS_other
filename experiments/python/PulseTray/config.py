@@ -16,6 +16,12 @@ class Config:
         "alert_duration_seconds": 10,  # how long to trigger alert for CPU
         "show_notifications": True,
         "monitoring_enabled": True,
+        # Metric monitoring toggles
+        "monitor_cpu": True,
+        "monitor_memory": True,
+        "monitor_disk": True,
+        "monitor_network_upload": True,
+        "monitor_network_download": True,
     }
     
     def __init__(self, config_path: str = None):

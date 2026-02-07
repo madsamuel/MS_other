@@ -12,6 +12,7 @@ from state import MetricsStore
 from alerts import AlertManager
 from tray import SystemTrayIcon
 from details_window import DetailsWindow
+from settings_window import SettingsWindow
 
 
 class PulseTrayCoreApp:
@@ -30,6 +31,7 @@ class PulseTrayCoreApp:
         # UI Components
         self.tray_icon = SystemTrayIcon()
         self.details_window = None
+        self.settings_window = None
         
         # Update timer
         self.update_timer = QTimer()
@@ -45,6 +47,12 @@ class PulseTrayCoreApp:
         self.tray_icon.signals.resume_monitoring.connect(self._on_resume)
         self.tray_icon.signals.export_snapshot.connect(self._on_export)
         self.tray_icon.signals.quit_app.connect(self._on_quit)
+        
+        # Add settings option if tray has it
+        try:
+            self.tray_icon.signals.show_settings.connect(self.show_settings_window)
+        except AttributeError:
+            pass  # Settings not in tray signals yet
         
         self.running = True
         self.paused = False
@@ -162,6 +170,21 @@ class PulseTrayCoreApp:
     def _on_details_closed(self) -> None:
         """Handle details window closed."""
         self.details_window = None
+    
+    def show_settings_window(self) -> None:
+        """Show or focus the settings window."""
+        if self.settings_window is None:
+            self.settings_window = SettingsWindow(self.config)
+            # Connect to close event via destroyed signal
+            self.settings_window.destroyed.connect(self._on_settings_closed)
+        
+        self.settings_window.show()
+        self.settings_window.raise_()
+        self.settings_window.activateWindow()
+    
+    def _on_settings_closed(self) -> None:
+        """Handle settings window closed."""
+        self.settings_window = None
     
     def _on_pause(self) -> None:
         """Handle pause monitoring."""
