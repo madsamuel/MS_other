@@ -175,8 +175,6 @@ class PulseTrayCoreApp:
         """Show or focus the settings window."""
         if self.settings_window is None:
             self.settings_window = SettingsWindow(self.config)
-            # Connect to close event via destroyed signal
-            self.settings_window.destroyed.connect(self._on_settings_closed)
         
         self.settings_window.show()
         self.settings_window.raise_()
