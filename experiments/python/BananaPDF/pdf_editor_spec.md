@@ -1,10 +1,10 @@
-# Product Specification: BananaPDF
+# Product Specification: PDF Editor
 
 ## 1. Product Summary
 
-Build **BananaPDF**, a professional PDF editor that allows users to open, view, edit, annotate, organize, sign, redact, and save PDF documents through a clean user interface.
+Build a professional PDF editor that allows users to open, view, edit, annotate, organize, sign, redact, and save PDF documents through a clean user interface.
 
-BananaPDF must support the complete end-to-end workflow:
+The product must support the complete end-to-end workflow:
 
 1. Open a PDF file.
 2. Render the PDF in a viewer.
@@ -12,13 +12,13 @@ BananaPDF must support the complete end-to-end workflow:
 4. Save or export the edited PDF.
 5. Open the exported PDF in a standard PDF viewer without corruption.
 
-BananaPDF should prioritize reliability, file integrity, safe redaction, accurate rendering, and a simple user experience.
+The editor should prioritize reliability, file integrity, safe redaction, accurate rendering, and a simple user experience.
 
 ## 2. Required End-to-End MVP Behavior
 
-The first working version of BananaPDF must support this complete user flow:
+The first working version must support this complete user flow:
 
-1. User opens BananaPDF in a browser or desktop UI.
+1. User opens the PDF editor in a browser or desktop UI.
 2. User clicks "Open PDF" or drags a PDF into the app.
 3. The PDF renders in the main viewer.
 4. Page thumbnails render in a side panel.
@@ -31,7 +31,7 @@ The first working version of BananaPDF must support this complete user flow:
    - Signature image
    - Page rotation
 7. User can click "Save" or "Export PDF."
-8. BananaPDF generates a new PDF file containing the user's edits.
+8. The app generates a new PDF file containing the user's edits.
 9. User can download or save the edited PDF.
 10. The exported PDF opens correctly in a standard PDF viewer.
 
@@ -41,7 +41,7 @@ This end-to-end open-edit-save workflow is mandatory for MVP. Do not prioritize 
 
 The MVP is only complete if this manual test passes:
 
-1. Open BananaPDF.
+1. Open the application.
 2. Upload a PDF file.
 3. Confirm the PDF appears in the viewer.
 4. Add a text box that says "Test edit."
@@ -156,7 +156,7 @@ Common tasks:
 
 User flow:
 
-1. User opens BananaPDF.
+1. User opens the app.
 2. User clicks "Open PDF" or drags a PDF into the upload area.
 3. App validates the file.
 4. App loads the PDF.
@@ -1348,7 +1348,7 @@ Track:
 
 ## 20. Quality Bar
 
-BananaPDF is not ready unless:
+The product is not ready unless:
 
 - A PDF can be opened in the UI.
 - A visible edit can be added.
@@ -1365,6 +1365,6 @@ BananaPDF is not ready unless:
 
 ## 21. Final Instruction to AI Agent
 
-Build BananaPDF as a trustworthy document tool. The highest-priority outcome is a working UI where a user can open a PDF, edit it, save or export it, and verify that the exported PDF is valid.
+Build the PDF editor as a trustworthy document tool. The highest-priority outcome is a working UI where a user can open a PDF, edit it, save or export it, and verify that the exported PDF is valid.
 
 PDF editing is technically complex. Be explicit about what is supported and what is not. Prefer safe, predictable behavior over pretending to support every possible PDF feature. Prioritize accurate rendering, reliable export, safe redaction, and a clean user workflow.
