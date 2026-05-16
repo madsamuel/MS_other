@@ -258,6 +258,12 @@ class PDFEditor {
         page.deleted = true;
         this.isModified = true;
         
+        // Hide the thumbnail for deleted page
+        const thumbnail = document.querySelector(`[data-page="${this.currentPage}"]`);
+        if (thumbnail) {
+            thumbnail.style.display = 'none';
+        }
+        
         this.goToPage(Math.min(this.currentPage + 1, this.pdfDoc.numPages));
         this.setStatus('Page marked for deletion');
     }
