@@ -215,6 +215,9 @@ class PDFViewer {
         this.canvas.width = viewport.width;
         this.canvas.height = viewport.height;
         
+        // Explicitly clear the canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
         const renderContext = {
             canvasContext: this.ctx,
             viewport: viewport
@@ -441,6 +444,7 @@ class UIController {
         this.emptyState = document.getElementById('emptyState');
         this.loadingIndicator = document.getElementById('loadingIndicator');
         this.errorMessage = document.getElementById('errorMessage');
+        this.isUpdatingUI = false; // Lock to prevent race conditions
     }
     
     attachEventListeners() {
@@ -541,18 +545,67 @@ class UIController {
     }
     
     async onPageSelected(data) {
-        await this.pdfViewer.renderPage(data.pageNum, this.pdfDoc);
-        this.pageSelector.value = data.pageNum;
-        this.pdfViewer.updateThumbnailSelection(data.pageNum);
+        try {
+            // Update current page state
+            this.pdfViewer.currentPage = data.pageNum;
+            
+            // Render the page
+            await this.pdfViewer.renderPage(data.pageNum, this.pdfDoc);
+            
+            // Sync UI elements
+            this.pageSelector.value = data.pageNum;
+            this.pdfViewer.updateThumbnailSelection(data.pageNum);
+            
+            this.setStatus(`Page ${data.pageNum} loaded`);
+        } catch (error) {
+            console.error('Error selecting page:', error);
+            this.showError('Failed to load page. Please try again.');
+        }
     }
     
     async onPageModified() {
-        // First, update page selector which will fix currentPage if it's deleted
-        this.updatePageSelector();
-        // Then regenerate thumbnails
-        await this.pdfViewer.generateThumbnails(this.pdfDoc);
-        // Finally render the (now valid) current page
-        await this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
+        if (this.isUpdatingUI) return; // Prevent race conditions
+        this.isUpdatingUI = true;
+        
+        try {
+            // Validate and fix current page if it was deleted
+            this.ensureValidCurrentPage();
+            
+            // Update thumbnails and selector together for consistency
+            await this.pdfViewer.generateThumbnails(this.pdfDoc);
+            this.updatePageSelector(); // Now updates UI without mutating state
+            
+            // Finally render the current page
+            await this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
+        } catch (error) {
+            console.error('Error updating page display:', error);
+            this.showError('Failed to update page display. Please try again.');
+        } finally {
+            this.isUpdatingUI = false;
+        }
+    }
+    
+    ensureValidCurrentPage() {
+        const currentPageDeleted = this.pageManager.pages[this.pdfViewer.currentPage - 1]?.deleted;
+        if (!currentPageDeleted) return; // Current page is valid
+        
+        // Find next valid page: prefer next, then previous
+        for (let i = this.pdfViewer.currentPage + 1; i <= this.pdfDoc.numPages; i++) {
+            if (!this.pageManager.pages[i - 1]?.deleted) {
+                this.pdfViewer.currentPage = i;
+                return;
+            }
+        }
+        
+        for (let i = this.pdfViewer.currentPage - 1; i >= 1; i--) {
+            if (!this.pageManager.pages[i - 1]?.deleted) {
+                this.pdfViewer.currentPage = i;
+                return;
+            }
+        }
+        
+        // No valid pages remain
+        this.showError('No valid pages remaining in document.');
     }
     
     async onStateRestored(data) {
@@ -663,34 +716,55 @@ class UIController {
         this.enableSaveButton();
     }
     
-    rotateCurrentPage() {
+    async rotateCurrentPage() {
         if (confirm('Rotate this page?')) {
-            this.undoRedoManager.saveState('Rotate Page', this.pageManager, this.annotationManager);
-            this.pageManager.rotatePage(this.pdfViewer.currentPage);
-            this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
-            this.enableSaveButton();
+            try {
+                this.undoRedoManager.saveState('Rotate Page', this.pageManager, this.annotationManager);
+                this.pageManager.rotatePage(this.pdfViewer.currentPage);
+                await this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
+                this.enableSaveButton();
+                this.setStatus('Page rotated');
+            } catch (error) {
+                console.error('Error rotating page:', error);
+                this.showError('Failed to rotate page. Please try again.');
+            }
         }
     }
     
     deleteCurrentPage() {
         if (confirm('Delete this page? This action cannot be undone.')) {
-            this.undoRedoManager.saveState('Delete Page', this.pageManager, this.annotationManager);
-            const pageToDelete = this.pdfViewer.currentPage;
-            this.pageManager.deletePage(pageToDelete);
-            
-            // Find next valid page to display
-            for (let i = 1; i <= this.pdfDoc.numPages; i++) {
-                if (!this.pageManager.pages[i - 1]?.deleted) {
-                    this.pdfViewer.currentPage = i;
-                    break;
-                }
+            try {
+                this.undoRedoManager.saveState('Delete Page', this.pageManager, this.annotationManager);
+                const pageToDelete = this.pdfViewer.currentPage;
+                this.pageManager.deletePage(pageToDelete);
+                
+                // Note: ensureValidCurrentPage() will be called by onPageModified()
+                this.onPageModified();
+                this.enableSaveButton();
+                this.setStatus(`Page ${pageToDelete} deleted`);
+            } catch (error) {
+                console.error('Error deleting page:', error);
+                this.showError('Failed to delete page. Please try again.');
             }
-            
-            this.onPageModified();
-            this.enableSaveButton();
         }
     }
     
+    setStatus(message) {
+        this.statusText.textContent = message;
+        this.statusText.style.display = 'block';
+        setTimeout(() => {
+            this.statusText.style.display = 'none';
+        }, 3000);
+    }
+    
+    showError(message) {
+        this.errorMessage.textContent = message;
+        this.errorMessage.style.display = 'block';
+        setTimeout(() => {
+            this.errorMessage.style.display = 'none';
+        }, 5000);
+    }
+
     performUndo() {
         this.undoRedoManager.undo(this.pageManager, this.annotationManager);
         this.enableSaveButton();
@@ -702,28 +776,30 @@ class UIController {
     }
     
     updatePageSelector() {
-        this.pageSelector.innerHTML = '';
-        for (let i = 1; i <= this.pdfDoc.numPages; i++) {
-            // Skip deleted pages
-            if (this.pageManager.pages[i - 1]?.deleted) continue;
+        try {
+            this.pageSelector.innerHTML = '';
             
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = `Page ${i}`;
-            if (i === this.pdfViewer.currentPage) {
-                option.selected = true;
-            }
-            this.pageSelector.appendChild(option);
-        }
-        
-        // If current page was deleted, find first active page
-        if (this.pageManager.pages[this.pdfViewer.currentPage - 1]?.deleted) {
             for (let i = 1; i <= this.pdfDoc.numPages; i++) {
-                if (!this.pageManager.pages[i - 1]?.deleted) {
-                    this.pdfViewer.currentPage = i;
-                    break;
+                // Skip deleted pages
+                if (this.pageManager.pages[i - 1]?.deleted) continue;
+                
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = `Page ${i}`;
+                
+                // Mark current page as selected
+                if (i === this.pdfViewer.currentPage) {
+                    option.selected = true;
                 }
+                
+                this.pageSelector.appendChild(option);
             }
+            
+            // Update aria-label for accessibility
+            const totalPages = Array.from(this.pageSelector.options).length;
+            this.pageSelector.setAttribute('aria-label', `Page selector: ${totalPages} pages available`);
+        } catch (error) {
+            console.error('Error updating page selector:', error);
         }
     }
     
