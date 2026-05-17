@@ -393,6 +393,7 @@ class UIController {
         this.undoRedoManager = undoRedoManager;
         
         this.pdfDoc = null;
+        this.currentFilename = 'document.pdf';  // Default filename for save operations
         this.currentTool = null;
         this.pendingInput = null;
         
@@ -501,6 +502,7 @@ class UIController {
         this.eventBus.on('stateRestored', (data) => this.onStateRestored(data));
         this.eventBus.on('zoomChanged', (data) => this.updateZoomUI(data.zoomLevel));
         this.eventBus.on('error', (data) => this.showError(data.message));
+        this.eventBus.on('saveRequested', () => this.handleSave());
         
         // Show empty state initially
         this.emptyState.style.display = 'flex';
@@ -512,9 +514,32 @@ class UIController {
         
         this.showLoading(true);
         try {
+            // 1. Load PDF client-side for display (using PDF.js)
             this.pdfDoc = await this.pdfLoader.load(file);
+            
+            // 2. Upload file to backend for storage and processing
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            console.log(`Uploading file to backend: ${file.name}`);
+            const uploadResponse = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (!uploadResponse.ok) {
+                const errorData = await uploadResponse.json();
+                throw new Error(errorData.error || 'Upload failed');
+            }
+            
+            const uploadData = await uploadResponse.json();
+            console.log(`File uploaded successfully. Session:`, uploadData.session);
+            
+            // Backend upload succeeded - pdfDoc is already loaded client-side
         } catch (error) {
+            console.error('Error in handleFileSelect:', error);
             this.showLoading(false);
+            this.showError(`Failed to upload file: ${error.message}`);
         }
     }
     
@@ -529,6 +554,7 @@ class UIController {
     
     async onPDFLoaded(data) {
         this.pdfDoc = data.pdfDoc;
+        this.currentFilename = data.filename;  // Store filename for save operations
         this.fileName.textContent = data.filename;
         this.pageInfo.textContent = `${data.pageCount} pages`;
         
@@ -827,6 +853,92 @@ class UIController {
         if (this.saveBtn) this.saveBtn.disabled = false;
     }
     
+    async handleSave() {
+        if (!this.pdfDoc) {
+            this.showError('No PDF loaded. Please open a PDF file first.');
+            console.error('Save attempted with no PDF loaded');
+            return;
+        }
+        
+        if (this.isUpdatingUI) {
+            this.showError('A save operation is already in progress. Please wait.');
+            return;
+        }
+        
+        try {
+            this.showLoading(true);
+            this.setStatus('Saving PDF...');
+            
+            // Build page state array including deletion info
+            const pages = [];
+            for (let i = 0; i < this.pdfDoc.numPages; i++) {
+                pages.push({
+                    pageNum: i + 1,
+                    deleted: this.pageManager.pages[i]?.deleted || false,
+                    rotation: this.pageManager.pages[i]?.rotation || 0
+                });
+            }
+            
+            // Verify we have at least one non-deleted page
+            const activePages = pages.filter(p => !p.deleted);
+            if (activePages.length === 0) {
+                this.showError('Cannot save: all pages have been deleted.');
+                this.showLoading(false);
+                return;
+            }
+            
+            // Prepare save data - IMPORTANT: include filename so backend can find the PDF
+            const saveData = {
+                flatten: false,
+                originalFilename: this.currentFilename,  // Send filename to backend for recovery
+                pages: pages,
+                annotations: this.annotationManager.annotations || [],
+                textBoxes: this.annotationManager.textBoxes || []
+            };
+            
+            console.log(`Saving PDF "${this.currentFilename}" with ${activePages.length} active pages...`);
+            
+            // Send to backend
+            const response = await fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(saveData)
+            });
+            
+            if (!response.ok) {
+                let errorMsg = 'Unknown error';
+                try {
+                    const error = await response.json();
+                    errorMsg = error.error || error.message || errorMsg;
+                } catch (e) {
+                    errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                }
+                throw new Error(errorMsg);
+            }
+            
+            // Download the file
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `edited_${this.currentFilename || 'document.pdf'}`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            this.setStatus(`✅ PDF saved successfully! (${activePages.length} pages)`);
+            this.showLoading(false);
+            console.log('Save completed successfully');
+        } catch (error) {
+            console.error('Error saving PDF:', error);
+            this.showError(`Failed to save PDF: ${error.message}`);
+            this.showLoading(false);
+        }
+    }
+    
     openModal(type) {
         if (type === 'text') {
             this.textInputModal.style.display = 'flex';
@@ -858,7 +970,10 @@ class UIController {
     }
     
     setStatus(message) {
-        this.statusText.textContent = message;
+        if (this.statusText) {
+            this.statusText.textContent = message;
+            this.statusText.style.display = 'block';
+        }
     }
 }
 

@@ -59,7 +59,18 @@ def upload_pdf():
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
         filename = timestamp + filename
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        
+        print(f"\n--- UPLOAD ---")
+        print(f"Original filename: {file.filename}")
+        print(f"Secure filename: {filename}")
+        print(f"Saving to: {filepath}")
+        
         file.save(filepath)
+        
+        print(f"File saved successfully")
+        file_exists = os.path.isfile(filepath)
+        file_size = os.path.getsize(filepath) if file_exists else 0
+        print(f"Verify - file exists: {file_exists}, size: {file_size} bytes")
         
         # Initialize PDF handler and annotation manager
         global pdf_handler, annotation_manager, current_session
@@ -259,42 +270,145 @@ def reorder_pages():
 
 @app.route('/api/save', methods=['POST'])
 def save_pdf():
-    """Save PDF with annotations"""
+    """Save PDF with annotations and page modifications"""
     try:
         data = request.get_json()
         flatten = data.get('flatten', False)
+        pages_data = data.get('pages', [])
+        annotations = data.get('annotations', [])
+        text_boxes = data.get('textBoxes', [])
+        original_filename = data.get('originalFilename')
         
-        if pdf_handler is None or current_session is None:
-            return jsonify({'error': 'No PDF loaded'}), 400
+        global pdf_handler, current_session
+        
+        print(f"\n{'='*60}")
+        print(f"SAVE REQUEST")
+        print(f"{'='*60}")
+        print(f"Original filename from frontend: {original_filename}")
+        print(f"PDF handler exists: {pdf_handler is not None}")
+        print(f"Session exists: {current_session is not None}")
+        
+        # Check the uploads folder contents RIGHT NOW
+        print(f"\nUploads folder: {os.path.abspath(UPLOAD_FOLDER)}")
+        print(f"Uploads folder exists: {os.path.exists(UPLOAD_FOLDER)}")
+        
+        if os.path.exists(UPLOAD_FOLDER):
+            files_in_folder = os.listdir(UPLOAD_FOLDER)
+            print(f"Files in uploads folder ({len(files_in_folder)} total):")
+            for f in files_in_folder:
+                full_path = os.path.join(UPLOAD_FOLDER, f)
+                size = os.path.getsize(full_path) if os.path.isfile(full_path) else 0
+                print(f"  - {f} ({size} bytes)")
+        else:
+            print("Uploads folder does NOT exist!")
+        
+        # If session is still valid, just use it
+        if pdf_handler is not None and current_session is not None:
+            print(f"\n✓ Session is valid, using stored filepath:")
+            print(f"  Filepath: {current_session.get('filepath')}")
+            file_exists = os.path.isfile(current_session.get('filepath', ''))
+            print(f"  File exists: {file_exists}")
+        else:
+            print(f"\n✗ Session is lost, attempting recovery...")
+            
+            if not original_filename:
+                print("ERROR: No filename provided by frontend")
+                return jsonify({
+                    'error': 'Cannot recover session - no filename provided. Please reload and upload the PDF again.'
+                }), 400
+            
+            # Search for the file
+            found_file = None
+            if os.path.exists(UPLOAD_FOLDER):
+                print(f"Searching for file ending with: {original_filename}")
+                for filename in os.listdir(UPLOAD_FOLDER):
+                    if filename.endswith(original_filename):
+                        found_file = os.path.join(UPLOAD_FOLDER, filename)
+                        print(f"✓ Found: {found_file}")
+                        break
+                    else:
+                        print(f"  No match: {filename} does not end with {original_filename}")
+            
+            if not found_file or not os.path.isfile(found_file):
+                files_in_folder = []
+                if os.path.exists(UPLOAD_FOLDER):
+                    files_in_folder = os.listdir(UPLOAD_FOLDER)
+                
+                error_msg = f'PDF file not found. Looking for: "{original_filename}". '
+                if files_in_folder:
+                    error_msg += f'Available files: {", ".join(files_in_folder[:5])}'
+                else:
+                    error_msg += 'The uploads folder is empty.'
+                
+                print(f"ERROR: {error_msg}")
+                return jsonify({'error': error_msg}), 400
+            
+            # Recover the session
+            try:
+                print(f"Recovering from: {found_file}")
+                pdf_handler = PDFHandler(found_file)
+                page_count = pdf_handler.get_page_count()
+                current_session = {
+                    'filename': os.path.basename(found_file),
+                    'filepath': found_file,
+                    'originalFilename': original_filename,
+                    'pageCount': page_count,
+                    'pages': [{'index': i, 'rotation': 0, 'deleted': False} for i in range(page_count)],
+                    'annotations': {},
+                    'textBoxes': {},
+                }
+                print(f"✓ Session recovered. Pages: {page_count}")
+            except Exception as e:
+                print(f"ERROR recovering session: {str(e)}")
+                return jsonify({'error': f'Failed to recover PDF: {str(e)}'}), 400
+        
+        # Validate pages
+        if not pages_data:
+            return jsonify({'error': 'No page data provided'}), 400
+        
+        # Filter deleted pages
+        pages_to_export = []
+        for page_info in pages_data:
+            page_num = page_info.get('pageNum')
+            is_deleted = page_info.get('deleted', False)
+            
+            if is_deleted or page_num is None:
+                continue
+            
+            pages_to_export.append((page_num - 1, page_info))
+        
+        if not pages_to_export:
+            return jsonify({'error': 'Cannot save: all pages have been deleted.'}), 400
+        
+        print(f"\nExporting {len(pages_to_export)} pages (from {len(pages_data)} total)")
         
         # Create output PDF
         from pdf_exporter import PDFExporter
         exporter = PDFExporter(pdf_handler)
-        
-        # Apply page operations
-        pages_to_export = [
-            (i, current_session['pages'][i])
-            for i in range(len(current_session['pages']))
-            if not current_session['pages'][i].get('deleted', False)
-        ]
-        
-        # Export with annotations
         output_path = exporter.export(
             pages_to_export,
-            current_session['annotations'],
-            current_session['textBoxes'],
+            annotations,
+            text_boxes,
             flatten=flatten,
         )
+        
+        print(f"✓ Export successful: {output_path}")
+        print(f"{'='*60}\n")
         
         return send_file(
             output_path,
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=f"edited_{current_session['originalFilename']}",
+            download_name=f"edited_{current_session.get('originalFilename', 'document.pdf')}",
         ), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        error_msg = str(e)
+        print(f"SAVE ERROR: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        return jsonify({'error': f'Failed to save PDF: {error_msg}'}), 500
 
 
 @app.route('/api/session', methods=['GET'])
@@ -306,6 +420,37 @@ def get_session():
         
         return jsonify(current_session), 200
         
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/debug/uploads', methods=['GET'])
+def debug_uploads():
+    """Debug endpoint: list all files in uploads folder"""
+    try:
+        uploads_path = os.path.abspath(UPLOAD_FOLDER)
+        exists = os.path.exists(uploads_path)
+        
+        files_list = []
+        if exists:
+            for filename in os.listdir(uploads_path):
+                full_path = os.path.join(uploads_path, filename)
+                if os.path.isfile(full_path):
+                    size = os.path.getsize(full_path)
+                    files_list.append({
+                        'name': filename,
+                        'size': size,
+                        'exists': True
+                    })
+        
+        return jsonify({
+            'uploads_folder': uploads_path,
+            'folder_exists': exists,
+            'file_count': len(files_list),
+            'files': files_list,
+            'global_pdf_handler': pdf_handler is not None,
+            'global_session': current_session is not None
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
