@@ -257,9 +257,9 @@ def reorder_pages():
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/export', methods=['POST'])
-def export_pdf():
-    """Export PDF with annotations"""
+@app.route('/api/save', methods=['POST'])
+def save_pdf():
+    """Save PDF with annotations"""
     try:
         data = request.get_json()
         flatten = data.get('flatten', False)
