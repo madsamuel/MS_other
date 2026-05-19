@@ -606,15 +606,22 @@ class UIController {
         this.isUpdatingUI = true;
         
         try {
+            // Track the current page before validation
+            const pageBeforeValidation = this.pdfViewer.currentPage;
+            
             // Validate and fix current page if it was deleted
             this.ensureValidCurrentPage();
             
+            const pageChanged = pageBeforeValidation !== this.pdfViewer.currentPage;
+            
             // Update thumbnails and selector together for consistency
             await this.pdfViewer.generateThumbnails(this.pdfDoc);
-            this.updatePageSelector(); // Now updates UI without mutating state
+            this.updatePageSelector();
             
-            // Finally render the current page
-            await this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
+            // Only re-render if the page actually changed
+            if (pageChanged) {
+                await this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
+            }
         } catch (error) {
             console.error('Error updating page display:', error);
             this.showError('Failed to update page display. Please try again.');
