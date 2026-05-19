@@ -275,6 +275,12 @@ class PDFViewer {
         
         // Restore scroll position without animation
         this.thumbnailsContainer.scrollTop = scrollTop;
+        
+        // Ensure active thumbnail is visible (without smooth animation)
+        const activeThumbnail = document.querySelector('[data-page="' + this.currentPage + '"]');
+        if (activeThumbnail) {
+            activeThumbnail.scrollIntoView({ block: 'nearest' });
+        }
     }
     
     renderAnnotations() {
