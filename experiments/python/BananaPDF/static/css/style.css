@@ -475,6 +475,9 @@ body {
     border-radius: 4px;
     background-color: var(--light-bg);
     transition: all 0.2s ease;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .info-item select {
