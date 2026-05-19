@@ -72,8 +72,18 @@ def upload_pdf():
         file_size = os.path.getsize(filepath) if file_exists else 0
         print(f"Verify - file exists: {file_exists}, size: {file_size} bytes")
         
-        # Initialize PDF handler and annotation manager
+        # Clean up previous uploaded file if one exists
         global pdf_handler, annotation_manager, current_session
+        if current_session and current_session.get('filepath'):
+            old_filepath = current_session.get('filepath')
+            if old_filepath != filepath and os.path.isfile(old_filepath):
+                try:
+                    os.remove(old_filepath)
+                    print(f"Cleaned up previous upload: {old_filepath}")
+                except Exception as cleanup_error:
+                    print(f"⚠ Warning: Failed to delete previous upload: {cleanup_error}")
+        
+        # Initialize PDF handler and annotation manager
         pdf_handler = PDFHandler(filepath)
         annotation_manager = AnnotationManager()
         
@@ -393,6 +403,16 @@ def save_pdf():
         )
         
         print(f"✓ Export successful: {output_path}")
+        
+        # Clean up the uploaded file
+        uploaded_filepath = current_session.get('filepath')
+        if uploaded_filepath and os.path.isfile(uploaded_filepath):
+            try:
+                os.remove(uploaded_filepath)
+                print(f"✓ Cleaned up uploaded file: {uploaded_filepath}")
+            except Exception as cleanup_error:
+                print(f"⚠ Warning: Failed to delete uploaded file: {cleanup_error}")
+        
         print(f"{'='*60}\n")
         
         return send_file(
