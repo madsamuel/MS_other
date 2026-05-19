@@ -711,6 +711,7 @@ class UIController {
         this.annotationManager.addAnnotation(annotation);
         this.pdfViewer.renderAnnotations();
         this.enableSaveButton();
+        this.updateUndoRedoButtons();
     }
     
     confirmTextInput() {
@@ -734,6 +735,7 @@ class UIController {
         this.pendingInput = null;
         this.pdfViewer.renderAnnotations();
         this.enableSaveButton();
+        this.updateUndoRedoButtons();
     }
     
     confirmCommentInput() {
@@ -759,6 +761,7 @@ class UIController {
         this.pendingInput = null;
         this.pdfViewer.renderAnnotations();
         this.enableSaveButton();
+        this.updateUndoRedoButtons();
     }
     
     async rotateCurrentPage() {
@@ -768,6 +771,7 @@ class UIController {
                 this.pageManager.rotatePage(this.pdfViewer.currentPage);
                 await this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
                 this.enableSaveButton();
+                this.updateUndoRedoButtons();
                 this.setStatus('Page rotated');
             } catch (error) {
                 console.error('Error rotating page:', error);
@@ -777,7 +781,7 @@ class UIController {
     }
     
     deleteCurrentPage() {
-        if (confirm('Delete this page? This action cannot be undone.')) {
+        if (confirm('Delete this page?')) {
             try {
                 this.undoRedoManager.saveState('Delete Page', this.pageManager, this.annotationManager);
                 const pageToDelete = this.pdfViewer.currentPage;
@@ -786,6 +790,7 @@ class UIController {
                 // Note: ensureValidCurrentPage() will be called by onPageModified()
                 this.onPageModified();
                 this.enableSaveButton();
+                this.updateUndoRedoButtons();
                 this.setStatus(`Page ${pageToDelete} deleted`);
             } catch (error) {
                 console.error('Error deleting page:', error);
