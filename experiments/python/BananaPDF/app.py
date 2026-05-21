@@ -297,6 +297,10 @@ def save_pdf():
         print(f"Original filename from frontend: {original_filename}")
         print(f"PDF handler exists: {pdf_handler is not None}")
         print(f"Session exists: {current_session is not None}")
+        print(f"\nAnnotations received (type={type(annotations)}, len={len(annotations) if isinstance(annotations, (list, dict)) else 'N/A'}):")
+        print(f"  Data: {annotations}")
+        print(f"\nText boxes received (type={type(text_boxes)}, len={len(text_boxes) if isinstance(text_boxes, (list, dict)) else 'N/A'}):")
+        print(f"  Data: {text_boxes}")
         
         # Check the uploads folder contents RIGHT NOW
         print(f"\nUploads folder: {os.path.abspath(UPLOAD_FOLDER)}")
@@ -385,7 +389,15 @@ def save_pdf():
             if is_deleted or page_num is None:
                 continue
             
-            pages_to_export.append((page_num - 1, page_info))
+            # pageNum is 1-indexed from frontend, convert to 0-indexed
+            orig_page_idx = page_num - 1
+            
+            # Validate page index against actual PDF page count
+            if orig_page_idx < 0 or orig_page_idx >= pdf_handler.get_page_count():
+                print(f"ERROR: Invalid page index {orig_page_idx} (PDF has {pdf_handler.get_page_count()} pages, received pageNum={page_num})")
+                return jsonify({'error': f'Invalid page index {page_num}'}), 400
+            
+            pages_to_export.append((orig_page_idx, page_info))
         
         if not pages_to_export:
             return jsonify({'error': 'Cannot save: all pages have been deleted.'}), 400

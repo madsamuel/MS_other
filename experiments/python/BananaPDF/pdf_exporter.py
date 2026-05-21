@@ -14,6 +14,7 @@ class PDFExporter:
         self.pdf_handler = pdf_handler
         self.output_path = None
     
+
     def export(self, pages_to_export, annotations_dict, textboxes_dict, flatten=False):
         """
         Export PDF with annotations
@@ -28,12 +29,27 @@ class PDFExporter:
             Path to output PDF
         """
         try:
+            print(f"\n--- PDF EXPORT ---")
+            print(f"Annotations dict type: {type(annotations_dict)}")
+            print(f"Annotations dict keys: {list(annotations_dict.keys()) if isinstance(annotations_dict, dict) else 'N/A'}")
+            print(f"Annotations content: {annotations_dict}")
+            print(f"Textboxes dict type: {type(textboxes_dict)}")
+            print(f"Textboxes content: {textboxes_dict}")
+            
             # Open the original PDF for modification
             doc = fitz.open(self.pdf_handler.filepath)
+            print(f"Original PDF has {len(doc)} pages")
             new_doc = fitz.open()  # Create new document
             
             # Process selected pages
             for new_page_idx, (orig_page_idx, page_data) in enumerate(pages_to_export):
+                print(f"\nProcessing page {orig_page_idx} (new index: {new_page_idx})")
+                
+                # Validate page index
+                if orig_page_idx < 0 or orig_page_idx >= len(doc):
+                    print(f"  ERROR: Page index {orig_page_idx} is out of range (PDF has {len(doc)} pages)")
+                    raise Exception(f"Page {orig_page_idx} not found in PDF")
+                
                 # Get original page
                 orig_page = doc[orig_page_idx]
                 
@@ -47,9 +63,21 @@ class PDFExporter:
                 new_page = new_doc[new_page_idx]
                 
                 # Add annotations for this page
-                if orig_page_idx in annotations_dict:
-                    for annotation in annotations_dict[orig_page_idx]:
+                # Note: JSON converts numeric keys to strings, so check both string and int keys
+                page_key = str(orig_page_idx)
+                if page_key in annotations_dict:
+                    print(f"  Found {len(annotations_dict[page_key])} annotations for page {orig_page_idx}")
+                    for annotation in annotations_dict[page_key]:
+                        print(f"    Adding annotation: {annotation}")
                         self._add_annotation_to_page(new_page, annotation)
+                elif orig_page_idx in annotations_dict:
+                    # Fallback for integer keys
+                    print(f"  Found {len(annotations_dict[orig_page_idx])} annotations for page {orig_page_idx}")
+                    for annotation in annotations_dict[orig_page_idx]:
+                        print(f"    Adding annotation: {annotation}")
+                        self._add_annotation_to_page(new_page, annotation)
+                else:
+                    print(f"  No annotations for page {orig_page_idx} (keys in dict: {list(annotations_dict.keys())})")
                 
                 # Add text boxes for this page
                 for textbox_id, textbox in textboxes_dict.items():
@@ -92,6 +120,7 @@ class PDFExporter:
             rect = fitz.Rect(x, y, x + width, y + height)
             
             if ann_type == 'highlight':
+                # Use proper PDF highlight annotation (like Adobe)
                 page.add_highlight_annot(rect)
             elif ann_type == 'rectangle':
                 page.draw_rect(rect, color=color_normalized, width=2)

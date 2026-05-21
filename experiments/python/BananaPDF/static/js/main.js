@@ -215,6 +215,11 @@ class PDFViewer {
         this.canvas.width = viewport.width;
         this.canvas.height = viewport.height;
         
+        // Store page dimensions for coordinate conversion (needed for proper annotation positioning)
+        const unzoomedViewport = page.getViewport({ scale: 1, rotation });
+        this.pageWidth = unzoomedViewport.width;
+        this.pageHeight = unzoomedViewport.height;
+        
         // Explicitly clear the canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
@@ -285,6 +290,16 @@ class PDFViewer {
     
     renderAnnotations() {
         this.annotationLayer.innerHTML = '';
+        
+        // Position the annotation layer to overlay the canvas exactly
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const containerRect = this.annotationLayer.parentElement.getBoundingClientRect();
+        
+        this.annotationLayer.style.width = this.canvas.width + 'px';
+        this.annotationLayer.style.height = this.canvas.height + 'px';
+        this.annotationLayer.style.top = (canvasRect.top - containerRect.top) + 'px';
+        this.annotationLayer.style.left = (canvasRect.left - containerRect.left) + 'px';
+        
         const annotations = this.annotationManager.getAnnotationsForPage(this.currentPage - 1);
         const scale = this.zoomLevel / 100;
         
@@ -408,6 +423,8 @@ class UIController {
         this.currentFilename = 'document.pdf';  // Default filename for save operations
         this.currentTool = null;
         this.pendingInput = null;
+        this.highlightStart = null;
+        this.isHighlighting = false;
         
         this.initializeElements();
         this.attachEventListeners();
@@ -489,7 +506,11 @@ class UIController {
         if (this.pageSelector) this.pageSelector.addEventListener('change', (e) => this.eventBus.emit('pageSelected', { pageNum: parseInt(e.target.value) }));
         
         // Canvas
-        if (this.pdfViewer.canvas) this.pdfViewer.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        if (this.pdfViewer.canvas) {
+            this.pdfViewer.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+            this.pdfViewer.canvas.addEventListener('mousedown', (e) => this.startHighlightDrag(e));
+            this.pdfViewer.canvas.addEventListener('mouseup', (e) => this.endHighlightDrag(e));
+        }
         
         // Drag and drop
         document.addEventListener('dragover', (e) => e.preventDefault());
@@ -660,16 +681,26 @@ class UIController {
     }
     
     selectTool(toolId) {
-        if (this.currentTool) {
-            document.getElementById(`${this.currentTool}Btn`).classList.remove('active');
+        // Toggle: if already selected, deselect; otherwise select
+        if (this.currentTool === toolId) {
+            // Deselect
+            document.getElementById(`${toolId}Btn`).classList.remove('active');
+            this.currentTool = null;
+            this.setStatus('Tool deselected');
+        } else {
+            // Select new tool
+            if (this.currentTool) {
+                document.getElementById(`${this.currentTool}Btn`).classList.remove('active');
+            }
+            this.currentTool = toolId;
+            document.getElementById(`${toolId}Btn`).classList.add('active');
+            this.setStatus(`Selected: ${toolId}`);
         }
-        this.currentTool = toolId;
-        document.getElementById(`${toolId}Btn`).classList.add('active');
-        this.setStatus(`Selected: ${toolId}`);
     }
     
     handleCanvasClick(event) {
-        if (!this.currentTool) return;
+        console.log('Canvas clicked, current tool:', this.currentTool);
+        if (!this.currentTool || this.currentTool === 'highlight') return; // Highlight uses drag
         
         const rect = this.pdfViewer.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
@@ -678,6 +709,8 @@ class UIController {
         const scale = this.pdfViewer.zoomLevel / 100;
         const canvasX = x / scale;
         const canvasY = y / scale;
+        
+        console.log('Handling', this.currentTool, 'at', canvasX, canvasY);
         
         switch (this.currentTool) {
             case 'text':
@@ -688,13 +721,60 @@ class UIController {
                 this.pendingInput = { x: canvasX, y: canvasY, type: 'comment' };
                 this.openModal('comment');
                 break;
-            case 'highlight':
-                this.addHighlight(canvasX, canvasY);
-                break;
         }
     }
     
-    addHighlight(x, y) {
+    startHighlightDrag(event) {
+        if (this.currentTool !== 'highlight') return;
+        
+        const canvasRect = this.pdfViewer.canvas.getBoundingClientRect();
+        const scale = this.pdfViewer.zoomLevel / 100;
+        
+        // Calculate position relative to the canvas
+        const canvasX = event.clientX - canvasRect.left;
+        const canvasY = event.clientY - canvasRect.top;
+        
+        // Convert canvas coordinates to PDF coordinates
+        // Canvas is rendered at current zoom, so divide by scale to get unzoomed PDF coordinates
+        const pdfX = canvasX / scale;
+        const pdfY = canvasY / scale;
+        
+        this.highlightStart = { x: pdfX, y: pdfY };
+        this.isHighlighting = true;
+        console.log('Started highlight drag at PDF coords', this.highlightStart);
+    }
+    
+    endHighlightDrag(event) {
+        if (!this.isHighlighting || !this.highlightStart) return;
+        
+        const canvasRect = this.pdfViewer.canvas.getBoundingClientRect();
+        const scale = this.pdfViewer.zoomLevel / 100;
+        
+        const canvasX = event.clientX - canvasRect.left;
+        const canvasY = event.clientY - canvasRect.top;
+        
+        // Convert canvas coordinates to PDF coordinates
+        const pdfEndX = canvasX / scale;
+        const pdfEndY = canvasY / scale;
+        
+        // Ensure start is top-left and end is bottom-right
+        const highlightX = Math.min(this.highlightStart.x, pdfEndX);
+        const highlightY = Math.min(this.highlightStart.y, pdfEndY);
+        const width = Math.abs(pdfEndX - this.highlightStart.x);
+        const height = Math.abs(pdfEndY - this.highlightStart.y);
+        
+        // Only create highlight if user dragged a meaningful distance
+        if (width > 10 && height > 10) {
+            this.addHighlight(highlightX, highlightY, width, height);
+        }
+        
+        this.isHighlighting = false;
+        this.highlightStart = null;
+        console.log('Ended highlight drag');
+    }
+    
+    addHighlight(x, y, width, height) {
+        console.log('Adding highlight at', x, y, 'size', width, 'x', height);
         this.undoRedoManager.saveState('Add Highlight', this.pageManager, this.annotationManager);
         
         const annotation = {
@@ -703,12 +783,14 @@ class UIController {
             type: 'highlight',
             x,
             y,
-            width: 100,
-            height: 30,
+            width: width || 100,
+            height: height || 30,
             color: '#FFFF00'
         };
         
+        console.log('Annotation created:', annotation);
         this.annotationManager.addAnnotation(annotation);
+        console.log('Annotations on page:', this.annotationManager.getAnnotationsForPage(this.pdfViewer.currentPage - 1));
         this.pdfViewer.renderAnnotations();
         this.enableSaveButton();
         this.updateUndoRedoButtons();
@@ -913,7 +995,7 @@ class UIController {
             
             // Prepare save data - IMPORTANT: include filename so backend can find the PDF
             const saveData = {
-                flatten: false,
+                flatten: false,  // Use false for proper PDF annotations (like Adobe)
                 originalFilename: this.currentFilename,  // Send filename to backend for recovery
                 pages: pages,
                 annotations: this.annotationManager.annotations || [],
