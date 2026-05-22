@@ -153,6 +153,32 @@ def get_pdf_data():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/page-dimensions/<int:page_num>')
+def get_page_dimensions(page_num):
+    """Get actual PDF page dimensions for coordinate calculations"""
+    try:
+        if pdf_handler is None:
+            return jsonify({'error': 'No PDF loaded'}), 400
+        
+        # page_num is 1-indexed from frontend, convert to 0-indexed
+        page_idx = page_num - 1
+        
+        if page_idx < 0 or page_idx >= pdf_handler.get_page_count():
+            return jsonify({'error': f'Invalid page number: {page_num}'}), 400
+        
+        dimensions = pdf_handler.get_page_dimensions(page_idx)
+        
+        return jsonify({
+            'pageNum': page_num,
+            'width': dimensions['width'],
+            'height': dimensions['height'],
+            'success': True
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/add-annotation', methods=['POST'])
 def add_annotation():
     """Add annotation to PDF"""

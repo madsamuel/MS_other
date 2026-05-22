@@ -220,6 +220,19 @@ class PDFViewer {
         this.pageWidth = unzoomedViewport.width;
         this.pageHeight = unzoomedViewport.height;
         
+        // Fetch actual PDF page dimensions from backend for accurate coordinate mapping
+        try {
+            const dimResponse = await fetch(`/api/page-dimensions/${pageNum}`);
+            if (dimResponse.ok) {
+                const dimData = await dimResponse.json();
+                this.pdfPageWidth = dimData.width;
+                this.pdfPageHeight = dimData.height;
+                console.log(`Page ${pageNum} PDF dimensions: ${this.pdfPageWidth} x ${this.pdfPageHeight}`);
+            }
+        } catch (error) {
+            console.warn('Failed to fetch page dimensions:', error);
+        }
+        
         // Explicitly clear the canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
@@ -306,10 +319,28 @@ class PDFViewer {
         annotations.forEach(annotation => {
             const div = document.createElement('div');
             div.className = 'annotation ' + annotation.type;
-            div.style.left = (annotation.x * scale) + 'px';
-            div.style.top = (annotation.y * scale) + 'px';
-            div.style.width = (annotation.width * scale) + 'px';
-            div.style.height = (annotation.height * scale) + 'px';
+            
+            // Convert PDF coordinates back to viewport/canvas coordinates for display
+            let displayX = annotation.x;
+            let displayY = annotation.y;
+            let displayWidth = annotation.width;
+            let displayHeight = annotation.height;
+            
+            if (this.pdfPageWidth && this.pdfPageHeight && this.pageWidth && this.pageHeight) {
+                // Convert from PDF space to viewport space
+                const scaleX = this.pageWidth / this.pdfPageWidth;
+                const scaleY = this.pageHeight / this.pdfPageHeight;
+                displayX = annotation.x * scaleX;
+                displayY = annotation.y * scaleY;
+                displayWidth = annotation.width * scaleX;
+                displayHeight = annotation.height * scaleY;
+            }
+            
+            // Apply zoom to get canvas-space coordinates
+            div.style.left = (displayX * scale) + 'px';
+            div.style.top = (displayY * scale) + 'px';
+            div.style.width = (displayWidth * scale) + 'px';
+            div.style.height = (displayHeight * scale) + 'px';
             
             if (annotation.type === 'highlight') {
                 div.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
@@ -707,18 +738,32 @@ class UIController {
         const y = event.clientY - rect.top;
         
         const scale = this.pdfViewer.zoomLevel / 100;
-        const canvasX = x / scale;
-        const canvasY = y / scale;
+        const viewportX = x / scale;
+        const viewportY = y / scale;
         
-        console.log('Handling', this.currentTool, 'at', canvasX, canvasY);
+        // Convert canvas coordinates to PDF native coordinates
+        let pdfX, pdfY;
+        if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
+            this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
+            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
+            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
+            pdfX = viewportX * scaleX;
+            pdfY = viewportY * scaleY;
+        } else {
+            // Fallback to viewport coordinates
+            pdfX = viewportX;
+            pdfY = viewportY;
+        }
+        
+        console.log('Handling', this.currentTool, 'at PDF coords', pdfX, pdfY);
         
         switch (this.currentTool) {
             case 'text':
-                this.pendingInput = { x: canvasX, y: canvasY, type: 'text' };
+                this.pendingInput = { x: pdfX, y: pdfY, type: 'text' };
                 this.openModal('text');
                 break;
             case 'comment':
-                this.pendingInput = { x: canvasX, y: canvasY, type: 'comment' };
+                this.pendingInput = { x: pdfX, y: pdfY, type: 'comment' };
                 this.openModal('comment');
                 break;
         }
@@ -734,14 +779,31 @@ class UIController {
         const canvasX = event.clientX - canvasRect.left;
         const canvasY = event.clientY - canvasRect.top;
         
-        // Convert canvas coordinates to PDF coordinates
-        // Canvas is rendered at current zoom, so divide by scale to get unzoomed PDF coordinates
-        const pdfX = canvasX / scale;
-        const pdfY = canvasY / scale;
+        // Convert canvas coordinates to PDF native coordinates
+        // The canvas is rendered at current zoom level, so we need to:
+        // 1. Divide by zoom to get viewport-relative coordinates
+        // 2. Scale to PDF page coordinates using the actual PDF dimensions
         
-        this.highlightStart = { x: pdfX, y: pdfY };
+        const viewportX = canvasX / scale;
+        const viewportY = canvasY / scale;
+        
+        // If we have actual PDF page dimensions, map viewport coords to PDF coords
+        if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
+            this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
+            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
+            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
+            const pdfX = viewportX * scaleX;
+            const pdfY = viewportY * scaleY;
+            this.highlightStart = { x: pdfX, y: pdfY };
+            console.log('Started highlight drag at PDF coords', this.highlightStart, 
+                       `(viewport: ${viewportX}, ${viewportY})`);
+        } else {
+            // Fallback to viewport coordinates if PDF dimensions not available
+            this.highlightStart = { x: viewportX, y: viewportY };
+            console.log('Started highlight drag at viewport coords (fallback)', this.highlightStart);
+        }
+        
         this.isHighlighting = true;
-        console.log('Started highlight drag at PDF coords', this.highlightStart);
     }
     
     endHighlightDrag(event) {
@@ -753,9 +815,23 @@ class UIController {
         const canvasX = event.clientX - canvasRect.left;
         const canvasY = event.clientY - canvasRect.top;
         
-        // Convert canvas coordinates to PDF coordinates
-        const pdfEndX = canvasX / scale;
-        const pdfEndY = canvasY / scale;
+        // Convert canvas coordinates to PDF native coordinates (same as startHighlightDrag)
+        const viewportX = canvasX / scale;
+        const viewportY = canvasY / scale;
+        
+        let pdfEndX, pdfEndY;
+        
+        if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
+            this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
+            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
+            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
+            pdfEndX = viewportX * scaleX;
+            pdfEndY = viewportY * scaleY;
+        } else {
+            // Fallback to viewport coordinates
+            pdfEndX = viewportX;
+            pdfEndY = viewportY;
+        }
         
         // Ensure start is top-left and end is bottom-right
         const highlightX = Math.min(this.highlightStart.x, pdfEndX);
@@ -763,9 +839,11 @@ class UIController {
         const width = Math.abs(pdfEndX - this.highlightStart.x);
         const height = Math.abs(pdfEndY - this.highlightStart.y);
         
-        // Only create highlight if user dragged a meaningful distance
-        if (width > 10 && height > 10) {
+        // Only create highlight if user dragged a meaningful distance (in PDF coordinates)
+        if (width > 5 && height > 5) {
             this.addHighlight(highlightX, highlightY, width, height);
+            console.log('Highlight created: x=', highlightX, 'y=', highlightY, 
+                       'width=', width, 'height=', height);
         }
         
         this.isHighlighting = false;
