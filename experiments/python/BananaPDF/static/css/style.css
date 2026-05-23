@@ -429,6 +429,29 @@ body {
     cursor: move;
 }
 
+.text-box {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 4px 8px;
+    cursor: default;
+    font-size: 12px;
+    color: #000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    max-width: 200px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    z-index: 10;
+    user-select: none;
+    pointer-events: none;
+    resize: none;
+}
+
+.text-box:hover {
+    /* Removed hover effects - text boxes are display-only */
+}
+
 /* Right Panel */
 .right-panel {
     width: 280px;

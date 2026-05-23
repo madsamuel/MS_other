@@ -99,3 +99,37 @@ class PDFHandler:
             
         except Exception as e:
             raise Exception(f"Failed to get page as image: {str(e)}")
+    
+    def add_textbox_to_pdf(self, page_num, x, y, width, height, text, fontsize=12, color='#000000'):
+        """Add text box directly to PDF page"""
+        try:
+            print(f"  PDFHandler.add_textbox_to_pdf() called")
+            print(f"    Page: {page_num}")
+            print(f"    Position: ({x}, {y})")
+            print(f"    Size: {width}x{height}")
+            print(f"    Text: {text}")
+            
+            # Get page from PyMuPDF
+            page = self.doc[page_num]
+            
+            # Convert color hex to RGB tuple
+            color_hex = color.lstrip('#')
+            color_rgb = tuple(int(color_hex[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+            
+            # Create rect in PDF coordinates
+            rect = fitz.Rect(x, y, x + width, y + height)
+            print(f"    Rect: {rect}")
+            
+            # Insert text box directly into PDF
+            page.insert_textbox(rect, text, fontsize=fontsize, color=color_rgb, borders=0)
+            
+            print(f"  ✓ Text box added to PDF page {page_num}")
+            
+            # Save changes to the PDF file
+            self.doc.save(self.filepath, incremental=False)
+            print(f"  ✓ PDF file saved")
+            
+        except Exception as e:
+            print(f"  ✗ Error adding text box: {str(e)}")
+            raise Exception(f"Failed to add text box: {str(e)}")
+

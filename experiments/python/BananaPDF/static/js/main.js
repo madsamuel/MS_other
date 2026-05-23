@@ -171,6 +171,10 @@ class ClientAnnotationManager {
         return this.annotations[pageNum] || [];
     }
     
+    getTextBoxesForPage(pageNum) {
+        return Object.values(this.textBoxes).filter(tb => tb.pageNum === pageNum);
+    }
+    
     getState() {
         return {
             annotations: JSON.parse(JSON.stringify(this.annotations)),
@@ -227,10 +231,18 @@ class PDFViewer {
                 const dimData = await dimResponse.json();
                 this.pdfPageWidth = dimData.width;
                 this.pdfPageHeight = dimData.height;
-                console.log(`Page ${pageNum} PDF dimensions: ${this.pdfPageWidth} x ${this.pdfPageHeight}`);
+                console.log(`✓ Page ${pageNum} PDF native dimensions: ${this.pdfPageWidth} x ${this.pdfPageHeight} (points)`);
+                console.log(`  Viewport dimensions: ${this.pageWidth} x ${this.pageHeight} (pixels)`);
+                console.log(`  Scale factors: X=${(this.pageWidth / this.pdfPageWidth).toFixed(4)}, Y=${(this.pageHeight / this.pdfPageHeight).toFixed(4)}`);
+            } else {
+                console.error(`✗ Failed to fetch page dimensions: HTTP ${dimResponse.status}`);
+                this.pdfPageWidth = null;
+                this.pdfPageHeight = null;
             }
         } catch (error) {
-            console.warn('Failed to fetch page dimensions:', error);
+            console.error('✗ Failed to fetch page dimensions - network error:', error);
+            this.pdfPageWidth = null;
+            this.pdfPageHeight = null;
         }
         
         // Explicitly clear the canvas
@@ -314,8 +326,10 @@ class PDFViewer {
         this.annotationLayer.style.left = (canvasRect.left - containerRect.left) + 'px';
         
         const annotations = this.annotationManager.getAnnotationsForPage(this.currentPage - 1);
+        const textBoxes = this.annotationManager.getTextBoxesForPage(this.currentPage - 1);
         const scale = this.zoomLevel / 100;
         
+        // Render annotations (highlights, comments, etc.)
         annotations.forEach(annotation => {
             const div = document.createElement('div');
             div.className = 'annotation ' + annotation.type;
@@ -348,6 +362,10 @@ class PDFViewer {
             
             this.annotationLayer.appendChild(div);
         });
+        
+        // Text boxes are NOT rendered as canvas overlays
+        // They are stored in the PDF and only visible after save
+        // No HTML preview rendering - they're part of the PDF, not the canvas
     }
     
     setZoom(level) {
@@ -743,19 +761,27 @@ class UIController {
         
         // Convert canvas coordinates to PDF native coordinates
         let pdfX, pdfY;
+        console.log('PDF dimensions check:');
+        console.log('  pdfPageWidth:', this.pdfViewer.pdfPageWidth);
+        console.log('  pdfPageHeight:', this.pdfViewer.pdfPageHeight);
+        console.log('  pageWidth:', this.pdfViewer.pageWidth);
+        console.log('  pageHeight:', this.pdfViewer.pageHeight);
+        
         if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
             this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
             const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
             const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
             pdfX = viewportX * scaleX;
             pdfY = viewportY * scaleY;
+            console.log('Using PDF coordinate transformation. scaleX:', scaleX, 'scaleY:', scaleY);
         } else {
             // Fallback to viewport coordinates
             pdfX = viewportX;
             pdfY = viewportY;
+            console.warn('⚠️  PDF dimensions not available! Falling back to viewport coordinates. This may cause positioning issues!');
         }
         
-        console.log('Handling', this.currentTool, 'at PDF coords', pdfX, pdfY);
+        console.log('Handling', this.currentTool, 'at canvas', x, y, '→ viewport', viewportX, viewportY, '→ PDF', pdfX, pdfY);
         
         switch (this.currentTool) {
             case 'text':
@@ -877,25 +903,65 @@ class UIController {
     confirmTextInput() {
         if (!this.pendingInput || !this.textInput.value) return;
         
-        this.undoRedoManager.saveState('Add Text Box', this.pageManager, this.annotationManager);
-        
-        const textBox = {
-            id: `text_${Date.now()}`,
+        const textBoxData = {
             pageNum: this.pdfViewer.currentPage - 1,
             x: this.pendingInput.x,
             y: this.pendingInput.y,
+            width: 150,
+            height: 30,
             text: this.textInput.value,
             fontSize: 12,
-            color: '#000000'
+            color: '#000000',
+            fontFamily: 'Arial'
         };
         
-        this.annotationManager.addTextBox(textBox);
-        this.closeModal('text');
-        this.textInput.value = '';
-        this.pendingInput = null;
-        this.pdfViewer.renderAnnotations();
-        this.enableSaveButton();
-        this.updateUndoRedoButtons();
+        console.log('✓ Adding text box to PDF:');
+        console.log('  Page:', textBoxData.pageNum);
+        console.log('  Position (PDF coords):', textBoxData.x, ',', textBoxData.y);
+        console.log('  Text:', textBoxData.text);
+        
+        // Send to backend to add to PDF and get updated page
+        fetch('/api/add-textbox', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(textBoxData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('✓ Text box embedded in PDF:', data);
+            
+            // Display the updated page with text box embedded
+            if (data.pageImage) {
+                console.log('Displaying updated page with text box embedded in PDF...');
+                const canvas = this.pdfViewer.canvas;
+                const img = new Image();
+                img.onload = () => {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                    console.log('✓ Page updated - text box is now part of the PDF');
+                };
+                img.src = data.pageImage;
+            }
+            
+            this.setStatus('✓ Text "' + textBoxData.text + '" embedded in PDF');
+            
+            this.closeModal('text');
+            this.textInput.value = '';
+            this.pendingInput = null;
+            this.enableSaveButton();
+        })
+        .catch(error => {
+            console.error('Error adding text box:', error);
+            alert('Failed to add text box: ' + error.message);
+        });
     }
     
     confirmCommentInput() {
@@ -1076,11 +1142,26 @@ class UIController {
                 flatten: false,  // Use false for proper PDF annotations (like Adobe)
                 originalFilename: this.currentFilename,  // Send filename to backend for recovery
                 pages: pages,
-                annotations: this.annotationManager.annotations || [],
-                textBoxes: this.annotationManager.textBoxes || []
+                annotations: this.annotationManager.annotations || {},
+                textBoxes: this.annotationManager.textBoxes || {}
             };
             
             console.log(`Saving PDF "${this.currentFilename}" with ${activePages.length} active pages...`);
+            console.log('TextBoxes being sent:', this.annotationManager.textBoxes);
+            console.log('Full save data:', saveData);
+            
+            // Debug: Show all text box details
+            Object.entries(this.annotationManager.textBoxes).forEach(([id, tb]) => {
+                console.log(`  TextBox "${id}":`, {
+                    page: tb.pageNum,
+                    x: tb.x,
+                    y: tb.y,
+                    width: tb.width,
+                    height: tb.height,
+                    text: tb.text,
+                    fontSize: tb.fontSize
+                });
+            });
             
             // Send to backend
             const response = await fetch('/api/save', {

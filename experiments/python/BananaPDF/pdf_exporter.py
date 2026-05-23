@@ -80,9 +80,23 @@ class PDFExporter:
                     print(f"  No annotations for page {orig_page_idx} (keys in dict: {list(annotations_dict.keys())})")
                 
                 # Add text boxes for this page
-                for textbox_id, textbox in textboxes_dict.items():
-                    if textbox.get('pageNum') == orig_page_idx:
-                        self._add_textbox_to_page(new_page, textbox)
+                print(f"  Processing text boxes. Type: {type(textboxes_dict)}, Length: {len(textboxes_dict) if hasattr(textboxes_dict, '__len__') else 'N/A'}")
+                
+                if isinstance(textboxes_dict, dict) and textboxes_dict:
+                    # textboxes_dict is a dict with IDs as keys
+                    for tb_id, textbox in textboxes_dict.items():
+                        if isinstance(textbox, dict) and textbox.get('pageNum') == orig_page_idx:
+                            print(f"    Adding textbox '{tb_id}': {textbox}")
+                            self._add_textbox_to_page(new_page, textbox)
+                elif isinstance(textboxes_dict, list) and textboxes_dict:
+                    # Fallback: if it's a list of textboxes
+                    for textbox in textboxes_dict:
+                        if isinstance(textbox, dict) and textbox.get('pageNum') == orig_page_idx:
+                            print(f"    Adding textbox from list: {textbox}")
+                            self._add_textbox_to_page(new_page, textbox)
+                else:
+                    if not textboxes_dict:
+                        print(f"  No text boxes to add (empty or None)")
             
             # Save document
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -159,12 +173,14 @@ class PDFExporter:
             color = self._hex_to_rgb(textbox.get('color', '#000000'))
             font_size = textbox.get('fontSize', 12)
             
+            print(f"      Text: '{text}', Position: ({x}, {y}), Size: {width}x{height}, Color: {color}, FontSize: {font_size}")
+            
             # Convert hex color to RGB (0-1 range)
             color_normalized = tuple(c / 255.0 for c in color)
             
-            # Add text to page
+            # Add text to page using insert_textbox
             rect = fitz.Rect(x, y, x + width, y + height)
-            page.insert_textbox(
+            result = page.insert_textbox(
                 rect,
                 text,
                 fontsize=font_size,
@@ -172,9 +188,12 @@ class PDFExporter:
                 align=fitz.TEXT_ALIGN_LEFT,
                 fontname='helv',  # helvetica
             )
+            print(f"      ✓ Text box added successfully, boundary box: {result}")
             
         except Exception as e:
-            print(f"Warning: Failed to add textbox: {str(e)}")
+            print(f"      ✗ Failed to add textbox: {str(e)}")
+            import traceback
+            traceback.print_exc()
     
     def _hex_to_rgb(self, hex_color):
         """Convert hex color to RGB tuple (0-255)"""

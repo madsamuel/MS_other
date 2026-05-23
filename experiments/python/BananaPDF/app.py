@@ -1,6 +1,7 @@
 """BananaPDF - A comprehensive PDF editor"""
 import os
 import json
+import io
 from datetime import datetime
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
@@ -8,6 +9,8 @@ from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from pdf_handler import PDFHandler
 from annotation_manager import AnnotationManager
+import fitz  # PyMuPDF
+from PIL import Image
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
@@ -208,34 +211,102 @@ def add_annotation():
 
 @app.route('/api/add-textbox', methods=['POST'])
 def add_textbox():
-    """Add text box to PDF"""
+    """Add text box directly to PDF and return updated page for display"""
     try:
+        global pdf_handler, current_session
+        
+        print(f"\n{'='*60}")
+        print("ADD-TEXTBOX ENDPOINT CALLED")
+        
+        if pdf_handler is None:
+            return jsonify({'error': 'No PDF loaded'}), 400
+            
+        if current_session is None:
+            return jsonify({'error': 'No session active'}), 400
+        
         data = request.get_json()
+        page_num = data.get('pageNum', 0)
+        text_content = data.get('text', '')
+        
+        print(f"Page: {page_num}, Text: {text_content}")
+        
+        # Create text box object
         textbox = {
-            'id': f"text_{len(current_session['textBoxes'])}",
-            'pageNum': data.get('pageNum'),
-            'x': data.get('x'),
-            'y': data.get('y'),
-            'width': data.get('width', 150),
-            'height': data.get('height', 30),
-            'text': data.get('text', ''),
-            'fontSize': data.get('fontSize', 12),
+            'id': f"text_{int(datetime.now().timestamp() * 1000)}",
+            'pageNum': page_num,
+            'x': float(data.get('x', 50)),
+            'y': float(data.get('y', 50)),
+            'width': float(data.get('width', 150)),
+            'height': float(data.get('height', 30)),
+            'text': text_content,
+            'fontSize': int(data.get('fontSize', 12)),
             'fontFamily': data.get('fontFamily', 'Arial'),
             'color': data.get('color', '#000000'),
-            'createdAt': datetime.now().isoformat(),
         }
         
-        if current_session:
-            current_session['textBoxes'][textbox['id']] = textbox
-            current_session['isModified'] = True
+        print(f"Text box: {textbox}")
         
-        return jsonify({
+        # Store in session
+        print(f"Storing in session...")
+        current_session['textBoxes'][textbox['id']] = textbox
+        current_session['isModified'] = True
+        print(f"✓ Text box stored in session")
+        
+        # Add text box directly to PDF in memory
+        print(f"Adding text box to PDF in memory...")
+        try:
+            page = pdf_handler.doc[page_num]
+            
+            # Convert color hex to RGB
+            color_hex = textbox['color'].lstrip('#')
+            color_rgb = tuple(int(color_hex[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+            
+            # Insert text box
+            rect = fitz.Rect(textbox['x'], textbox['y'], 
+                           textbox['x'] + textbox['width'], 
+                           textbox['y'] + textbox['height'])
+            page.insert_textbox(rect, textbox['text'], fontsize=textbox['fontSize'], 
+                              color=color_rgb, borders=0)
+            
+            print(f"✓ Text box added to PDF in memory")
+            
+        except Exception as pdf_err:
+            print(f"Warning: Could not add to PDF in memory: {pdf_err}")
+            # Continue anyway - will be added at save time
+        
+        # Re-render the page to show the updated PDF with text box
+        print(f"Re-rendering page with text box...")
+        try:
+            import base64
+            page_image = pdf_handler.render_page(page_num)
+            image_base64 = base64.b64encode(page_image.getvalue()).decode('utf-8')
+            print(f"✓ Page re-rendered")
+            
+        except Exception as render_err:
+            print(f"Warning: Could not re-render page: {render_err}")
+            image_base64 = None
+        
+        print(f"{'='*60}\n")
+        
+        response = {
             'success': True,
             'textbox': textbox,
-        }), 200
+            'message': 'Text box added to PDF'
+        }
+        
+        # Include updated page image if rendering succeeded
+        if image_base64:
+            response['pageImage'] = f'data:image/png;base64,{image_base64}'
+        
+        return jsonify(response), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        error_msg = str(e)
+        print(f"EXCEPTION in add_textbox: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        print(f"{'='*60}\n")
+        return jsonify({'error': f'Failed to add text box: {error_msg}'}), 500
 
 
 @app.route('/api/rotate-page', methods=['POST'])
@@ -312,10 +383,14 @@ def save_pdf():
         flatten = data.get('flatten', False)
         pages_data = data.get('pages', [])
         annotations = data.get('annotations', [])
-        text_boxes = data.get('textBoxes', [])
         original_filename = data.get('originalFilename')
         
         global pdf_handler, current_session
+        
+        # Use text boxes from session (added via /api/add-textbox)
+        text_boxes = {}
+        if current_session and 'textBoxes' in current_session:
+            text_boxes = current_session['textBoxes']
         
         print(f"\n{'='*60}")
         print(f"SAVE REQUEST")
@@ -325,7 +400,7 @@ def save_pdf():
         print(f"Session exists: {current_session is not None}")
         print(f"\nAnnotations received (type={type(annotations)}, len={len(annotations) if isinstance(annotations, (list, dict)) else 'N/A'}):")
         print(f"  Data: {annotations}")
-        print(f"\nText boxes received (type={type(text_boxes)}, len={len(text_boxes) if isinstance(text_boxes, (list, dict)) else 'N/A'}):")
+        print(f"\nText boxes from session (type={type(text_boxes)}, len={len(text_boxes) if isinstance(text_boxes, (list, dict)) else 'N/A'}):")
         print(f"  Data: {text_boxes}")
         
         # Check the uploads folder contents RIGHT NOW
