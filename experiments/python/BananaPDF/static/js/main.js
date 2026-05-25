@@ -138,6 +138,10 @@ class PageManager {
     setState(pages) {
         this.pages = JSON.parse(JSON.stringify(pages));
     }
+    
+    reset() {
+        this.pages = [];
+    }
 }
 
 // ============================================================================
@@ -460,6 +464,12 @@ class UndoRedoManager {
     canRedo() {
         return this.redoStack.length > 0;
     }
+    
+    reset() {
+        this.undoStack = [];
+        this.redoStack = [];
+        this.eventBus.emit('stateChanged', { canUndo: false, canRedo: false });
+    }
 }
 
 // ============================================================================
@@ -601,8 +611,24 @@ class UIController {
         const file = event.target.files[0];
         if (!file) return;
         
+        // Check for unsaved changes
+        if (this.hasUnsavedChanges()) {
+            const confirmed = confirm(
+                `You have unsaved changes to "${this.currentFilename}".\n\n` +
+                `Do you want to discard them and open "${file.name}"?`
+            );
+            if (!confirmed) {
+                // Reset file input
+                this.fileInput.value = '';
+                return;
+            }
+        }
+        
         this.showLoading(true);
         try {
+            // Clear previous document state before loading new PDF
+            this.clearDocumentState();
+            
             // 1. Load PDF client-side for display (using PDF.js)
             this.pdfDoc = await this.pdfLoader.load(file);
             
@@ -630,6 +656,35 @@ class UIController {
             this.showLoading(false);
             this.showError(`Failed to upload file: ${error.message}`);
         }
+    }
+    
+    hasUnsavedChanges() {
+        // Check if there are any annotations or unsaved modifications
+        const hasAnnotations = Object.keys(this.annotationManager.annotations).length > 0 ||
+                               Object.keys(this.annotationManager.textBoxes).length > 0;
+        return hasAnnotations;
+    }
+    
+    clearDocumentState() {
+        // Clear all annotations, text boxes, and undo/redo history
+        console.log('Clearing document state...');
+        this.annotationManager.annotations = {};
+        this.annotationManager.textBoxes = {};
+        this.undoRedoManager.reset();
+        this.pageManager.reset();
+        this.pdfDoc = null;
+        
+        // Clear the active tool button styling
+        if (this.currentTool) {
+            const toolBtn = document.getElementById(`${this.currentTool}Btn`);
+            if (toolBtn) toolBtn.classList.remove('active');
+        }
+        this.currentTool = null;
+        this.pendingInput = null;
+        
+        if (this.saveBtn) this.saveBtn.disabled = true;
+        this.updateUndoRedoButtons();
+        console.log('✓ Document state cleared');
     }
     
     handleDrop(event) {
