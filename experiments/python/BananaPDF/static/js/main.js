@@ -295,7 +295,14 @@ class PDFViewer {
                 };
                 
                 await page.render(renderContext).promise;
-                thumbnail.appendChild(canvas);
+                
+                // Convert canvas to image for better CSS sizing
+                const img = document.createElement('img');
+                img.src = canvas.toDataURL('image/png');
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'cover';
+                thumbnail.appendChild(img);
             } catch (error) {
                 console.error('Error rendering thumbnail:', error);
             }
@@ -652,6 +659,20 @@ class UIController {
         this.setStatus('PDF loaded successfully');
     }
     
+    async reloadPDFDocument() {
+        // Reload the PDF document from server to show updates (e.g., after adding text)
+        try {
+            console.log('Reloading PDF document from server...');
+            const url = '/api/get-pdf';  // Endpoint to get the current PDF file
+            this.pdfDoc = await pdfjsLib.getDocument(url).promise;
+            console.log('✓ PDF document reloaded');
+            return this.pdfDoc;
+        } catch (error) {
+            console.error('✗ Failed to reload PDF:', error);
+            throw error;
+        }
+    }
+    
     async onPageSelected(data) {
         try {
             // Update current page state
@@ -761,30 +782,30 @@ class UIController {
         
         // Convert canvas coordinates to PDF native coordinates
         let pdfX, pdfY;
-        console.log('PDF dimensions check:');
-        console.log('  pdfPageWidth:', this.pdfViewer.pdfPageWidth);
-        console.log('  pdfPageHeight:', this.pdfViewer.pdfPageHeight);
-        console.log('  pageWidth:', this.pdfViewer.pageWidth);
-        console.log('  pageHeight:', this.pdfViewer.pageHeight);
+        console.log('=== COORDINATE DEBUG ===' );
+        console.log('Click position on canvas (pixels):', x, y);
+        console.log('Zoom level:', this.pdfViewer.zoomLevel, '(scale factor:', scale + ')');
+        console.log('Viewport coords (at 100% zoom):', viewportX.toFixed(2), viewportY.toFixed(2));
+        console.log('PDF page dimensions: ', this.pdfViewer.pdfPageWidth, 'x', this.pdfViewer.pdfPageHeight, '(points)');
+        console.log('Viewport dimensions:', this.pdfViewer.pageWidth, 'x', this.pdfViewer.pageHeight, '(pixels)');
         
         if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
             this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
-            // PDF.js uses 96 DPI, PDF points use 72 DPI
-            // So we need to scale: pdfX = viewportX * (pdfPageWidth / pageWidth) * (96/72)
-            const DPI_CONVERSION = 96 / 72;  // 1.333...
-            const scaleX = (this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth) * DPI_CONVERSION;
-            const scaleY = (this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight) * DPI_CONVERSION;
+            // Direct scaling: viewport pixels to PDF points
+            // pageWidth is already at 100% zoom with PDF.js 96 DPI built-in
+            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
+            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
             pdfX = viewportX * scaleX;
             pdfY = viewportY * scaleY;
-            console.log('Using PDF coordinate transformation. scaleX:', scaleX.toFixed(4), 'scaleY:', scaleY.toFixed(4));
+            console.log('Scale factors (viewport to PDF):', 'X=' + scaleX.toFixed(4), 'Y=' + scaleY.toFixed(4));
+            console.log('Final PDF coordinates:', pdfX.toFixed(2), pdfY.toFixed(2));
         } else {
             // Fallback to viewport coordinates
             pdfX = viewportX;
             pdfY = viewportY;
-            console.warn('⚠️  PDF dimensions not available! Falling back to viewport coordinates. This may cause positioning issues!');
+            console.warn('⚠️  PDF dimensions not available! Falling back to viewport coordinates.');
         }
-        
-        console.log('Handling', this.currentTool, 'at canvas', x, y, '→ viewport', viewportX, viewportY, '→ PDF', pdfX, pdfY);
+        console.log('======================');
         
         switch (this.currentTool) {
             case 'text':
@@ -809,20 +830,14 @@ class UIController {
         const canvasY = event.clientY - canvasRect.top;
         
         // Convert canvas coordinates to PDF native coordinates
-        // The canvas is rendered at current zoom level, so we need to:
-        // 1. Divide by zoom to get viewport-relative coordinates
-        // 2. Scale to PDF page coordinates using the actual PDF dimensions
-        
         const viewportX = canvasX / scale;
         const viewportY = canvasY / scale;
         
         // If we have actual PDF page dimensions, map viewport coords to PDF coords
         if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
             this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
-            // PDF.js uses 96 DPI, PDF points use 72 DPI
-            const DPI_CONVERSION = 96 / 72;  // 1.333...
-            const scaleX = (this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth) * DPI_CONVERSION;
-            const scaleY = (this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight) * DPI_CONVERSION;
+            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
+            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
             const pdfX = viewportX * scaleX;
             const pdfY = viewportY * scaleY;
             this.highlightStart = { x: pdfX, y: pdfY };
@@ -854,10 +869,8 @@ class UIController {
         
         if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
             this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
-            // PDF.js uses 96 DPI, PDF points use 72 DPI
-            const DPI_CONVERSION = 96 / 72;  // 1.333...
-            const scaleX = (this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth) * DPI_CONVERSION;
-            const scaleY = (this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight) * DPI_CONVERSION;
+            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
+            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
             pdfEndX = viewportX * scaleX;
             pdfEndY = viewportY * scaleY;
         } else {
@@ -908,7 +921,20 @@ class UIController {
     }
     
     confirmTextInput() {
-        if (!this.pendingInput || !this.textInput.value) return;
+        // Validate input
+        if (!this.pendingInput) {
+            console.warn('⚠️ No pending input location');
+            return;
+        }
+        
+        const textContent = this.textInput.value.trim();
+        if (!textContent) {
+            alert('Please enter some text before adding.');
+            return;
+        }
+        
+        // Save undo/redo state before making changes
+        this.undoRedoManager.saveState('Add Text', this.pageManager, this.annotationManager);
         
         const textBoxData = {
             pageNum: this.pdfViewer.currentPage - 1,
@@ -916,7 +942,7 @@ class UIController {
             y: this.pendingInput.y,
             width: 150,
             height: 30,
-            text: this.textInput.value,
+            text: textContent,
             fontSize: 12,
             color: '#000000',
             fontFamily: 'Arial'
@@ -926,6 +952,11 @@ class UIController {
         console.log('  Page:', textBoxData.pageNum);
         console.log('  Position (PDF coords):', textBoxData.x, ',', textBoxData.y);
         console.log('  Text:', textBoxData.text);
+        
+        // Disable button during request
+        const confirmBtn = this.textConfirm;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Adding...';
         
         // Send to backend to add to PDF and get updated page
         fetch('/api/add-textbox', {
@@ -944,35 +975,54 @@ class UIController {
         .then(data => {
             console.log('✓ Text box embedded in PDF:', data);
             
-            // Display the updated page with text box embedded
-            if (data.pageImage) {
-                console.log('Displaying updated page with text box embedded in PDF...');
-                const canvas = this.pdfViewer.canvas;
-                const img = new Image();
-                img.onload = () => {
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.drawImage(img, 0, 0);
-                    console.log('✓ Page updated - text box is now part of the PDF');
-                };
-                img.src = data.pageImage;
-            }
-            
             this.setStatus('✓ Text "' + textBoxData.text + '" embedded in PDF');
             
-            this.closeModal('text');
+            // Clear form and close modal
             this.textInput.value = '';
             this.pendingInput = null;
+            this.closeModal('text');
+            
+            // Reload PDF document to show updated page with embedded text at correct zoom
+            console.log('Reloading PDF to display text at correct zoom level...');
+            this.reloadPDFDocument()
+                .then(() => {
+                    const currentPage = this.pdfViewer.currentPage;
+                    console.log('✓ PDF reloaded - rendering page', currentPage, 'at', this.pdfViewer.zoomLevel, '% zoom');
+                    return this.pdfViewer.renderPage(currentPage, this.pdfDoc);
+                })
+                .catch(err => {
+                    console.error('⚠️ Could not reload PDF:', err);
+                    this.setStatus('⚠️ Text added but page refresh failed - try navigating pages');
+                });
+            
+            // Enable save button and update undo/redo
             this.enableSaveButton();
+            this.updateUndoRedoButtons();
         })
         .catch(error => {
-            console.error('Error adding text box:', error);
-            alert('Failed to add text box: ' + error.message);
+            console.error('✗ Error adding text box:', error);
+            this.setStatus('✗ Failed to add text box: ' + error.message);
+            // Note: Keep text in input so user doesn't lose it
+        })
+        .finally(() => {
+            // Re-enable button
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Add';
         });
     }
     
     confirmCommentInput() {
-        if (!this.pendingInput || !this.commentInput.value) return;
+        // Validate input
+        if (!this.pendingInput) {
+            console.warn('⚠️ No pending input location');
+            return;
+        }
+        
+        const commentContent = this.commentInput.value.trim();
+        if (!commentContent) {
+            alert('Please enter a comment before adding.');
+            return;
+        }
         
         this.undoRedoManager.saveState('Add Comment', this.pageManager, this.annotationManager);
         
@@ -985,13 +1035,13 @@ class UIController {
             width: 24,
             height: 24,
             color: '#FF0000',
-            text: this.commentInput.value
+            text: commentContent
         };
         
         this.annotationManager.addAnnotation(annotation);
-        this.closeModal('comment');
         this.commentInput.value = '';
         this.pendingInput = null;
+        this.closeModal('comment');
         this.pdfViewer.renderAnnotations();
         this.enableSaveButton();
         this.updateUndoRedoButtons();

@@ -156,6 +156,32 @@ def get_pdf_data():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/get-pdf')
+def get_pdf():
+    """Serve the current PDF file for client-side loading (e.g., after modifications)"""
+    try:
+        global pdf_handler, current_session
+        
+        if pdf_handler is None or current_session is None:
+            return jsonify({'error': 'No PDF loaded'}), 400
+        
+        filepath = current_session.get('filepath')
+        if not filepath or not os.path.isfile(filepath):
+            return jsonify({'error': 'PDF file not found'}), 404
+        
+        print(f"Serving PDF: {filepath}")
+        
+        return send_file(
+            filepath,
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=current_session.get('originalFilename', 'document.pdf')
+        ), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/page-dimensions/<int:page_num>')
 def get_page_dimensions(page_num):
     """Get actual PDF page dimensions for coordinate calculations"""
@@ -225,8 +251,22 @@ def add_textbox():
             return jsonify({'error': 'No session active'}), 400
         
         data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid request body'}), 400
+        
         page_num = data.get('pageNum', 0)
-        text_content = data.get('text', '')
+        text_content = data.get('text', '').strip()
+        
+        # Validate page number
+        if page_num < 0 or page_num >= pdf_handler.get_page_count():
+            return jsonify({'error': f'Invalid page number: {page_num}'}), 400
+        
+        # Validate text content
+        if not text_content:
+            return jsonify({'error': 'Text content cannot be empty'}), 400
+        
+        if len(text_content) > 1000:
+            return jsonify({'error': 'Text content too long (max 1000 characters)'}), 400
         
         print(f"Page: {page_num}, Text: {text_content}")
         
@@ -248,6 +288,9 @@ def add_textbox():
         
         # Store in session
         print(f"Storing in session...")
+        if 'textBoxes' not in current_session:
+            current_session['textBoxes'] = {}
+        
         current_session['textBoxes'][textbox['id']] = textbox
         current_session['isModified'] = True
         print(f"✓ Text box stored in session")
@@ -259,7 +302,13 @@ def add_textbox():
             
             # Convert color hex to RGB
             color_hex = textbox['color'].lstrip('#')
-            color_rgb = tuple(int(color_hex[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+            if len(color_hex) != 6:
+                color_hex = '000000'  # Default to black if invalid
+            
+            try:
+                color_rgb = tuple(int(color_hex[i:i+2], 16) / 255.0 for i in (0, 2, 4))
+            except ValueError:
+                color_rgb = (0, 0, 0)  # Default to black if conversion fails
             
             # Insert text box
             rect = fitz.Rect(textbox['x'], textbox['y'], 
@@ -276,6 +325,7 @@ def add_textbox():
         
         # Re-render the page to show the updated PDF with text box
         print(f"Re-rendering page with text box...")
+        image_base64 = None
         try:
             import base64
             page_image = pdf_handler.render_page(page_num)
@@ -284,7 +334,6 @@ def add_textbox():
             
         except Exception as render_err:
             print(f"Warning: Could not re-render page: {render_err}")
-            image_base64 = None
         
         print(f"{'='*60}\n")
         
