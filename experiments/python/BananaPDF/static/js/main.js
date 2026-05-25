@@ -769,11 +769,14 @@ class UIController {
         
         if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
             this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
-            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
-            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
+            // PDF.js uses 96 DPI, PDF points use 72 DPI
+            // So we need to scale: pdfX = viewportX * (pdfPageWidth / pageWidth) * (96/72)
+            const DPI_CONVERSION = 96 / 72;  // 1.333...
+            const scaleX = (this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth) * DPI_CONVERSION;
+            const scaleY = (this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight) * DPI_CONVERSION;
             pdfX = viewportX * scaleX;
             pdfY = viewportY * scaleY;
-            console.log('Using PDF coordinate transformation. scaleX:', scaleX, 'scaleY:', scaleY);
+            console.log('Using PDF coordinate transformation. scaleX:', scaleX.toFixed(4), 'scaleY:', scaleY.toFixed(4));
         } else {
             // Fallback to viewport coordinates
             pdfX = viewportX;
@@ -816,8 +819,10 @@ class UIController {
         // If we have actual PDF page dimensions, map viewport coords to PDF coords
         if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
             this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
-            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
-            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
+            // PDF.js uses 96 DPI, PDF points use 72 DPI
+            const DPI_CONVERSION = 96 / 72;  // 1.333...
+            const scaleX = (this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth) * DPI_CONVERSION;
+            const scaleY = (this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight) * DPI_CONVERSION;
             const pdfX = viewportX * scaleX;
             const pdfY = viewportY * scaleY;
             this.highlightStart = { x: pdfX, y: pdfY };
@@ -849,8 +854,10 @@ class UIController {
         
         if (this.pdfViewer.pdfPageWidth && this.pdfViewer.pdfPageHeight && 
             this.pdfViewer.pageWidth && this.pdfViewer.pageHeight) {
-            const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
-            const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
+            // PDF.js uses 96 DPI, PDF points use 72 DPI
+            const DPI_CONVERSION = 96 / 72;  // 1.333...
+            const scaleX = (this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth) * DPI_CONVERSION;
+            const scaleY = (this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight) * DPI_CONVERSION;
             pdfEndX = viewportX * scaleX;
             pdfEndY = viewportY * scaleY;
         } else {

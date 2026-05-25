@@ -266,7 +266,7 @@ def add_textbox():
                            textbox['x'] + textbox['width'], 
                            textbox['y'] + textbox['height'])
             page.insert_textbox(rect, textbox['text'], fontsize=textbox['fontSize'], 
-                              color=color_rgb, borders=0)
+                              color=color_rgb)
             
             print(f"✓ Text box added to PDF in memory")
             
