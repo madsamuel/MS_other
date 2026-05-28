@@ -423,6 +423,284 @@ def add_textbox():
         return jsonify({'error': f'Failed to add text box: {error_msg}'}), 500
 
 
+@app.route('/api/add-comment', methods=['POST'])
+def add_comment():
+    """Add comment annotation to PDF"""
+    try:
+        global pdf_handler, current_session
+        
+        if pdf_handler is None:
+            return jsonify({'error': 'No PDF loaded'}), 400
+        
+        data = request.get_json()
+        page_num = data.get('pageNum', 0)
+        
+        if page_num < 0 or page_num >= pdf_handler.get_page_count():
+            return jsonify({'error': f'Invalid page number: {page_num}'}), 400
+        
+        comment = {
+            'id': f"comment_{int(datetime.now().timestamp() * 1000)}",
+            'pageNum': page_num,
+            'type': 'comment',
+            'x': float(data.get('x', 50)),
+            'y': float(data.get('y', 50)),
+            'width': 24,
+            'height': 24,
+            'color': '#FF0000',
+            'text': data.get('text', '')
+        }
+        
+        logging.info(f"Comment: {comment['text']} at ({comment['x']}, {comment['y']})")
+        
+        # Store in session
+        if 'annotations' not in current_session:
+            current_session['annotations'] = {}
+        if page_num not in current_session['annotations']:
+            current_session['annotations'][page_num] = []
+        
+        current_session['annotations'][page_num].append(comment)
+        current_session['isModified'] = True
+        
+        return jsonify({
+            'success': True,
+            'comment': comment,
+            'message': 'Comment added'
+        }), 200
+        
+    except Exception as e:
+        error_msg = str(e)
+        logging.error(f"Error adding comment: {error_msg}")
+        return jsonify({'error': f'Failed to add comment: {error_msg}'}), 500
+
+
+@app.route('/api/add-drawing', methods=['POST'])
+def add_drawing():
+    """Add drawing to PDF"""
+    try:
+        global pdf_handler, current_session
+        
+        logging.info("ADD-DRAWING ENDPOINT CALLED")
+        
+        if pdf_handler is None:
+            return jsonify({'error': 'No PDF loaded'}), 400
+        
+        data = request.get_json()
+        page_num = data.get('pageNum', 0)
+        
+        if page_num < 0 or page_num >= pdf_handler.get_page_count():
+            return jsonify({'error': f'Invalid page number: {page_num}'}), 400
+        
+        # Extract image data (base64)
+        image_data = data.get('imageData', '')
+        if not image_data:
+            return jsonify({'error': 'No image data provided'}), 400
+        
+        # Convert base64 to image bytes
+        import base64
+        from PIL import Image
+        from io import BytesIO
+        
+        try:
+            # Remove data URI prefix if present
+            if image_data.startswith('data:image/'):
+                image_data = image_data.split(',')[1]
+            
+            image_bytes = base64.b64decode(image_data)
+            image = Image.open(BytesIO(image_bytes))
+            
+            logging.info(f"Image size: {image.size}")
+        except Exception as img_err:
+            logging.error(f"Error processing image: {img_err}")
+            return jsonify({'error': f'Invalid image data: {img_err}'}), 400
+        
+        # Add to PDF using PyMuPDF
+        try:
+            page = pdf_handler.doc[page_num]
+            
+            x = float(data.get('x', 50))
+            y = float(data.get('y', 50))
+            width = float(data.get('width', 200))
+            height = float(data.get('height', 150))
+            
+            # Save image to temporary file
+            temp_img_path = os.path.join(tempfile.gettempdir(), f'drawing_{int(datetime.now().timestamp() * 1000)}.png')
+            image.save(temp_img_path, 'PNG')
+            
+            # Insert image into PDF
+            rect = fitz.Rect(x, y, x + width, y + height)
+            page.insert_image(rect, filename=temp_img_path)
+            
+            logging.info(f"Drawing inserted at ({x}, {y})")
+            
+            # Save PDF
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.pdf')
+            os.close(temp_fd)
+            
+            try:
+                pdf_handler.doc.save(temp_path)
+                shutil.move(temp_path, pdf_handler.filepath)
+                logging.info(f"✓ PDF saved with drawing")
+                
+                pdf_handler.reload()
+                logging.info(f"✓ PDF reloaded")
+                
+            except Exception as save_err:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                raise save_err
+            finally:
+                # Clean up temp image
+                if os.path.exists(temp_img_path):
+                    os.remove(temp_img_path)
+            
+            # Store in session
+            if 'drawings' not in current_session:
+                current_session['drawings'] = {}
+            if page_num not in current_session['drawings']:
+                current_session['drawings'][page_num] = []
+            
+            drawing_info = {
+                'id': f"drawing_{int(datetime.now().timestamp() * 1000)}",
+                'x': x, 'y': y, 'width': width, 'height': height
+            }
+            current_session['drawings'][page_num].append(drawing_info)
+            current_session['isModified'] = True
+            
+            # Re-render page
+            page_image = pdf_handler.render_page(page_num)
+            image_base64 = base64.b64encode(page_image.getvalue()).decode('utf-8')
+            
+            return jsonify({
+                'success': True,
+                'drawing': drawing_info,
+                'pageImage': f'data:image/png;base64,{image_base64}',
+                'message': 'Drawing added'
+            }), 200
+            
+        except Exception as pdf_err:
+            logging.error(f"Error adding drawing to PDF: {pdf_err}")
+            raise pdf_err
+        
+    except Exception as e:
+        error_msg = str(e)
+        logging.error(f"Error in add-drawing: {error_msg}")
+        return jsonify({'error': f'Failed to add drawing: {error_msg}'}), 500
+
+
+@app.route('/api/add-signature', methods=['POST'])
+def add_signature():
+    """Add signature to PDF"""
+    try:
+        global pdf_handler, current_session
+        
+        logging.info("ADD-SIGNATURE ENDPOINT CALLED")
+        
+        if pdf_handler is None:
+            return jsonify({'error': 'No PDF loaded'}), 400
+        
+        data = request.get_json()
+        page_num = data.get('pageNum', 0)
+        
+        if page_num < 0 or page_num >= pdf_handler.get_page_count():
+            return jsonify({'error': f'Invalid page number: {page_num}'}), 400
+        
+        # Extract image data (base64)
+        image_data = data.get('imageData', '')
+        if not image_data:
+            return jsonify({'error': 'No image data provided'}), 400
+        
+        # Convert base64 to image bytes
+        import base64
+        from PIL import Image
+        from io import BytesIO
+        
+        try:
+            # Remove data URI prefix if present
+            if image_data.startswith('data:image/'):
+                image_data = image_data.split(',')[1]
+            
+            image_bytes = base64.b64decode(image_data)
+            image = Image.open(BytesIO(image_bytes))
+            
+            logging.info(f"Signature image size: {image.size}")
+        except Exception as img_err:
+            logging.error(f"Error processing signature image: {img_err}")
+            return jsonify({'error': f'Invalid image data: {img_err}'}), 400
+        
+        # Add to PDF using PyMuPDF
+        try:
+            page = pdf_handler.doc[page_num]
+            
+            x = float(data.get('x', 50))
+            y = float(data.get('y', 50))
+            width = float(data.get('width', 150))
+            height = float(data.get('height', 100))
+            
+            # Save image to temporary file
+            temp_img_path = os.path.join(tempfile.gettempdir(), f'signature_{int(datetime.now().timestamp() * 1000)}.png')
+            image.save(temp_img_path, 'PNG')
+            
+            # Insert image into PDF
+            rect = fitz.Rect(x, y, x + width, y + height)
+            page.insert_image(rect, filename=temp_img_path)
+            
+            logging.info(f"Signature inserted at ({x}, {y})")
+            
+            # Save PDF
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.pdf')
+            os.close(temp_fd)
+            
+            try:
+                pdf_handler.doc.save(temp_path)
+                shutil.move(temp_path, pdf_handler.filepath)
+                logging.info(f"✓ PDF saved with signature")
+                
+                pdf_handler.reload()
+                logging.info(f"✓ PDF reloaded")
+                
+            except Exception as save_err:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                raise save_err
+            finally:
+                # Clean up temp image
+                if os.path.exists(temp_img_path):
+                    os.remove(temp_img_path)
+            
+            # Store in session
+            if 'signatures' not in current_session:
+                current_session['signatures'] = {}
+            if page_num not in current_session['signatures']:
+                current_session['signatures'][page_num] = []
+            
+            signature_info = {
+                'id': f"signature_{int(datetime.now().timestamp() * 1000)}",
+                'x': x, 'y': y, 'width': width, 'height': height
+            }
+            current_session['signatures'][page_num].append(signature_info)
+            current_session['isModified'] = True
+            
+            # Re-render page
+            page_image = pdf_handler.render_page(page_num)
+            image_base64 = base64.b64encode(page_image.getvalue()).decode('utf-8')
+            
+            return jsonify({
+                'success': True,
+                'signature': signature_info,
+                'pageImage': f'data:image/png;base64,{image_base64}',
+                'message': 'Signature added'
+            }), 200
+            
+        except Exception as pdf_err:
+            logging.error(f"Error adding signature to PDF: {pdf_err}")
+            raise pdf_err
+        
+    except Exception as e:
+        error_msg = str(e)
+        logging.error(f"Error in add-signature: {error_msg}")
+        return jsonify({'error': f'Failed to add signature: {error_msg}'}), 500
+
+
 @app.route('/api/rotate-page', methods=['POST'])
 def rotate_page():
     """Rotate a page"""

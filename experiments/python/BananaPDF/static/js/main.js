@@ -536,6 +536,33 @@ class UIController {
         this.commentConfirm = document.getElementById('commentConfirm');
         this.commentCancel = document.getElementById('commentCancel');
         
+        // Drawing modal
+        this.drawingModal = document.getElementById('drawingModal');
+        this.drawingCanvas = document.getElementById('drawingCanvas');
+        this.drawClear = document.getElementById('drawClear');
+        this.drawConfirm = document.getElementById('drawConfirm');
+        this.drawCancel = document.getElementById('drawCancel');
+        
+        // Signature modal
+        this.signatureModal = document.getElementById('signatureModal');
+        this.signatureCanvas = document.getElementById('signatureCanvas');
+        this.signatureClear = document.getElementById('signatureClear');
+        this.signatureConfirm = document.getElementById('signatureConfirm');
+        this.signatureCancel = document.getElementById('signatureCancel');
+        
+        // Drawing state
+        this.isDrawing = false;
+        this.drawingContext = null;
+        this.isSignature = false;
+        
+        // Store bound functions for event listeners so we can remove them later
+        this.drawingStartHandler = null;
+        this.drawingMoveHandler = null;
+        this.drawingEndHandler = null;
+        this.signatureStartHandler = null;
+        this.signatureMoveHandler = null;
+        this.signatureEndHandler = null;
+        
         // Status
         this.statusText = document.getElementById('statusText');
         this.emptyState = document.getElementById('emptyState');
@@ -588,6 +615,16 @@ class UIController {
         if (this.textCancel) this.textCancel.addEventListener('click', () => this.closeModal('text'));
         if (this.commentConfirm) this.commentConfirm.addEventListener('click', () => this.confirmCommentInput());
         if (this.commentCancel) this.commentCancel.addEventListener('click', () => this.closeModal('comment'));
+        
+        // Drawing controls
+        if (this.drawClear) this.drawClear.addEventListener('click', () => this.clearDrawingCanvas());
+        if (this.drawConfirm) this.drawConfirm.addEventListener('click', () => this.confirmDrawing());
+        if (this.drawCancel) this.drawCancel.addEventListener('click', () => this.closeModal('draw'));
+        
+        // Signature controls
+        if (this.signatureClear) this.signatureClear.addEventListener('click', () => this.clearSignatureCanvas());
+        if (this.signatureConfirm) this.signatureConfirm.addEventListener('click', () => this.confirmSignature());
+        if (this.signatureCancel) this.signatureCancel.addEventListener('click', () => this.closeModal('signature'));
     }
     
     attachEventBusListeners() {
@@ -882,6 +919,14 @@ class UIController {
                 this.pendingInput = { x: pdfX, y: pdfY, type: 'comment' };
                 this.openModal('comment');
                 break;
+            case 'draw':
+                this.pendingInput = { x: pdfX, y: pdfY, type: 'draw' };
+                this.openModal('draw');
+                break;
+            case 'signature':
+                this.pendingInput = { x: pdfX, y: pdfY, type: 'signature' };
+                this.openModal('signature');
+                break;
         }
     }
     
@@ -1131,6 +1176,268 @@ class UIController {
         this.updateUndoRedoButtons();
     }
     
+    initializeDrawingCanvas() {
+        if (!this.drawingCanvas) return;
+        
+        // Remove old listeners first if they exist
+        if (this.drawingStartHandler) {
+            this.drawingCanvas.removeEventListener('mousedown', this.drawingStartHandler);
+            this.drawingCanvas.removeEventListener('mousemove', this.drawingMoveHandler);
+            this.drawingCanvas.removeEventListener('mouseup', this.drawingEndHandler);
+            this.drawingCanvas.removeEventListener('mouseout', this.drawingEndHandler);
+        }
+        
+        // Set canvas size
+        this.drawingCanvas.width = this.drawingCanvas.offsetWidth;
+        this.drawingCanvas.height = this.drawingCanvas.offsetHeight;
+        
+        const ctx = this.drawingCanvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+        
+        this.drawingContext = ctx;
+        this.isSignature = false;
+        
+        // Create and store bound functions for drawing
+        this.drawingStartHandler = (e) => this.startDrawing(e, false);
+        this.drawingMoveHandler = (e) => this.continueDrawing(e, false);
+        this.drawingEndHandler = () => this.stopDrawing(false);
+        
+        // Add event listeners for drawing
+        this.drawingCanvas.addEventListener('mousedown', this.drawingStartHandler);
+        this.drawingCanvas.addEventListener('mousemove', this.drawingMoveHandler);
+        this.drawingCanvas.addEventListener('mouseup', this.drawingEndHandler);
+        this.drawingCanvas.addEventListener('mouseout', this.drawingEndHandler);
+    }
+    
+    initializeSignatureCanvas() {
+        if (!this.signatureCanvas) return;
+        
+        // Remove old listeners first if they exist
+        if (this.signatureStartHandler) {
+            this.signatureCanvas.removeEventListener('mousedown', this.signatureStartHandler);
+            this.signatureCanvas.removeEventListener('mousemove', this.signatureMoveHandler);
+            this.signatureCanvas.removeEventListener('mouseup', this.signatureEndHandler);
+            this.signatureCanvas.removeEventListener('mouseout', this.signatureEndHandler);
+        }
+        
+        // Set canvas size
+        this.signatureCanvas.width = this.signatureCanvas.offsetWidth;
+        this.signatureCanvas.height = this.signatureCanvas.offsetHeight;
+        
+        const ctx = this.signatureCanvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, this.signatureCanvas.width, this.signatureCanvas.height);
+        
+        this.drawingContext = ctx;
+        this.isSignature = true;
+        
+        // Create and store bound functions for signature
+        this.signatureStartHandler = (e) => this.startDrawing(e, true);
+        this.signatureMoveHandler = (e) => this.continueDrawing(e, true);
+        this.signatureEndHandler = () => this.stopDrawing(true);
+        
+        // Add event listeners for drawing
+        this.signatureCanvas.addEventListener('mousedown', this.signatureStartHandler);
+        this.signatureCanvas.addEventListener('mousemove', this.signatureMoveHandler);
+        this.signatureCanvas.addEventListener('mouseup', this.signatureEndHandler);
+        this.signatureCanvas.addEventListener('mouseout', this.signatureEndHandler);
+    }
+    
+    startDrawing(e, isSignature) {
+        this.isDrawing = true;
+        const canvas = isSignature ? this.signatureCanvas : this.drawingCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        
+        const ctx = canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+    }
+    
+    continueDrawing(e, isSignature) {
+        if (!this.isDrawing) return;
+        
+        const canvas = isSignature ? this.signatureCanvas : this.drawingCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        
+        const ctx = canvas.getContext('2d');
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#000000';
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+    
+    stopDrawing(isSignature) {
+        this.isDrawing = false;
+        const canvas = isSignature ? this.signatureCanvas : this.drawingCanvas;
+        const ctx = canvas.getContext('2d');
+        ctx.closePath();
+    }
+    
+    clearDrawingCanvas() {
+        if (!this.drawingCanvas) return;
+        const ctx = this.drawingCanvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
+    }
+    
+    clearSignatureCanvas() {
+        if (!this.signatureCanvas) return;
+        const ctx = this.signatureCanvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, this.signatureCanvas.width, this.signatureCanvas.height);
+    }
+    
+    confirmDrawing() {
+        if (!this.pendingInput) {
+            alert('Please select a location on the PDF first.');
+            return;
+        }
+        
+        this.undoRedoManager.saveState('Add Drawing', this.pageManager, this.annotationManager);
+        
+        // Get drawing data as image
+        const imageData = this.drawingCanvas.toDataURL('image/png');
+        
+        const drawing = {
+            id: `draw_${Date.now()}`,
+            pageNum: this.pdfViewer.currentPage - 1,
+            type: 'drawing',
+            x: this.pendingInput.x,
+            y: this.pendingInput.y,
+            width: 200,
+            height: 150,
+            image: imageData
+        };
+        
+        // Send to backend
+        console.log('✓ Adding drawing to PDF...');
+        
+        const confirmBtn = this.drawConfirm;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Adding...';
+        
+        fetch('/api/add-drawing', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pageNum: drawing.pageNum,
+                x: drawing.x,
+                y: drawing.y,
+                width: drawing.width,
+                height: drawing.height,
+                imageData: imageData
+            })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            console.log('✓ Drawing added:', data);
+            this.setStatus('✓ Drawing added to PDF');
+            
+            this.pendingInput = null;
+            this.closeModal('draw');
+            
+            // Reload PDF
+            this.reloadPDFDocument()
+                .then(() => this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc))
+                .catch(err => console.error('Error reloading:', err));
+            
+            this.enableSaveButton();
+            this.updateUndoRedoButtons();
+        })
+        .catch(error => {
+            console.error('✗ Error adding drawing:', error);
+            this.setStatus('✗ Failed to add drawing: ' + error.message);
+        })
+        .finally(() => {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Add Drawing';
+        });
+    }
+    
+    confirmSignature() {
+        if (!this.pendingInput) {
+            alert('Please select a location on the PDF first.');
+            return;
+        }
+        
+        this.undoRedoManager.saveState('Add Signature', this.pageManager, this.annotationManager);
+        
+        // Get signature data as image
+        const imageData = this.signatureCanvas.toDataURL('image/png');
+        
+        const signature = {
+            id: `sig_${Date.now()}`,
+            pageNum: this.pdfViewer.currentPage - 1,
+            type: 'signature',
+            x: this.pendingInput.x,
+            y: this.pendingInput.y,
+            width: 150,
+            height: 100,
+            image: imageData
+        };
+        
+        // Send to backend
+        console.log('✓ Adding signature to PDF...');
+        
+        const confirmBtn = this.signatureConfirm;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Adding...';
+        
+        fetch('/api/add-signature', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pageNum: signature.pageNum,
+                x: signature.x,
+                y: signature.y,
+                width: signature.width,
+                height: signature.height,
+                imageData: imageData
+            })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            console.log('✓ Signature added:', data);
+            this.setStatus('✓ Signature added to PDF');
+            
+            this.pendingInput = null;
+            this.closeModal('signature');
+            
+            // Reload PDF
+            this.reloadPDFDocument()
+                .then(() => this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc))
+                .catch(err => console.error('Error reloading:', err));
+            
+            this.enableSaveButton();
+            this.updateUndoRedoButtons();
+        })
+        .catch(error => {
+            console.error('✗ Error adding signature:', error);
+            this.setStatus('✗ Failed to add signature: ' + error.message);
+        })
+        .finally(() => {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Add Signature';
+        });
+    }
+    
     async rotateCurrentPage() {
         if (confirm('Rotate this page?')) {
             try {
@@ -1352,6 +1659,12 @@ class UIController {
         } else if (type === 'comment') {
             this.commentInputModal.style.display = 'flex';
             this.commentInput.focus();
+        } else if (type === 'draw') {
+            this.drawingModal.style.display = 'flex';
+            setTimeout(() => this.initializeDrawingCanvas(), 100);
+        } else if (type === 'signature') {
+            this.signatureModal.style.display = 'flex';
+            setTimeout(() => this.initializeSignatureCanvas(), 100);
         }
     }
     
@@ -1360,6 +1673,26 @@ class UIController {
             this.textInputModal.style.display = 'none';
         } else if (type === 'comment') {
             this.commentInputModal.style.display = 'none';
+        } else if (type === 'draw') {
+            this.drawingModal.style.display = 'none';
+            this.isDrawing = false;
+            // Remove event listeners properly using stored handlers
+            if (this.drawingCanvas && this.drawingStartHandler) {
+                this.drawingCanvas.removeEventListener('mousedown', this.drawingStartHandler);
+                this.drawingCanvas.removeEventListener('mousemove', this.drawingMoveHandler);
+                this.drawingCanvas.removeEventListener('mouseup', this.drawingEndHandler);
+                this.drawingCanvas.removeEventListener('mouseout', this.drawingEndHandler);
+            }
+        } else if (type === 'signature') {
+            this.signatureModal.style.display = 'none';
+            this.isDrawing = false;
+            // Remove event listeners properly using stored handlers
+            if (this.signatureCanvas && this.signatureStartHandler) {
+                this.signatureCanvas.removeEventListener('mousedown', this.signatureStartHandler);
+                this.signatureCanvas.removeEventListener('mousemove', this.signatureMoveHandler);
+                this.signatureCanvas.removeEventListener('mouseup', this.signatureEndHandler);
+                this.signatureCanvas.removeEventListener('mouseout', this.signatureEndHandler);
+            }
         }
     }
     

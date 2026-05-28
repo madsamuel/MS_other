@@ -148,6 +148,39 @@
         </div>
     </div>
     
+    <!-- Modal for drawing -->
+    <div id="drawingModal" class="modal" style="display: none;" role="dialog" aria-labelledby="drawModalTitle" aria-modal="true">
+        <div class="modal-content" tabindex="0" style="max-width: 600px;">
+            <button class="modal-close" aria-label="Close dialog">&times;</button>
+            <h2 id="drawModalTitle">Draw on PDF</h2>
+            <div style="border: 1px solid #ccc; background: white; margin: 10px 0;">
+                <canvas id="drawingCanvas" style="display: block; cursor: crosshair; width: 100%; height: 300px; border: 1px solid #ddd;"></canvas>
+            </div>
+            <div class="modal-buttons">
+                <button id="drawClear" class="btn">Clear</button>
+                <button id="drawConfirm" class="btn btn-primary">Add Drawing</button>
+                <button id="drawCancel" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal for signature -->
+    <div id="signatureModal" class="modal" style="display: none;" role="dialog" aria-labelledby="signatureModalTitle" aria-modal="true">
+        <div class="modal-content" tabindex="0" style="max-width: 600px;">
+            <button class="modal-close" aria-label="Close dialog">&times;</button>
+            <h2 id="signatureModalTitle">Add Signature</h2>
+            <p style="font-size: 12px; color: #666;">Draw your signature in the box below</p>
+            <div style="border: 2px solid #333; background: white; margin: 10px 0;">
+                <canvas id="signatureCanvas" style="display: block; cursor: crosshair; width: 100%; height: 200px; background: white;"></canvas>
+            </div>
+            <div class="modal-buttons">
+                <button id="signatureClear" class="btn">Clear</button>
+                <button id="signatureConfirm" class="btn btn-primary">Add Signature</button>
+                <button id="signatureCancel" class="btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- PDF.js library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
