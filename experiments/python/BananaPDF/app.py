@@ -2,6 +2,9 @@
 import os
 import json
 import io
+import tempfile
+import shutil
+import logging
 from datetime import datetime
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file
@@ -11,6 +14,13 @@ from pdf_handler import PDFHandler
 from annotation_manager import AnnotationManager
 import fitz  # PyMuPDF
 from PIL import Image
+
+# Setup logging to file
+logging.basicConfig(
+    filename='flask_debug.log',
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
@@ -113,6 +123,24 @@ def upload_pdf():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/debug-ping', methods=['POST', 'GET'])
+def debug_ping():
+    """Simple debug endpoint to test if requests are reaching Flask"""
+    method = request.method
+    data = request.get_json() if method == 'POST' else None
+    print(f"\n{'='*60}")
+    print(f"DEBUG PING - Method: {method}")
+    if data:
+        print(f"Data received: {json.dumps(data, indent=2)}")
+    print(f"{'='*60}\n")
+    return jsonify({
+        'success': True,
+        'message': f'Debug ping received via {method}',
+        'data': data,
+        'timestamp': datetime.now().isoformat()
+    }), 200
 
 
 @app.route('/api/render-page/<int:page_num>')
@@ -241,13 +269,15 @@ def add_textbox():
     try:
         global pdf_handler, current_session
         
-        print(f"\n{'='*60}")
-        print("ADD-TEXTBOX ENDPOINT CALLED")
+        logging.info(f"\n{'='*60}")
+        logging.info("ADD-TEXTBOX ENDPOINT CALLED")
         
         if pdf_handler is None:
+            logging.error('No PDF loaded')
             return jsonify({'error': 'No PDF loaded'}), 400
             
         if current_session is None:
+            logging.error('No session active')
             return jsonify({'error': 'No session active'}), 400
         
         data = request.get_json()
@@ -268,7 +298,7 @@ def add_textbox():
         if len(text_content) > 1000:
             return jsonify({'error': 'Text content too long (max 1000 characters)'}), 400
         
-        print(f"Page: {page_num}, Text: {text_content}")
+        logging.info(f"Page: {page_num}, Text: {text_content}")
         
         # Create text box object
         textbox = {
@@ -284,19 +314,19 @@ def add_textbox():
             'color': data.get('color', '#000000'),
         }
         
-        print(f"Text box: {textbox}")
+        logging.info(f"Text box: {textbox}")
         
         # Store in session
-        print(f"Storing in session...")
+        logging.info(f"Storing in session...")
         if 'textBoxes' not in current_session:
             current_session['textBoxes'] = {}
         
         current_session['textBoxes'][textbox['id']] = textbox
         current_session['isModified'] = True
-        print(f"✓ Text box stored in session")
+        logging.info(f"✓ Text box stored in session")
         
         # Add text box directly to PDF in memory
-        print(f"Adding text box to PDF in memory...")
+        logging.info(f"Adding text box to PDF in memory...")
         try:
             page = pdf_handler.doc[page_num]
             
@@ -314,28 +344,63 @@ def add_textbox():
             rect = fitz.Rect(textbox['x'], textbox['y'], 
                            textbox['x'] + textbox['width'], 
                            textbox['y'] + textbox['height'])
+            
+            logging.info(f"DEBUG: Creating textbox:")
+            logging.info(f"  Rect: {rect}")
+            logging.info(f"  Text: {textbox['text']}")
+            logging.info(f"  FontSize: {textbox['fontSize']}")
+            logging.info(f"  Color RGB: {color_rgb}")
+            
             page.insert_textbox(rect, textbox['text'], fontsize=textbox['fontSize'], 
                               color=color_rgb)
             
-            print(f"✓ Text box added to PDF in memory")
+            logging.info(f"✓ Text box added to PDF in memory")
+            
+            # Save the PDF file with changes using a temporary file
+            # (direct save to original fails with encryption changes)
+            logging.info(f"DEBUG: Saving PDF to {pdf_handler.filepath}")
+            
+            temp_fd, temp_path = tempfile.mkstemp(suffix='.pdf')
+            os.close(temp_fd)
+            
+            try:
+                pdf_handler.doc.save(temp_path)
+                shutil.move(temp_path, pdf_handler.filepath)
+                logging.info(f"✓ PDF file saved with text box changes")
+                
+                # Verify the save
+                file_size = os.path.getsize(pdf_handler.filepath)
+                logging.info(f"DEBUG: PDF file size after save: {file_size} bytes")
+                
+                # Reload the PDF document to ensure subsequent operations see the updated file
+                logging.info(f"Reloading PDF document...")
+                pdf_handler.reload()
+                logging.info(f"✓ PDF document reloaded")
+                
+            except Exception as save_err:
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                raise save_err
             
         except Exception as pdf_err:
-            print(f"Warning: Could not add to PDF in memory: {pdf_err}")
+            logging.error(f"ERROR: Could not add to PDF in memory: {pdf_err}")
+            import traceback
+            traceback.print_exc()
             # Continue anyway - will be added at save time
         
         # Re-render the page to show the updated PDF with text box
-        print(f"Re-rendering page with text box...")
+        logging.info(f"Re-rendering page with text box...")
         image_base64 = None
         try:
             import base64
             page_image = pdf_handler.render_page(page_num)
             image_base64 = base64.b64encode(page_image.getvalue()).decode('utf-8')
-            print(f"✓ Page re-rendered")
+            logging.info(f"✓ Page re-rendered")
             
         except Exception as render_err:
-            print(f"Warning: Could not re-render page: {render_err}")
+            logging.warning(f"Warning: Could not re-render page: {render_err}")
         
-        print(f"{'='*60}\n")
+        logging.info(f"{'='*60}\n")
         
         response = {
             'success': True,
@@ -351,7 +416,7 @@ def add_textbox():
         
     except Exception as e:
         error_msg = str(e)
-        print(f"EXCEPTION in add_textbox: {error_msg}")
+        logging.error(f"EXCEPTION in add_textbox: {error_msg}")
         import traceback
         traceback.print_exc()
         print(f"{'='*60}\n")

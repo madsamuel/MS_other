@@ -230,7 +230,8 @@ class PDFViewer {
         
         // Fetch actual PDF page dimensions from backend for accurate coordinate mapping
         try {
-            const dimResponse = await fetch(`/api/page-dimensions/${pageNum}`);
+            const timestamp = Date.now();
+            const dimResponse = await fetch(`/api/page-dimensions/${pageNum}?t=${timestamp}`);
             if (dimResponse.ok) {
                 const dimData = await dimResponse.json();
                 this.pdfPageWidth = dimData.width;
@@ -718,7 +719,9 @@ class UIController {
         // Reload the PDF document from server to show updates (e.g., after adding text)
         try {
             console.log('Reloading PDF document from server...');
-            const url = '/api/get-pdf';  // Endpoint to get the current PDF file
+            // Add cache-busting parameter to ensure fresh PDF is fetched
+            const timestamp = Date.now();
+            const url = `/api/get-pdf?t=${timestamp}`;
             this.pdfDoc = await pdfjsLib.getDocument(url).promise;
             console.log('✓ PDF document reloaded');
             return this.pdfDoc;
@@ -851,14 +854,22 @@ class UIController {
             const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
             const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
             pdfX = viewportX * scaleX;
+            // PDF.js pageHeight already has coordinates with origin at top-left
+            // No Y-axis inversion needed - just scale directly
             pdfY = viewportY * scaleY;
             console.log('Scale factors (viewport to PDF):', 'X=' + scaleX.toFixed(4), 'Y=' + scaleY.toFixed(4));
+            console.log('Flipped Y coordinate: viewportY=' + viewportY.toFixed(2) + ' -> pdfY=' + pdfY.toFixed(2));
             console.log('Final PDF coordinates:', pdfX.toFixed(2), pdfY.toFixed(2));
         } else {
             // Fallback to viewport coordinates
             pdfX = viewportX;
             pdfY = viewportY;
-            console.warn('⚠️  PDF dimensions not available! Falling back to viewport coordinates.');
+            console.warn('⚠️  PDF dimensions not available!');
+            console.warn('  pdfPageWidth:', this.pdfViewer.pdfPageWidth);
+            console.warn('  pdfPageHeight:', this.pdfViewer.pdfPageHeight);
+            console.warn('  pageWidth:', this.pdfViewer.pageWidth);
+            console.warn('  pageHeight:', this.pdfViewer.pageHeight);
+            console.warn('Falling back to viewport coordinates:', pdfX.toFixed(2), pdfY.toFixed(2));
         }
         console.log('======================');
         
@@ -894,6 +905,8 @@ class UIController {
             const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
             const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
             const pdfX = viewportX * scaleX;
+            // PDF.js pageHeight already has coordinates with origin at top-left
+            // No Y-axis inversion needed - just scale directly
             const pdfY = viewportY * scaleY;
             this.highlightStart = { x: pdfX, y: pdfY };
             console.log('Started highlight drag at PDF coords', this.highlightStart, 
@@ -927,6 +940,8 @@ class UIController {
             const scaleX = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;
             const scaleY = this.pdfViewer.pdfPageHeight / this.pdfViewer.pageHeight;
             pdfEndX = viewportX * scaleX;
+            // PDF.js pageHeight already has coordinates with origin at top-left
+            // No Y-axis inversion needed - just scale directly
             pdfEndY = viewportY * scaleY;
         } else {
             // Fallback to viewport coordinates
@@ -935,6 +950,7 @@ class UIController {
         }
         
         // Ensure start is top-left and end is bottom-right
+        // Both coordinates use the same system (top-left origin), so min/max works correctly
         const highlightX = Math.min(this.highlightStart.x, pdfEndX);
         const highlightY = Math.min(this.highlightStart.y, pdfEndY);
         const width = Math.abs(pdfEndX - this.highlightStart.x);
@@ -1006,12 +1022,24 @@ class UIController {
         console.log('✓ Adding text box to PDF:');
         console.log('  Page:', textBoxData.pageNum);
         console.log('  Position (PDF coords):', textBoxData.x, ',', textBoxData.y);
+        console.log('  Width:', textBoxData.width, ', Height:', textBoxData.height);
         console.log('  Text:', textBoxData.text);
+        
+        // Detailed validation logging
+        if (isNaN(textBoxData.x) || isNaN(textBoxData.y)) {
+            console.error('⚠️ INVALID COORDINATES - x or y is NaN!');
+            console.error('  pendingInput:', this.pendingInput);
+            console.error('  x is NaN?', isNaN(textBoxData.x), ', y is NaN?', isNaN(textBoxData.y));
+            this.setStatus('⚠️ Invalid click coordinates');
+            return;
+        }
         
         // Disable button during request
         const confirmBtn = this.textConfirm;
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Adding...';
+        
+        console.log('SENDING FETCH REQUEST WITH:', JSON.stringify(textBoxData, null, 2));
         
         // Send to backend to add to PDF and get updated page
         fetch('/api/add-textbox', {
@@ -1022,6 +1050,7 @@ class UIController {
             body: JSON.stringify(textBoxData)
         })
         .then(response => {
+            console.log('FETCH RESPONSE STATUS:', response.status, response.statusText);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }

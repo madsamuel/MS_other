@@ -19,6 +19,21 @@ class PDFHandler:
         """Get total number of pages"""
         return self.page_count
     
+    def reload(self):
+        """Reload the PDF document from disk"""
+        try:
+            # Close current document if open
+            if self.doc:
+                self.doc.close()
+            
+            # Reopen the document
+            self.doc = fitz.open(self.filepath)
+            self.reader = PdfReader(self.filepath)
+            self.page_count = len(self.reader.pages)
+            print(f"✓ PDF document reloaded from {self.filepath}")
+        except Exception as e:
+            raise Exception(f"Failed to reload PDF: {str(e)}")
+    
     def render_page(self, page_num, rotation=0, zoom=1.0):
         """
         Render a PDF page to PNG image
@@ -69,9 +84,18 @@ class PDFHandler:
         try:
             page = self.reader.pages[page_num]
             media_box = page.mediabox
+            width = float(media_box.width)
+            height = float(media_box.height)
+            print(f"  PDFHandler.get_page_dimensions(page {page_num}):")
+            print(f"    MediaBox: {media_box}")
+            print(f"    Width: {width}, Height: {height} points")
+            # Also check PyMuPDF dimensions
+            mupdf_page = self.doc[page_num]
+            mupdf_rect = mupdf_page.rect
+            print(f"    PyMuPDF rect: {mupdf_rect}")
             return {
-                'width': float(media_box.width),
-                'height': float(media_box.height),
+                'width': width,
+                'height': height,
             }
         except Exception as e:
             raise Exception(f"Failed to get page dimensions: {str(e)}")
