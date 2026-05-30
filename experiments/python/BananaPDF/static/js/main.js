@@ -402,6 +402,7 @@ class UndoRedoManager {
         this.eventBus = eventBus;
         this.undoStack = [];
         this.redoStack = [];
+        this.MAX_UNDO_OPERATIONS = 75;  // Limit to prevent memory overload
     }
     
     saveState(actionType, pageManager, annotationManager) {
@@ -413,6 +414,12 @@ class UndoRedoManager {
         };
         this.undoStack.push(state);
         this.redoStack = [];
+        
+        // Enforce maximum undo operations limit
+        if (this.undoStack.length > this.MAX_UNDO_OPERATIONS) {
+            this.undoStack.shift();  // Remove oldest operation
+        }
+        
         this.eventBus.emit('stateChanged', { canUndo: this.canUndo(), canRedo: this.canRedo() });
     }
     
