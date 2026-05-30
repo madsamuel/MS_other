@@ -47,6 +47,22 @@
                 <button id="rotateBtn" class="btn" title="Rotate Page (R)" aria-label="Rotate current page" disabled>🔄 Rotate</button>
                 <button id="deletePageBtn" class="btn btn-danger" title="Delete Page (Delete)" aria-label="Delete current page" disabled>🗑️ Delete</button>
             </div>
+            
+            <!-- Drawing Tools Panel (hidden by default) -->
+            <div id="drawingToolsPanel" class="toolbar-group" style="display: none; gap: 10px; align-items: center;">
+                <label for="brushColor" style="font-size: 12px; margin: 0;">Color:</label>
+                <input type="color" id="brushColor" value="#000000" style="width: 40px; height: 32px; cursor: pointer;" aria-label="Brush color">
+                
+                <label for="brushType" style="font-size: 12px; margin: 0;">Brush:</label>
+                <select id="brushType" style="padding: 5px; font-size: 12px;" aria-label="Brush type">
+                    <option value="thin">Thin (1px)</option>
+                    <option value="normal" selected>Normal (2px)</option>
+                    <option value="thick">Thick (4px)</option>
+                    <option value="extra">Extra (6px)</option>
+                </select>
+                
+                <button id="clearDrawingBtn" class="btn" style="font-size: 12px; padding: 5px 10px;" title="Clear drawing">Clear</button>
+            </div>
         </div>
         
         <div class="main-content">
@@ -80,6 +96,7 @@
                 
                 <div class="pdf-viewer-container">
                     <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
+                    <canvas id="drawingOverlay" class="drawing-overlay" style="display: none; position: absolute; top: 0; left: 0; cursor: crosshair; z-index: 100;"></canvas>
                     <div id="annotationLayer" class="annotation-layer"></div>
                 </div>
             </div>
@@ -144,22 +161,6 @@
             <div class="modal-buttons">
                 <button id="commentConfirm" class="btn btn-primary">Add</button>
                 <button id="commentCancel" class="btn">Cancel</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal for drawing -->
-    <div id="drawingModal" class="modal" style="display: none;" role="dialog" aria-labelledby="drawModalTitle" aria-modal="true">
-        <div class="modal-content" tabindex="0" style="max-width: 600px;">
-            <button class="modal-close" aria-label="Close dialog">&times;</button>
-            <h2 id="drawModalTitle">Draw on PDF</h2>
-            <div style="border: 1px solid #ccc; background: white; margin: 10px 0;">
-                <canvas id="drawingCanvas" style="display: block; cursor: crosshair; width: 100%; height: 300px; border: 1px solid #ddd;"></canvas>
-            </div>
-            <div class="modal-buttons">
-                <button id="drawClear" class="btn">Clear</button>
-                <button id="drawConfirm" class="btn btn-primary">Add Drawing</button>
-                <button id="drawCancel" class="btn">Cancel</button>
             </div>
         </div>
     </div>

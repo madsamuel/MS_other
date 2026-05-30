@@ -536,13 +536,6 @@ class UIController {
         this.commentConfirm = document.getElementById('commentConfirm');
         this.commentCancel = document.getElementById('commentCancel');
         
-        // Drawing modal
-        this.drawingModal = document.getElementById('drawingModal');
-        this.drawingCanvas = document.getElementById('drawingCanvas');
-        this.drawClear = document.getElementById('drawClear');
-        this.drawConfirm = document.getElementById('drawConfirm');
-        this.drawCancel = document.getElementById('drawCancel');
-        
         // Signature modal
         this.signatureModal = document.getElementById('signatureModal');
         this.signatureCanvas = document.getElementById('signatureCanvas');
@@ -550,10 +543,26 @@ class UIController {
         this.signatureConfirm = document.getElementById('signatureConfirm');
         this.signatureCancel = document.getElementById('signatureCancel');
         
+        // Drawing overlay (for direct PDF drawing)
+        this.drawingOverlay = document.getElementById('drawingOverlay');
+        this.drawingOverlayContext = null;
+        
+        // Drawing tools panel
+        this.drawingToolsPanel = document.getElementById('drawingToolsPanel');
+        this.brushColor = document.getElementById('brushColor');
+        this.brushType = document.getElementById('brushType');
+        this.clearDrawingBtn = document.getElementById('clearDrawingBtn');
+        
+        // Current brush settings
+        this.currentBrushColor = '#000000';
+        this.currentBrushWidth = 2;
+        
         // Drawing state
         this.isDrawing = false;
         this.drawingContext = null;
         this.isSignature = false;
+        this.drawingStartX = 0;
+        this.drawingStartY = 0;
         
         // Store bound functions for event listeners so we can remove them later
         this.drawingStartHandler = null;
@@ -562,6 +571,10 @@ class UIController {
         this.signatureStartHandler = null;
         this.signatureMoveHandler = null;
         this.signatureEndHandler = null;
+        this.overlayMouseDownHandler = null;
+        this.overlayMouseMoveHandler = null;
+        this.overlayMouseUpHandler = null;
+        this.overlayKeyDownHandler = null;
         
         // Status
         this.statusText = document.getElementById('statusText');
@@ -616,15 +629,33 @@ class UIController {
         if (this.commentConfirm) this.commentConfirm.addEventListener('click', () => this.confirmCommentInput());
         if (this.commentCancel) this.commentCancel.addEventListener('click', () => this.closeModal('comment'));
         
-        // Drawing controls
-        if (this.drawClear) this.drawClear.addEventListener('click', () => this.clearDrawingCanvas());
-        if (this.drawConfirm) this.drawConfirm.addEventListener('click', () => this.confirmDrawing());
-        if (this.drawCancel) this.drawCancel.addEventListener('click', () => this.closeModal('draw'));
-        
         // Signature controls
         if (this.signatureClear) this.signatureClear.addEventListener('click', () => this.clearSignatureCanvas());
         if (this.signatureConfirm) this.signatureConfirm.addEventListener('click', () => this.confirmSignature());
         if (this.signatureCancel) this.signatureCancel.addEventListener('click', () => this.closeModal('signature'));
+        
+        // Drawing tools controls
+        if (this.brushColor) this.brushColor.addEventListener('change', (e) => {
+            this.currentBrushColor = e.target.value;
+        });
+        
+        if (this.brushType) this.brushType.addEventListener('change', (e) => {
+            const widthMap = {
+                'thin': 1,
+                'normal': 2,
+                'thick': 4,
+                'extra': 6
+            };
+            this.currentBrushWidth = widthMap[e.target.value] || 2;
+        });
+        
+        if (this.clearDrawingBtn) this.clearDrawingBtn.addEventListener('click', () => {
+            if (this.drawingOverlay && this.drawingOverlay.style.display === 'block') {
+                const ctx = this.drawingOverlay.getContext('2d');
+                ctx.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+                this.setStatus('Drawing cleared');
+            }
+        });
     }
     
     attachEventBusListeners() {
@@ -851,16 +882,239 @@ class UIController {
             // Deselect
             document.getElementById(`${toolId}Btn`).classList.remove('active');
             this.currentTool = null;
+            
+            // Handle deselection of draw tool
+            if (toolId === 'draw') {
+                this.disableDrawingOverlay();
+            }
+            
             this.setStatus('Tool deselected');
         } else {
             // Select new tool
             if (this.currentTool) {
                 document.getElementById(`${this.currentTool}Btn`).classList.remove('active');
+                
+                // Clean up previous tool
+                if (this.currentTool === 'draw') {
+                    this.disableDrawingOverlay();
+                }
             }
+            
             this.currentTool = toolId;
             document.getElementById(`${toolId}Btn`).classList.add('active');
-            this.setStatus(`Selected: ${toolId}`);
+            
+            // Handle selection of draw tool
+            if (toolId === 'draw') {
+                this.enableDrawingOverlay();
+                this.setStatus('Drawing mode - Draw on the PDF. Press ESC or click another tool to finish.');
+            } else {
+                this.setStatus(`Selected: ${toolId}`);
+            }
         }
+    }
+    
+    enableDrawingOverlay() {
+        if (!this.drawingOverlay) return;
+        
+        // Show drawing tools panel
+        if (this.drawingToolsPanel) {
+            this.drawingToolsPanel.style.display = 'flex';
+        }
+        
+        // Match canvas size to PDF canvas
+        const pdfCanvas = this.pdfViewer.canvas;
+        if (!pdfCanvas) return;
+        
+        // Set canvas pixel size (not CSS size)
+        this.drawingOverlay.width = pdfCanvas.width;
+        this.drawingOverlay.height = pdfCanvas.height;
+        
+        // Set CSS size to match
+        this.drawingOverlay.style.width = pdfCanvas.width + 'px';
+        this.drawingOverlay.style.height = pdfCanvas.height + 'px';
+        
+        // Position overlay to match PDF canvas position
+        const rect = pdfCanvas.getBoundingClientRect();
+        const containerRect = pdfCanvas.parentElement.getBoundingClientRect();
+        
+        this.drawingOverlay.style.position = 'absolute';
+        this.drawingOverlay.style.top = (rect.top - containerRect.top) + 'px';
+        this.drawingOverlay.style.left = (rect.left - containerRect.left) + 'px';
+        this.drawingOverlay.style.zIndex = '100';
+        this.drawingOverlay.style.display = 'block';
+        this.drawingOverlay.style.cursor = 'crosshair';
+        
+        // Get drawing context
+        this.drawingOverlayContext = this.drawingOverlay.getContext('2d');
+        
+        // Clear the overlay
+        this.drawingOverlayContext.fillStyle = 'rgba(255, 255, 255, 0)';
+        this.drawingOverlayContext.fillRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        
+        // Create and store event handlers
+        this.overlayMouseDownHandler = (e) => this.startOverlayDrawing(e);
+        this.overlayMouseMoveHandler = (e) => this.continueOverlayDrawing(e);
+        this.overlayMouseUpHandler = (e) => this.stopOverlayDrawing(e);
+        this.overlayKeyDownHandler = (e) => this.handleDrawingKeyDown(e);
+        
+        // Add event listeners
+        this.drawingOverlay.addEventListener('mousedown', this.overlayMouseDownHandler);
+        this.drawingOverlay.addEventListener('mousemove', this.overlayMouseMoveHandler);
+        this.drawingOverlay.addEventListener('mouseup', this.overlayMouseUpHandler);
+        this.drawingOverlay.addEventListener('mouseout', this.overlayMouseUpHandler);
+        document.addEventListener('keydown', this.overlayKeyDownHandler);
+    }
+    
+    disableDrawingOverlay() {
+        if (!this.drawingOverlay) return;
+        
+        // Save drawing if there is any
+        if (this.drawingOverlay.style.display === 'block') {
+            this.saveDrawingFromOverlay();
+        }
+        
+        // Remove event listeners
+        if (this.overlayMouseDownHandler) {
+            this.drawingOverlay.removeEventListener('mousedown', this.overlayMouseDownHandler);
+            this.drawingOverlay.removeEventListener('mousemove', this.overlayMouseMoveHandler);
+            this.drawingOverlay.removeEventListener('mouseup', this.overlayMouseUpHandler);
+            this.drawingOverlay.removeEventListener('mouseout', this.overlayMouseUpHandler);
+            document.removeEventListener('keydown', this.overlayKeyDownHandler);
+        }
+        
+        // Hide overlay and clear
+        this.drawingOverlay.style.display = 'none';
+        if (this.drawingOverlayContext) {
+            this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        }
+        
+        // Hide drawing tools panel
+        if (this.drawingToolsPanel) {
+            this.drawingToolsPanel.style.display = 'none';
+        }
+        
+        this.isDrawing = false;
+    }
+    
+    startOverlayDrawing(e) {
+        if (!this.drawingOverlay) return;
+        
+        this.isDrawing = true;
+        const rect = this.drawingOverlay.getBoundingClientRect();
+        this.drawingStartX = (e.clientX - rect.left) * (this.drawingOverlay.width / rect.width);
+        this.drawingStartY = (e.clientY - rect.top) * (this.drawingOverlay.height / rect.height);
+        
+        const ctx = this.drawingOverlay.getContext('2d');
+        ctx.beginPath();
+        ctx.moveTo(this.drawingStartX, this.drawingStartY);
+    }
+    
+    continueOverlayDrawing(e) {
+        if (!this.isDrawing || !this.drawingOverlay) return;
+        
+        const rect = this.drawingOverlay.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (this.drawingOverlay.width / rect.width);
+        const y = (e.clientY - rect.top) * (this.drawingOverlay.height / rect.height);
+        
+        const ctx = this.drawingOverlay.getContext('2d');
+        ctx.lineWidth = this.currentBrushWidth;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = this.currentBrushColor;
+        ctx.lineTo(x, y);
+        ctx.stroke();
+    }
+    
+    stopOverlayDrawing(e) {
+        if (!this.drawingOverlay) return;
+        this.isDrawing = false;
+        const ctx = this.drawingOverlay.getContext('2d');
+        ctx.closePath();
+    }
+    
+    handleDrawingKeyDown(e) {
+        // ESC key to finish drawing
+        if (e.key === 'Escape' && this.currentTool === 'draw') {
+            this.saveDrawingFromOverlay();
+            this.selectTool('draw'); // Deselect the tool
+        }
+    }
+    
+    saveDrawingFromOverlay() {
+        if (!this.drawingOverlay || !this.drawingOverlay.toDataURL) return;
+        
+        // Check if anything was drawn
+        const imageData = this.drawingOverlay.getContext('2d').getImageData(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        const hasDrawing = imageData.data.some((pixel, index) => {
+            // Check if any non-white pixels exist (alpha > 0)
+            return index % 4 === 3 && pixel > 0; // Check alpha channel
+        });
+        
+        if (!hasDrawing) {
+            this.setStatus('No drawing to save');
+            return;
+        }
+        
+        // Get the drawing as base64
+        const imageData64 = this.drawingOverlay.toDataURL('image/png');
+        
+        // Get current page position to estimate where on page the drawing was made
+        // For now, use center of page as default position
+        const pageWidth = this.pdfViewer.pdfPageWidth || 612;
+        const pageHeight = this.pdfViewer.pdfPageHeight || 792;
+        
+        this.undoRedoManager.saveState('Add Drawing', this.pageManager, this.annotationManager);
+        
+        console.log('✓ Sending drawing to backend...');
+        
+        const drawBtn = document.getElementById('drawBtn');
+        const originalText = drawBtn.textContent;
+        drawBtn.disabled = true;
+        drawBtn.textContent = 'Saving...';
+        
+        fetch('/api/add-drawing', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                pageNum: this.pdfViewer.currentPage - 1,
+                x: 50,
+                y: 50,
+                width: 250,
+                height: 180,
+                imageData: imageData64
+            })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            console.log('✓ Drawing saved:', data);
+            this.setStatus('✓ Drawing added to PDF');
+            
+            // Reload PDF to show drawing
+            this.reloadPDFDocument()
+                .then(() => this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc))
+                .catch(err => console.error('Error reloading:', err));
+            
+            // Clear overlay
+            if (this.drawingOverlayContext) {
+                this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+            }
+            
+            this.enableSaveButton();
+            this.updateUndoRedoButtons();
+        })
+        .catch(error => {
+            console.error('✗ Error saving drawing:', error);
+            this.setStatus('✗ Failed to save drawing: ' + error.message);
+        })
+        .finally(() => {
+            drawBtn.disabled = false;
+            drawBtn.textContent = originalText;
+        });
     }
     
     handleCanvasClick(event) {
@@ -920,8 +1174,7 @@ class UIController {
                 this.openModal('comment');
                 break;
             case 'draw':
-                this.pendingInput = { x: pdfX, y: pdfY, type: 'draw' };
-                this.openModal('draw');
+                // Draw tool is now handled by overlay, not modal
                 break;
             case 'signature':
                 this.pendingInput = { x: pdfX, y: pdfY, type: 'signature' };
@@ -1176,40 +1429,6 @@ class UIController {
         this.updateUndoRedoButtons();
     }
     
-    initializeDrawingCanvas() {
-        if (!this.drawingCanvas) return;
-        
-        // Remove old listeners first if they exist
-        if (this.drawingStartHandler) {
-            this.drawingCanvas.removeEventListener('mousedown', this.drawingStartHandler);
-            this.drawingCanvas.removeEventListener('mousemove', this.drawingMoveHandler);
-            this.drawingCanvas.removeEventListener('mouseup', this.drawingEndHandler);
-            this.drawingCanvas.removeEventListener('mouseout', this.drawingEndHandler);
-        }
-        
-        // Set canvas size
-        this.drawingCanvas.width = this.drawingCanvas.offsetWidth;
-        this.drawingCanvas.height = this.drawingCanvas.offsetHeight;
-        
-        const ctx = this.drawingCanvas.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
-        
-        this.drawingContext = ctx;
-        this.isSignature = false;
-        
-        // Create and store bound functions for drawing
-        this.drawingStartHandler = (e) => this.startDrawing(e, false);
-        this.drawingMoveHandler = (e) => this.continueDrawing(e, false);
-        this.drawingEndHandler = () => this.stopDrawing(false);
-        
-        // Add event listeners for drawing
-        this.drawingCanvas.addEventListener('mousedown', this.drawingStartHandler);
-        this.drawingCanvas.addEventListener('mousemove', this.drawingMoveHandler);
-        this.drawingCanvas.addEventListener('mouseup', this.drawingEndHandler);
-        this.drawingCanvas.addEventListener('mouseout', this.drawingEndHandler);
-    }
-    
     initializeSignatureCanvas() {
         if (!this.signatureCanvas) return;
         
@@ -1280,90 +1499,11 @@ class UIController {
         ctx.closePath();
     }
     
-    clearDrawingCanvas() {
-        if (!this.drawingCanvas) return;
-        const ctx = this.drawingCanvas.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
-    }
-    
     clearSignatureCanvas() {
         if (!this.signatureCanvas) return;
         const ctx = this.signatureCanvas.getContext('2d');
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, this.signatureCanvas.width, this.signatureCanvas.height);
-    }
-    
-    confirmDrawing() {
-        if (!this.pendingInput) {
-            alert('Please select a location on the PDF first.');
-            return;
-        }
-        
-        this.undoRedoManager.saveState('Add Drawing', this.pageManager, this.annotationManager);
-        
-        // Get drawing data as image
-        const imageData = this.drawingCanvas.toDataURL('image/png');
-        
-        const drawing = {
-            id: `draw_${Date.now()}`,
-            pageNum: this.pdfViewer.currentPage - 1,
-            type: 'drawing',
-            x: this.pendingInput.x,
-            y: this.pendingInput.y,
-            width: 200,
-            height: 150,
-            image: imageData
-        };
-        
-        // Send to backend
-        console.log('✓ Adding drawing to PDF...');
-        
-        const confirmBtn = this.drawConfirm;
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Adding...';
-        
-        fetch('/api/add-drawing', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                pageNum: drawing.pageNum,
-                x: drawing.x,
-                y: drawing.y,
-                width: drawing.width,
-                height: drawing.height,
-                imageData: imageData
-            })
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            console.log('✓ Drawing added:', data);
-            this.setStatus('✓ Drawing added to PDF');
-            
-            this.pendingInput = null;
-            this.closeModal('draw');
-            
-            // Reload PDF
-            this.reloadPDFDocument()
-                .then(() => this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc))
-                .catch(err => console.error('Error reloading:', err));
-            
-            this.enableSaveButton();
-            this.updateUndoRedoButtons();
-        })
-        .catch(error => {
-            console.error('✗ Error adding drawing:', error);
-            this.setStatus('✗ Failed to add drawing: ' + error.message);
-        })
-        .finally(() => {
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Add Drawing';
-        });
     }
     
     confirmSignature() {
@@ -1659,9 +1799,6 @@ class UIController {
         } else if (type === 'comment') {
             this.commentInputModal.style.display = 'flex';
             this.commentInput.focus();
-        } else if (type === 'draw') {
-            this.drawingModal.style.display = 'flex';
-            setTimeout(() => this.initializeDrawingCanvas(), 100);
         } else if (type === 'signature') {
             this.signatureModal.style.display = 'flex';
             setTimeout(() => this.initializeSignatureCanvas(), 100);
@@ -1673,16 +1810,6 @@ class UIController {
             this.textInputModal.style.display = 'none';
         } else if (type === 'comment') {
             this.commentInputModal.style.display = 'none';
-        } else if (type === 'draw') {
-            this.drawingModal.style.display = 'none';
-            this.isDrawing = false;
-            // Remove event listeners properly using stored handlers
-            if (this.drawingCanvas && this.drawingStartHandler) {
-                this.drawingCanvas.removeEventListener('mousedown', this.drawingStartHandler);
-                this.drawingCanvas.removeEventListener('mousemove', this.drawingMoveHandler);
-                this.drawingCanvas.removeEventListener('mouseup', this.drawingEndHandler);
-                this.drawingCanvas.removeEventListener('mouseout', this.drawingEndHandler);
-            }
         } else if (type === 'signature') {
             this.signatureModal.style.display = 'none';
             this.isDrawing = false;
@@ -1756,6 +1883,37 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         console.log('BananaPDF initialized successfully with SOLID architecture');
+        
+        // Auto-load PDF if one is available in the backend session
+        setTimeout(async () => {
+            try {
+                const response = await fetch('/api/get-pdf-data');
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('PDF available in session:', data.fileName);
+                    
+                    // Load the PDF from the server
+                    const pdfResponse = await fetch('/api/get-pdf');
+                    if (pdfResponse.ok) {
+                        const blob = await pdfResponse.blob();
+                        const file = new File([blob], data.fileName || 'document.pdf', { type: 'application/pdf' });
+                        
+                        // Trigger the file select handler
+                        const fileInput = document.getElementById('fileInput');
+                        if (fileInput) {
+                            const dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(file);
+                            fileInput.files = dataTransfer.files;
+                            uiController.handleFileSelect({ target: fileInput });
+                            console.log('Auto-loaded PDF from server session');
+                        }
+                    }
+                }
+            } catch (error) {
+                console.log('No PDF in server session or auto-load disabled (this is normal)', error.message);
+            }
+        }, 100);
+        
     } catch (error) {
         console.error('Failed to initialize BananaPDF:', error);
     }
