@@ -165,6 +165,20 @@ class ClientAnnotationManager {
         return annotation;
     }
     
+    updateAnnotation(annotationId, updates) {
+        // Find and update annotation in any page
+        for (const pageNum in this.annotations) {
+            const annotation = this.annotations[pageNum].find(a => a.id === annotationId);
+            if (annotation) {
+                Object.assign(annotation, updates);
+                this.eventBus.emit('annotationUpdated', annotation);
+                return annotation;
+            }
+        }
+        console.warn('Annotation not found:', annotationId);
+        return null;
+    }
+    
     addTextBox(textBox) {
         this.textBoxes[textBox.id] = textBox;
         this.eventBus.emit('textBoxAdded', textBox);
@@ -370,6 +384,48 @@ class PDFViewer {
             
             if (annotation.type === 'highlight') {
                 div.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
+            } else if (annotation.type === 'comment') {
+                // Add hover and click handlers for comments
+                div.style.cursor = 'pointer';
+                
+                // Hover to show tooltip
+                div.addEventListener('mouseenter', (e) => {
+                    if (annotation.text) {
+                        const tooltip = document.createElement('div');
+                        tooltip.className = 'comment-tooltip';
+                        tooltip.textContent = annotation.text;
+                        tooltip.style.position = 'fixed';
+                        tooltip.style.backgroundColor = '#FFE4B5';
+                        tooltip.style.border = '1px solid #FF8C00';
+                        tooltip.style.borderRadius = '4px';
+                        tooltip.style.padding = '8px 12px';
+                        tooltip.style.maxWidth = '250px';
+                        tooltip.style.wordWrap = 'break-word';
+                        tooltip.style.zIndex = '1000';
+                        tooltip.style.fontSize = '12px';
+                        tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                        
+                        const rect = div.getBoundingClientRect();
+                        tooltip.style.top = (rect.bottom + 5) + 'px';
+                        tooltip.style.left = rect.left + 'px';
+                        
+                        document.body.appendChild(tooltip);
+                        div.tooltip = tooltip;
+                    }
+                });
+                
+                div.addEventListener('mouseleave', () => {
+                    if (div.tooltip) {
+                        div.tooltip.remove();
+                        div.tooltip = null;
+                    }
+                });
+                
+                // Click to edit comment
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.editComment(annotation);
+                });
             }
             
             this.annotationLayer.appendChild(div);
@@ -402,7 +458,6 @@ class UndoRedoManager {
         this.eventBus = eventBus;
         this.undoStack = [];
         this.redoStack = [];
-        this.MAX_UNDO_OPERATIONS = 75;  // Limit to prevent memory overload
     }
     
     saveState(actionType, pageManager, annotationManager) {
@@ -414,12 +469,6 @@ class UndoRedoManager {
         };
         this.undoStack.push(state);
         this.redoStack = [];
-        
-        // Enforce maximum undo operations limit
-        if (this.undoStack.length > this.MAX_UNDO_OPERATIONS) {
-            this.undoStack.shift();  // Remove oldest operation
-        }
-        
         this.eventBus.emit('stateChanged', { canUndo: this.canUndo(), canRedo: this.canRedo() });
     }
     
@@ -497,6 +546,7 @@ class UIController {
         this.currentFilename = 'document.pdf';  // Default filename for save operations
         this.currentTool = null;
         this.pendingInput = null;
+        this.editingCommentId = null;  // Track which comment is being edited
         this.highlightStart = null;
         this.isHighlighting = false;
         
@@ -1402,7 +1452,7 @@ class UIController {
     
     confirmCommentInput() {
         // Validate input
-        if (!this.pendingInput) {
+        if (!this.pendingInput && !this.editingCommentId) {
             console.warn('⚠️ No pending input location');
             return;
         }
@@ -1413,27 +1463,45 @@ class UIController {
             return;
         }
         
-        this.undoRedoManager.saveState('Add Comment', this.pageManager, this.annotationManager);
+        if (this.editingCommentId) {
+            // Update existing comment
+            this.undoRedoManager.saveState('Edit Comment', this.pageManager, this.annotationManager);
+            this.annotationManager.updateAnnotation(this.editingCommentId, { text: commentContent });
+            this.editingCommentId = null;
+        } else {
+            // Add new comment
+            this.undoRedoManager.saveState('Add Comment', this.pageManager, this.annotationManager);
+            
+            const annotation = {
+                id: `cmt_${Date.now()}`,
+                pageNum: this.pdfViewer.currentPage - 1,
+                type: 'comment',
+                x: this.pendingInput.x,
+                y: this.pendingInput.y,
+                width: 24,
+                height: 24,
+                color: '#FF0000',
+                text: commentContent
+            };
+            
+            this.annotationManager.addAnnotation(annotation);
+        }
         
-        const annotation = {
-            id: `cmt_${Date.now()}`,
-            pageNum: this.pdfViewer.currentPage - 1,
-            type: 'comment',
-            x: this.pendingInput.x,
-            y: this.pendingInput.y,
-            width: 24,
-            height: 24,
-            color: '#FF0000',
-            text: commentContent
-        };
-        
-        this.annotationManager.addAnnotation(annotation);
         this.commentInput.value = '';
         this.pendingInput = null;
         this.closeModal('comment');
         this.pdfViewer.renderAnnotations();
         this.enableSaveButton();
         this.updateUndoRedoButtons();
+    }
+    
+    editComment(annotation) {
+        // Open comment modal with existing comment text for editing
+        this.editingCommentId = annotation.id;
+        this.commentInput.value = annotation.text;
+        this.openModal('comment');
+        this.commentInput.focus();
+        this.commentInput.select();  // Select all text for easy editing
     }
     
     initializeSignatureCanvas() {
@@ -1638,15 +1706,11 @@ class UIController {
 
     performUndo() {
         this.undoRedoManager.undo(this.pageManager, this.annotationManager);
-        this.pdfViewer.renderAnnotations();
-        this.updateUndoRedoButtons();
         this.enableSaveButton();
     }
     
     performRedo() {
         this.undoRedoManager.redo(this.pageManager, this.annotationManager);
-        this.pdfViewer.renderAnnotations();
-        this.updateUndoRedoButtons();
         this.enableSaveButton();
     }
     
@@ -1821,6 +1885,7 @@ class UIController {
             this.textInputModal.style.display = 'none';
         } else if (type === 'comment') {
             this.commentInputModal.style.display = 'none';
+            this.editingCommentId = null;  // Clear edit mode
         } else if (type === 'signature') {
             this.signatureModal.style.display = 'none';
             this.isDrawing = false;
