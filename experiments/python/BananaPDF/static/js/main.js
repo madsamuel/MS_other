@@ -1631,11 +1631,15 @@ class UIController {
 
     performUndo() {
         this.undoRedoManager.undo(this.pageManager, this.annotationManager);
+        this.pdfViewer.renderAnnotations();
+        this.updateUndoRedoButtons();
         this.enableSaveButton();
     }
     
     performRedo() {
         this.undoRedoManager.redo(this.pageManager, this.annotationManager);
+        this.pdfViewer.renderAnnotations();
+        this.updateUndoRedoButtons();
         this.enableSaveButton();
     }
     

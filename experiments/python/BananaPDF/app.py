@@ -15,12 +15,19 @@ from annotation_manager import AnnotationManager
 import fitz  # PyMuPDF
 from PIL import Image
 
-# Setup logging to file
+# Setup logging to both file and console
 logging.basicConfig(
-    filename='flask_debug.log',
     level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('flask_debug.log'),
+        logging.StreamHandler()
+    ]
 )
+
+# Also enable verbose Flask logging
+app_logger = logging.getLogger('werkzeug')
+app_logger.setLevel(logging.DEBUG)
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 CORS(app)
