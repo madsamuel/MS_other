@@ -355,8 +355,13 @@ class PDFViewer {
         const textBoxes = this.annotationManager.getTextBoxesForPage(this.currentPage - 1);
         const scale = this.zoomLevel / 100;
         
-        // Render annotations (highlights, comments, etc.)
+        // Render annotations (highlights, comments, etc.) - skip drawing/signature, they're rendered as images
         annotations.forEach(annotation => {
+            // Skip drawing and signature annotations - they're rendered as images later
+            if (annotation.type === 'drawing' || annotation.type === 'signature') {
+                return;
+            }
+            
             const div = document.createElement('div');
             div.className = 'annotation ' + annotation.type;
             
@@ -1093,9 +1098,14 @@ class UIController {
         // Get drawing context
         this.drawingOverlayContext = this.drawingOverlay.getContext('2d');
         
-        // Clear the overlay
-        this.drawingOverlayContext.fillStyle = 'rgba(255, 255, 255, 0)';
-        this.drawingOverlayContext.fillRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        // Clear the overlay completely - canvas will be transparent via CSS
+        this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        
+        // Reset canvas context to default state
+        this.drawingOverlayContext.strokeStyle = '#000000';
+        this.drawingOverlayContext.lineWidth = 2;
+        this.drawingOverlayContext.lineCap = 'round';
+        this.drawingOverlayContext.lineJoin = 'round';
         
         // Create and store event handlers
         this.overlayMouseDownHandler = (e) => this.startOverlayDrawing(e);
@@ -1114,9 +1124,18 @@ class UIController {
     disableDrawingOverlay() {
         if (!this.drawingOverlay) return;
         
-        // Save drawing if there is any
+        // Only save if overlay is visible and there's actual drawing content
         if (this.drawingOverlay.style.display === 'block') {
-            this.saveDrawingFromOverlay();
+            // Check if there's actual drawing content before saving
+            const imageData = this.drawingOverlay.getContext('2d').getImageData(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+            const hasDrawing = imageData.data.some((pixel, index) => {
+                return index % 4 === 3 && pixel > 0;
+            });
+            
+            if (hasDrawing) {
+                this.saveDrawingFromOverlay();
+                return;  // Exit after saving to avoid double cleanup
+            }
         }
         
         // Remove event listeners
@@ -1128,8 +1147,9 @@ class UIController {
             document.removeEventListener('keydown', this.overlayKeyDownHandler);
         }
         
-        // Hide overlay and clear
+        // Hide overlay and clear completely
         this.drawingOverlay.style.display = 'none';
+        
         if (this.drawingOverlayContext) {
             this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
         }
@@ -1207,16 +1227,32 @@ class UIController {
         // Save undo/redo state BEFORE making changes
         this.undoRedoManager.saveState('Add Drawing', this.pageManager, this.annotationManager);
         
+        // The drawing overlay is full size of the canvas view
+        // Map it to PDF space based on current zoom and page dimensions
+        const overlayWidth = this.drawingOverlay.width;
+        const overlayHeight = this.drawingOverlay.height;
+        
+        // Calculate scale from overlay coordinates to PDF coordinates
+        const canvasScale = this.pdfViewer.pageWidth / overlayWidth;  // How much of PDF is shown in overlay
+        const pdfScale = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;  // Canvas to PDF coords
+        
+        // Drawing covers the entire visible page area
+        // Map overlay space directly to visible PDF space
+        const pdfX = 0;  // Drawing starts at page origin
+        const pdfY = 0;
+        const pdfWidth = this.pdfViewer.pdfPageWidth;
+        const pdfHeight = this.pdfViewer.pdfPageHeight;
+        
         // Add drawing to client-side annotation manager ONLY (not to PDF backend yet)
         // Drawing will be embedded in PDF only when user clicks Save
         const drawingAnnotation = {
             id: `draw_${Date.now()}`,
             pageNum: this.pdfViewer.currentPage - 1,
             type: 'drawing',
-            x: 50,
-            y: 50,
-            width: 250,
-            height: 180,
+            x: pdfX,
+            y: pdfY,
+            width: pdfWidth,
+            height: pdfHeight,
             imageData: imageData64
         };
         
@@ -1227,10 +1263,16 @@ class UIController {
         // Render drawing immediately on canvas
         this.pdfViewer.renderAnnotations();
         
-        // Clear overlay
+        // Clear overlay completely
         if (this.drawingOverlayContext) {
             this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
         }
+        
+        // Hide drawing overlay completely
+        this.drawingOverlay.style.display = 'none';
+        
+        // Note: Tool will be deselected naturally when user selects another tool
+        // Do NOT call selectTool() here as it creates a recursive loop
         
         this.enableSaveButton();
         this.updateUndoRedoButtons();
