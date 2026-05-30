@@ -60,6 +60,33 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/reset-session', methods=['POST'])
+def reset_session():
+    """Clear the current session (useful for starting fresh)"""
+    global pdf_handler, annotation_manager, current_session
+    try:
+        # Close and cleanup the current PDF
+        if pdf_handler and current_session:
+            filepath = current_session.get('filepath')
+            if filepath and os.path.isfile(filepath):
+                try:
+                    os.remove(filepath)
+                    logging.info(f"Cleaned up PDF file: {filepath}")
+                except Exception as e:
+                    logging.warning(f"Could not delete PDF file: {e}")
+        
+        # Reset all global state
+        pdf_handler = None
+        annotation_manager = None
+        current_session = None
+        
+        logging.info("Session reset successfully")
+        return jsonify({'message': 'Session reset'}), 200
+    except Exception as e:
+        logging.error(f"Error resetting session: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/upload', methods=['POST'])
 def upload_pdf():
     """Handle PDF upload"""
@@ -178,8 +205,19 @@ def render_page(page_num):
 def get_pdf_data():
     """Get PDF metadata"""
     try:
-        if pdf_handler is None:
+        global current_session, pdf_handler
+        
+        # Check if there's a valid session and PDF loaded
+        if pdf_handler is None or current_session is None:
             return jsonify({'error': 'No PDF loaded'}), 400
+        
+        # Also verify the file actually exists
+        filepath = current_session.get('filepath')
+        if not filepath or not os.path.isfile(filepath):
+            # Reset the session if file doesn't exist
+            current_session = None
+            pdf_handler = None
+            return jsonify({'error': 'PDF file not found'}), 400
         
         return jsonify({
             'pageCount': pdf_handler.get_page_count(),
@@ -786,9 +824,9 @@ def save_pdf():
         
         global pdf_handler, current_session
         
-        # Use text boxes from session (added via /api/add-textbox)
-        text_boxes = {}
-        if current_session and 'textBoxes' in current_session:
+        # Get text boxes from request (sent by frontend) or fallback to session
+        text_boxes = data.get('textBoxes', {})
+        if not text_boxes and current_session and 'textBoxes' in current_session:
             text_boxes = current_session['textBoxes']
         
         print(f"\n{'='*60}")
@@ -988,4 +1026,4 @@ def debug_uploads():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    app.run(debug=True, host='127.0.0.1', port=5001, use_reloader=False)

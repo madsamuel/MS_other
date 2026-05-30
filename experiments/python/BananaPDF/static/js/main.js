@@ -385,8 +385,9 @@ class PDFViewer {
             if (annotation.type === 'highlight') {
                 div.style.backgroundColor = 'rgba(255, 255, 0, 0.3)';
             } else if (annotation.type === 'comment') {
-                // Add hover and click handlers for comments
+                // Keep existing comment display style, just add hover/click handlers
                 div.style.cursor = 'pointer';
+                div.style.pointerEvents = 'auto';
                 
                 // Hover to show tooltip
                 div.addEventListener('mouseenter', (e) => {
@@ -401,7 +402,7 @@ class PDFViewer {
                         tooltip.style.padding = '8px 12px';
                         tooltip.style.maxWidth = '250px';
                         tooltip.style.wordWrap = 'break-word';
-                        tooltip.style.zIndex = '1000';
+                        tooltip.style.zIndex = '1001';
                         tooltip.style.fontSize = '12px';
                         tooltip.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
                         
@@ -431,9 +432,78 @@ class PDFViewer {
             this.annotationLayer.appendChild(div);
         });
         
-        // Text boxes are NOT rendered as canvas overlays
-        // They are stored in the PDF and only visible after save
-        // No HTML preview rendering - they're part of the PDF, not the canvas
+        // Render text boxes from annotation manager
+        // Text boxes are stored for undo/redo and will be embedded in PDF when saved
+        // Render as plain text with NO box/border/styling
+        textBoxes.forEach(textBox => {
+            const div = document.createElement('div');
+            div.className = 'annotation text-box';
+            
+            // Convert PDF coordinates to viewport/canvas coordinates
+            let displayX = textBox.x;
+            let displayY = textBox.y;
+            
+            if (this.pdfPageWidth && this.pdfPageHeight && this.pageWidth && this.pageHeight) {
+                const scaleX = this.pageWidth / this.pdfPageWidth;
+                const scaleY = this.pageHeight / this.pdfPageHeight;
+                displayX = textBox.x * scaleX;
+                displayY = textBox.y * scaleY;
+            }
+            
+            // Apply zoom - position only, no sizing or styling
+            div.style.position = 'absolute';
+            div.style.left = (displayX * scale) + 'px';
+            div.style.top = (displayY * scale) + 'px';
+            div.style.fontSize = textBox.fontSize + 'px';
+            div.style.color = textBox.color;
+            div.style.fontFamily = textBox.fontFamily;
+            div.style.pointerEvents = 'none';
+            div.style.whiteSpace = 'nowrap';
+            div.style.border = 'none';
+            div.style.borderWidth = '0';
+            div.style.outline = 'none';
+            div.style.padding = '0';
+            div.style.margin = '0';
+            div.style.background = 'none';
+            div.style.backgroundColor = 'transparent';
+            div.style.boxShadow = 'none';
+            div.textContent = textBox.text;
+            
+            this.annotationLayer.appendChild(div);
+        });
+        
+        // Render drawing and signature annotations
+        annotations.forEach(annotation => {
+            if (annotation.type === 'drawing' || annotation.type === 'signature') {
+                if (!annotation.imageData) return;
+                
+                const img = document.createElement('img');
+                img.src = annotation.imageData;
+                img.style.position = 'absolute';
+                
+                let displayX = annotation.x;
+                let displayY = annotation.y;
+                let displayWidth = annotation.width;
+                let displayHeight = annotation.height;
+                
+                if (this.pdfPageWidth && this.pdfPageHeight && this.pageWidth && this.pageHeight) {
+                    const scaleX = this.pageWidth / this.pdfPageWidth;
+                    const scaleY = this.pageHeight / this.pdfPageHeight;
+                    displayX = annotation.x * scaleX;
+                    displayY = annotation.y * scaleY;
+                    displayWidth = annotation.width * scaleX;
+                    displayHeight = annotation.height * scaleY;
+                }
+                
+                img.style.left = (displayX * scale) + 'px';
+                img.style.top = (displayY * scale) + 'px';
+                img.style.width = (displayWidth * scale) + 'px';
+                img.style.height = (displayHeight * scale) + 'px';
+                img.style.pointerEvents = 'none';
+                
+                this.annotationLayer.appendChild(img);
+            }
+        });
     }
     
     setZoom(level) {
@@ -656,6 +726,25 @@ class UIController {
         // Undo/Redo
         if (this.undoBtn) this.undoBtn.addEventListener('click', () => this.eventBus.emit('undoRequested'));
         if (this.redoBtn) this.redoBtn.addEventListener('click', () => this.eventBus.emit('redoRequested'));
+        
+        // Keyboard shortcuts for undo/redo
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Z or Cmd+Z for undo
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                this.eventBus.emit('undoRequested');
+            }
+            // Ctrl+Shift+Z or Cmd+Shift+Z for redo (also support Ctrl+Y)
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'y') && e.shiftKey) {
+                e.preventDefault();
+                this.eventBus.emit('redoRequested');
+            }
+            // Also support Ctrl+Y for redo (without shift)
+            if ((e.ctrlKey || e.metaKey) && e.key === 'y' && !e.shiftKey) {
+                e.preventDefault();
+                this.eventBus.emit('redoRequested');
+            }
+        });
         
         // Tools
         if (this.highlightBtn) this.highlightBtn.addEventListener('click', () => this.selectTool('highlight'));
@@ -1115,63 +1204,36 @@ class UIController {
         // Get the drawing as base64
         const imageData64 = this.drawingOverlay.toDataURL('image/png');
         
-        // Get current page position to estimate where on page the drawing was made
-        // For now, use center of page as default position
-        const pageWidth = this.pdfViewer.pdfPageWidth || 612;
-        const pageHeight = this.pdfViewer.pdfPageHeight || 792;
-        
+        // Save undo/redo state BEFORE making changes
         this.undoRedoManager.saveState('Add Drawing', this.pageManager, this.annotationManager);
         
-        console.log('✓ Sending drawing to backend...');
+        // Add drawing to client-side annotation manager ONLY (not to PDF backend yet)
+        // Drawing will be embedded in PDF only when user clicks Save
+        const drawingAnnotation = {
+            id: `draw_${Date.now()}`,
+            pageNum: this.pdfViewer.currentPage - 1,
+            type: 'drawing',
+            x: 50,
+            y: 50,
+            width: 250,
+            height: 180,
+            imageData: imageData64
+        };
         
-        const drawBtn = document.getElementById('drawBtn');
-        const originalText = drawBtn.textContent;
-        drawBtn.disabled = true;
-        drawBtn.textContent = 'Saving...';
+        this.annotationManager.addAnnotation(drawingAnnotation);
         
-        fetch('/api/add-drawing', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                pageNum: this.pdfViewer.currentPage - 1,
-                x: 50,
-                y: 50,
-                width: 250,
-                height: 180,
-                imageData: imageData64
-            })
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            console.log('✓ Drawing saved:', data);
-            this.setStatus('✓ Drawing added to PDF');
-            
-            // Reload PDF to show drawing
-            this.reloadPDFDocument()
-                .then(() => this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc))
-                .catch(err => console.error('Error reloading:', err));
-            
-            // Clear overlay
-            if (this.drawingOverlayContext) {
-                this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
-            }
-            
-            this.enableSaveButton();
-            this.updateUndoRedoButtons();
-        })
-        .catch(error => {
-            console.error('✗ Error saving drawing:', error);
-            this.setStatus('✗ Failed to save drawing: ' + error.message);
-        })
-        .finally(() => {
-            drawBtn.disabled = false;
-            drawBtn.textContent = originalText;
-        });
+        this.setStatus('✓ Drawing added (click Save to embed in PDF)');
+        
+        // Render drawing immediately on canvas
+        this.pdfViewer.renderAnnotations();
+        
+        // Clear overlay
+        if (this.drawingOverlayContext) {
+            this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        }
+        
+        this.enableSaveButton();
+        this.updateUndoRedoButtons();
     }
     
     handleCanvasClick(event) {
@@ -1359,9 +1421,6 @@ class UIController {
             return;
         }
         
-        // Save undo/redo state before making changes
-        this.undoRedoManager.saveState('Add Text', this.pageManager, this.annotationManager);
-        
         const textBoxData = {
             pageNum: this.pdfViewer.currentPage - 1,
             x: this.pendingInput.x,
@@ -1373,6 +1432,10 @@ class UIController {
             color: '#000000',
             fontFamily: 'Arial'
         };
+        
+        // Save undo/redo state before making changes
+        // This must be done AFTER creating textBoxData but BEFORE sending to backend
+        this.undoRedoManager.saveState('Add Text', this.pageManager, this.annotationManager);
         
         console.log('✓ Adding text box to PDF:');
         console.log('  Page:', textBoxData.pageNum);
@@ -1389,65 +1452,38 @@ class UIController {
             return;
         }
         
-        // Disable button during request
-        const confirmBtn = this.textConfirm;
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Adding...';
+        // Add text box to client-side annotation manager (NOT to PDF backend yet)
+        // Text will be embedded in PDF only when user clicks Save
+        // This allows undo/redo to work properly
+        const textBoxAnnotation = {
+            id: `txt_${Date.now()}`,
+            pageNum: textBoxData.pageNum,
+            type: 'text',
+            x: textBoxData.x,
+            y: textBoxData.y,
+            width: textBoxData.width,
+            height: textBoxData.height,
+            text: textBoxData.text,
+            fontSize: textBoxData.fontSize,
+            color: textBoxData.color,
+            fontFamily: textBoxData.fontFamily
+        };
         
-        console.log('SENDING FETCH REQUEST WITH:', JSON.stringify(textBoxData, null, 2));
+        this.annotationManager.addTextBox(textBoxAnnotation);
         
-        // Send to backend to add to PDF and get updated page
-        fetch('/api/add-textbox', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(textBoxData)
-        })
-        .then(response => {
-            console.log('FETCH RESPONSE STATUS:', response.status, response.statusText);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('✓ Text box embedded in PDF:', data);
-            
-            this.setStatus('✓ Text "' + textBoxData.text + '" embedded in PDF');
-            
-            // Clear form and close modal
-            this.textInput.value = '';
-            this.pendingInput = null;
-            this.closeModal('text');
-            
-            // Reload PDF document to show updated page with embedded text at correct zoom
-            console.log('Reloading PDF to display text at correct zoom level...');
-            this.reloadPDFDocument()
-                .then(() => {
-                    const currentPage = this.pdfViewer.currentPage;
-                    console.log('✓ PDF reloaded - rendering page', currentPage, 'at', this.pdfViewer.zoomLevel, '% zoom');
-                    return this.pdfViewer.renderPage(currentPage, this.pdfDoc);
-                })
-                .catch(err => {
-                    console.error('⚠️ Could not reload PDF:', err);
-                    this.setStatus('⚠️ Text added but page refresh failed - try navigating pages');
-                });
-            
-            // Enable save button and update undo/redo
-            this.enableSaveButton();
-            this.updateUndoRedoButtons();
-        })
-        .catch(error => {
-            console.error('✗ Error adding text box:', error);
-            this.setStatus('✗ Failed to add text box: ' + error.message);
-            // Note: Keep text in input so user doesn't lose it
-        })
-        .finally(() => {
-            // Re-enable button
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Add';
-        });
+        this.setStatus('✓ Text "' + textBoxData.text + '" added (click Save to embed in PDF)');
+        
+        // Clear form and close modal
+        this.textInput.value = '';
+        this.pendingInput = null;
+        this.closeModal('text');
+        
+        // Render text box immediately on canvas with blue border for visual feedback
+        this.pdfViewer.renderAnnotations();
+        
+        // Enable save button and update undo/redo
+        this.enableSaveButton();
+        this.updateUndoRedoButtons();
     }
     
     confirmCommentInput() {
@@ -1463,6 +1499,7 @@ class UIController {
             return;
         }
         
+        // Save undo/redo state BEFORE making changes
         if (this.editingCommentId) {
             // Update existing comment
             this.undoRedoManager.saveState('Edit Comment', this.pageManager, this.annotationManager);
@@ -1587,12 +1624,15 @@ class UIController {
             return;
         }
         
-        this.undoRedoManager.saveState('Add Signature', this.pageManager, this.annotationManager);
-        
         // Get signature data as image
         const imageData = this.signatureCanvas.toDataURL('image/png');
         
-        const signature = {
+        // Save undo/redo state BEFORE making changes
+        this.undoRedoManager.saveState('Add Signature', this.pageManager, this.annotationManager);
+        
+        // Add signature to client-side annotation manager ONLY (not to PDF backend yet)
+        // Signature will be embedded in PDF only when user clicks Save
+        const signatureAnnotation = {
             id: `sig_${Date.now()}`,
             pageNum: this.pdfViewer.currentPage - 1,
             type: 'signature',
@@ -1600,57 +1640,21 @@ class UIController {
             y: this.pendingInput.y,
             width: 150,
             height: 100,
-            image: imageData
+            imageData: imageData
         };
         
-        // Send to backend
-        console.log('✓ Adding signature to PDF...');
+        this.annotationManager.addAnnotation(signatureAnnotation);
         
-        const confirmBtn = this.signatureConfirm;
-        confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Adding...';
+        this.setStatus('✓ Signature added (click Save to embed in PDF)');
         
-        fetch('/api/add-signature', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                pageNum: signature.pageNum,
-                x: signature.x,
-                y: signature.y,
-                width: signature.width,
-                height: signature.height,
-                imageData: imageData
-            })
-        })
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            console.log('✓ Signature added:', data);
-            this.setStatus('✓ Signature added to PDF');
-            
-            this.pendingInput = null;
-            this.closeModal('signature');
-            
-            // Reload PDF
-            this.reloadPDFDocument()
-                .then(() => this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc))
-                .catch(err => console.error('Error reloading:', err));
-            
-            this.enableSaveButton();
-            this.updateUndoRedoButtons();
-        })
-        .catch(error => {
-            console.error('✗ Error adding signature:', error);
-            this.setStatus('✗ Failed to add signature: ' + error.message);
-        })
-        .finally(() => {
-            confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Add Signature';
-        });
+        // Render signature immediately
+        this.pdfViewer.renderAnnotations();
+        
+        this.pendingInput = null;
+        this.closeModal('signature');
+        
+        this.enableSaveButton();
+        this.updateUndoRedoButtons();
     }
     
     async rotateCurrentPage() {
@@ -1706,11 +1710,19 @@ class UIController {
 
     performUndo() {
         this.undoRedoManager.undo(this.pageManager, this.annotationManager);
+        // Re-render current page with full update for page-level changes (rotation, deletion, etc.)
+        this.onPageModified();
+        this.pdfViewer.renderAnnotations();  // Re-render all annotations
+        this.updateUndoRedoButtons();        // Update button states
         this.enableSaveButton();
     }
     
     performRedo() {
         this.undoRedoManager.redo(this.pageManager, this.annotationManager);
+        // Re-render current page with full update for page-level changes (rotation, deletion, etc.)
+        this.onPageModified();
+        this.pdfViewer.renderAnnotations();  // Re-render all annotations
+        this.updateUndoRedoButtons();        // Update button states
         this.enableSaveButton();
     }
     
