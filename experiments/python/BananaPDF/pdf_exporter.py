@@ -1,8 +1,9 @@
 """PDF Exporter - exports PDFs with annotations"""
+import base64
 import io
 import os
 from datetime import datetime
-from PIL import Image, ImageDraw
+from PIL import Image
 import fitz  # PyMuPDF for PDF manipulation
 
 
@@ -98,20 +99,21 @@ class PDFExporter:
                     if not textboxes_dict:
                         print(f"  No text boxes to add (empty or None)")
             
-            # Save document
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            output_filename = f'export_{timestamp}_{os.getpid()}.pdf'
-            output_path = os.path.join('exports', output_filename)
-            
-            # Create exports directory if needed
-            os.makedirs('exports', exist_ok=True)
-            
-            new_doc.save(output_path)
+            # Save document to BytesIO buffer (in-memory, no disk files)
+            print("DEBUG: Creating BytesIO buffer for in-memory PDF...")
+            pdf_buffer = io.BytesIO()
+            print("DEBUG: Saving PyMuPDF document to BytesIO...")
+            new_doc.save(pdf_buffer)
+            print(f"DEBUG: Successfully saved to buffer, size={pdf_buffer.tell()} bytes")
             new_doc.close()
             doc.close()
             
-            self.output_path = output_path
-            return output_path
+            # Reset buffer position to start
+            pdf_buffer.seek(0)
+            print("DEBUG: Buffer position reset, returning BytesIO object")
+            
+            self.output_buffer = pdf_buffer
+            return pdf_buffer
             
         except Exception as e:
             raise Exception(f"Failed to export PDF: {str(e)}")
@@ -136,6 +138,11 @@ class PDFExporter:
             if ann_type == 'highlight':
                 # Use proper PDF highlight annotation (like Adobe)
                 page.add_highlight_annot(rect)
+            elif ann_type in ('drawing', 'signature'):
+                image_data = annotation.get('imageData', '')
+                if not image_data:
+                    raise ValueError(f"Missing imageData for annotation type: {ann_type}")
+                self._insert_base64_image(page, rect, image_data)
             elif ann_type == 'rectangle':
                 page.draw_rect(rect, color=color_normalized, width=2)
             elif ann_type == 'circle':
@@ -158,9 +165,29 @@ class PDFExporter:
                         p1 = fitz.Point(points[i][0], points[i][1])
                         p2 = fitz.Point(points[i+1][0], points[i+1][1])
                         page.draw_line(p1, p2, color=color_normalized, width=2)
+            elif ann_type == 'line':
+                page.draw_line(
+                    fitz.Point(x, y),
+                    fitz.Point(x + width, y + height),
+                    color=color_normalized,
+                    width=2,
+                )
             
         except Exception as e:
             print(f"Warning: Failed to add annotation: {str(e)}")
+
+    def _insert_base64_image(self, page, rect, image_data):
+        """Insert a base64-encoded drawing/signature image into the page."""
+        if image_data.startswith('data:image/'):
+            image_data = image_data.split(',', 1)[1]
+
+        image_bytes = base64.b64decode(image_data)
+
+        # Normalize to PNG bytes so PyMuPDF receives a consistent raster format.
+        image = Image.open(io.BytesIO(image_bytes))
+        png_buffer = io.BytesIO()
+        image.save(png_buffer, format='PNG')
+        page.insert_image(rect, stream=png_buffer.getvalue())
     
     def _add_textbox_to_page(self, page, textbox):
         """Add text box to page"""

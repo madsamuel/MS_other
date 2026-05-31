@@ -945,14 +945,14 @@ def save_pdf():
         # Create output PDF
         from pdf_exporter import PDFExporter
         exporter = PDFExporter(pdf_handler)
-        output_path = exporter.export(
+        pdf_buffer = exporter.export(
             pages_to_export,
             annotations,
             text_boxes,
             flatten=flatten,
         )
         
-        print(f"✓ Export successful: {output_path}")
+        print(f"✓ Export successful: {pdf_buffer.tell()} bytes in memory")
         
         # Clean up the uploaded file
         uploaded_filepath = current_session.get('filepath')
@@ -965,12 +965,19 @@ def save_pdf():
         
         print(f"{'='*60}\n")
         
-        return send_file(
-            output_path,
+        # Send BytesIO buffer directly as PDF response using response object
+        pdf_buffer.seek(0)
+        pdf_data = pdf_buffer.read()
+        
+        response = app.response_class(
+            response=pdf_data,
+            status=200,
             mimetype='application/pdf',
-            as_attachment=True,
-            download_name=f"edited_{current_session.get('originalFilename', 'document.pdf')}",
-        ), 200
+            headers={
+                'Content-Disposition': f'attachment; filename="edited_{current_session.get("originalFilename", "document.pdf")}"'
+            }
+        )
+        return response
         
     except Exception as e:
         error_msg = str(e)

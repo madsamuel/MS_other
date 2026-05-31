@@ -1,0 +1,5 @@
+SAVE ENDPOINT CALLED
+Time: 2026-05-31 00:34:26.170160
+CWD: C:\code\MS_other\experiments\python\BananaPDF
+Getting JSON data...
+JSON received, 12727 chars
