@@ -2,6 +2,7 @@
 import base64
 import io
 import os
+import tempfile
 from datetime import datetime
 from PIL import Image
 import fitz  # PyMuPDF for PDF manipulation
@@ -183,11 +184,36 @@ class PDFExporter:
 
         image_bytes = base64.b64decode(image_data)
 
-        # Normalize to PNG bytes so PyMuPDF receives a consistent raster format.
-        image = Image.open(io.BytesIO(image_bytes))
-        png_buffer = io.BytesIO()
-        image.save(png_buffer, format='PNG')
-        page.insert_image(rect, stream=png_buffer.getvalue())
+        image = Image.open(io.BytesIO(image_bytes)).convert('RGBA')
+        alpha = image.getchannel('A')
+        bbox = alpha.getbbox()
+        if not bbox:
+            raise ValueError('Drawing image has no visible pixels')
+
+        cropped = image.crop(bbox)
+        original_width, original_height = image.size
+        x0, y0, x1, y1 = bbox
+        rect_width = rect.x1 - rect.x0
+        rect_height = rect.y1 - rect.y0
+
+        cropped_rect = fitz.Rect(
+            rect.x0 + (x0 / original_width) * rect_width,
+            rect.y0 + (y0 / original_height) * rect_height,
+            rect.x0 + (x1 / original_width) * rect_width,
+            rect.y0 + (y1 / original_height) * rect_height,
+        )
+
+        temp_img_path = os.path.join(
+            tempfile.gettempdir(),
+            f"export_drawing_{int(datetime.now().timestamp() * 1000)}.png",
+        )
+
+        try:
+            cropped.save(temp_img_path, 'PNG')
+            page.insert_image(cropped_rect, filename=temp_img_path, overlay=True)
+        finally:
+            if os.path.exists(temp_img_path):
+                os.remove(temp_img_path)
     
     def _add_textbox_to_page(self, page, textbox):
         """Add text box to page"""

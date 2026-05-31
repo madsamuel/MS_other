@@ -1277,6 +1277,16 @@ class UIController {
         this.enableSaveButton();
         this.updateUndoRedoButtons();
     }
+
+    drawingOverlayHasContent() {
+        if (!this.drawingOverlay) return false;
+
+        const ctx = this.drawingOverlay.getContext('2d');
+        if (!ctx) return false;
+
+        const imageData = ctx.getImageData(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        return imageData.data.some((pixel, index) => index % 4 === 3 && pixel > 0);
+    }
     
     handleCanvasClick(event) {
         console.log('Canvas clicked, current tool:', this.currentTool);
@@ -1835,6 +1845,12 @@ class UIController {
         try {
             this.showLoading(true);
             this.setStatus('Saving PDF...');
+
+            // If the user clicks Save while still in draw mode, persist the current
+            // overlay into annotationManager so it is included in the save payload.
+            if (this.currentTool === 'draw' && this.drawingOverlayHasContent()) {
+                this.saveDrawingFromOverlay();
+            }
             
             // Build page state array including deletion info
             const pages = [];

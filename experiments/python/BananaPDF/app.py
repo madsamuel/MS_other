@@ -573,7 +573,7 @@ def add_drawing():
             
             # Insert image into PDF
             rect = fitz.Rect(x, y, x + width, y + height)
-            page.insert_image(rect, filename=temp_img_path)
+            page.insert_image(rect, filename=temp_img_path, overlay=True)
             
             logging.info(f"Drawing inserted at ({x}, {y})")
             
