@@ -695,6 +695,8 @@ class UIController {
         this.isSignature = false;
         this.drawingStartX = 0;
         this.drawingStartY = 0;
+        this.currentStrokePoints = [];
+        this.currentDrawingStrokes = [];
         
         // Store bound functions for event listeners so we can remove them later
         this.drawingStartHandler = null;
@@ -804,6 +806,8 @@ class UIController {
             if (this.drawingOverlay && this.drawingOverlay.style.display === 'block') {
                 const ctx = this.drawingOverlay.getContext('2d');
                 ctx.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+                this.currentStrokePoints = [];
+                this.currentDrawingStrokes = [];
                 this.setStatus('Drawing cleared');
             }
         });
@@ -1100,6 +1104,8 @@ class UIController {
         
         // Clear the overlay completely - canvas will be transparent via CSS
         this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
+        this.currentStrokePoints = [];
+        this.currentDrawingStrokes = [];
         
         // Reset canvas context to default state
         this.drawingOverlayContext.strokeStyle = '#000000';
@@ -1153,6 +1159,9 @@ class UIController {
         if (this.drawingOverlayContext) {
             this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
         }
+
+        this.currentStrokePoints = [];
+        this.currentDrawingStrokes = [];
         
         // Hide drawing tools panel
         if (this.drawingToolsPanel) {
@@ -1169,6 +1178,7 @@ class UIController {
         const rect = this.drawingOverlay.getBoundingClientRect();
         this.drawingStartX = (e.clientX - rect.left) * (this.drawingOverlay.width / rect.width);
         this.drawingStartY = (e.clientY - rect.top) * (this.drawingOverlay.height / rect.height);
+        this.currentStrokePoints = [[this.drawingStartX, this.drawingStartY]];
         
         const ctx = this.drawingOverlay.getContext('2d');
         ctx.beginPath();
@@ -1189,6 +1199,7 @@ class UIController {
         ctx.strokeStyle = this.currentBrushColor;
         ctx.lineTo(x, y);
         ctx.stroke();
+        this.currentStrokePoints.push([x, y]);
     }
     
     stopOverlayDrawing(e) {
@@ -1196,6 +1207,11 @@ class UIController {
         this.isDrawing = false;
         const ctx = this.drawingOverlay.getContext('2d');
         ctx.closePath();
+
+        if (this.currentStrokePoints.length > 1) {
+            this.currentDrawingStrokes.push(this.currentStrokePoints.slice());
+        }
+        this.currentStrokePoints = [];
     }
     
     handleDrawingKeyDown(e) {
@@ -1223,18 +1239,18 @@ class UIController {
         
         // Get the drawing as base64
         const imageData64 = this.drawingOverlay.toDataURL('image/png');
+
+        const overlayWidth = this.drawingOverlay.width;
+        const overlayHeight = this.drawingOverlay.height;
+        const scaleX = this.pdfViewer.pdfPageWidth / overlayWidth;
+        const scaleY = this.pdfViewer.pdfPageHeight / overlayHeight;
+
+        const drawingStrokes = this.currentDrawingStrokes.map(stroke =>
+            stroke.map(([x, y]) => [x * scaleX, y * scaleY])
+        );
         
         // Save undo/redo state BEFORE making changes
         this.undoRedoManager.saveState('Add Drawing', this.pageManager, this.annotationManager);
-        
-        // The drawing overlay is full size of the canvas view
-        // Map it to PDF space based on current zoom and page dimensions
-        const overlayWidth = this.drawingOverlay.width;
-        const overlayHeight = this.drawingOverlay.height;
-        
-        // Calculate scale from overlay coordinates to PDF coordinates
-        const canvasScale = this.pdfViewer.pageWidth / overlayWidth;  // How much of PDF is shown in overlay
-        const pdfScale = this.pdfViewer.pdfPageWidth / this.pdfViewer.pageWidth;  // Canvas to PDF coords
         
         // Drawing covers the entire visible page area
         // Map overlay space directly to visible PDF space
@@ -1253,7 +1269,10 @@ class UIController {
             y: pdfY,
             width: pdfWidth,
             height: pdfHeight,
-            imageData: imageData64
+            imageData: imageData64,
+            color: this.currentBrushColor,
+            strokeWidth: this.currentBrushWidth * scaleX,
+            strokes: drawingStrokes
         };
         
         this.annotationManager.addAnnotation(drawingAnnotation);
@@ -1267,6 +1286,8 @@ class UIController {
         if (this.drawingOverlayContext) {
             this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
         }
+        this.currentStrokePoints = [];
+        this.currentDrawingStrokes = [];
         
         // Hide drawing overlay completely
         this.drawingOverlay.style.display = 'none';

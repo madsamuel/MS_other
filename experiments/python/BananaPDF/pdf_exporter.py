@@ -139,7 +139,16 @@ class PDFExporter:
             if ann_type == 'highlight':
                 # Use proper PDF highlight annotation (like Adobe)
                 page.add_highlight_annot(rect)
-            elif ann_type in ('drawing', 'signature'):
+            elif ann_type == 'drawing':
+                strokes = annotation.get('strokes', [])
+                if strokes:
+                    self._add_ink_annotation(page, strokes, color_normalized, annotation.get('strokeWidth', 2))
+                else:
+                    image_data = annotation.get('imageData', '')
+                    if not image_data:
+                        raise ValueError("Missing drawing data")
+                    self._insert_base64_image(page, rect, image_data)
+            elif ann_type == 'signature':
                 image_data = annotation.get('imageData', '')
                 if not image_data:
                     raise ValueError(f"Missing imageData for annotation type: {ann_type}")
@@ -176,6 +185,27 @@ class PDFExporter:
             
         except Exception as e:
             print(f"Warning: Failed to add annotation: {str(e)}")
+
+    def _add_ink_annotation(self, page, strokes, color, stroke_width):
+        """Create a real PDF ink annotation so standard editors can delete it."""
+        ink_strokes = []
+        for stroke in strokes:
+            if len(stroke) < 2:
+                continue
+            ink_strokes.append([
+                (float(point[0]), float(point[1]))
+                for point in stroke
+                if len(point) >= 2
+            ])
+
+        if not ink_strokes:
+            return
+
+        annot = page.add_ink_annot(ink_strokes)
+        if annot:
+            annot.set_colors(stroke=color)
+            annot.set_border(width=max(float(stroke_width), 0.5))
+            annot.update()
 
     def _insert_base64_image(self, page, rect, image_data):
         """Insert a base64-encoded drawing/signature image into the page."""
