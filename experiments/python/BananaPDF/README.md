@@ -19,7 +19,7 @@ A feature-rich web-based PDF editor built with Flask and PDF.js that allows user
 - ✅ Export edited PDFs with annotations
 - ✅ Download edited PDFs
 
-### Future Features (Post-MVP)
+### Future Features (Post-MVP no ETA)
 - Drawing tools (freehand, shapes)
 - Signature insertion
 - Form filling
