@@ -1630,8 +1630,8 @@ class UIController {
         this.signatureCanvas.height = this.signatureCanvas.offsetHeight;
         
         const ctx = this.signatureCanvas.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, this.signatureCanvas.width, this.signatureCanvas.height);
+        // Keep the canvas fully transparent so exported signatures have no white box.
+        ctx.clearRect(0, 0, this.signatureCanvas.width, this.signatureCanvas.height);
         
         this.drawingContext = ctx;
         this.isSignature = true;
@@ -1687,8 +1687,7 @@ class UIController {
     clearSignatureCanvas() {
         if (!this.signatureCanvas) return;
         const ctx = this.signatureCanvas.getContext('2d');
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, this.signatureCanvas.width, this.signatureCanvas.height);
+        ctx.clearRect(0, 0, this.signatureCanvas.width, this.signatureCanvas.height);
     }
     
     confirmSignature() {
