@@ -1,25 +1,17 @@
-# Input: [3, 2, 6, 5, 0, 3]
-# Expected Output: 4
-# Justification: Buy the stock on day 2 (price = 2) and sell it on day 3 (price = 6). Profit = 6 - 2 = 4.Input: [3, 2, 6, 5, 0, 3]
-# Expected Output: 4
-# Justification: Buy the stock on day 2 (price = 2) and sell it on day 3 (price = 6). Profit = 6 - 2 = 4.
+# while x in range(10):
+#     print(x)
+#     x += 1
 
-Input = [3, 2, 6, 5, 0, 3]
+l = [1,2,2,334,4]
 
-def max_profit(prices):        
-    if not prices:
-        return 0
+# for i in l:
+#     print(i)
 
-    min_price = prices[0]
-    max_profit = 0
+# for x in range(len(l)-1,-1,-1):
+#     print(l[x])
 
-    for price in prices:
-        if price < min_price:
-            min_price = price
-        else:
-            profit = price - min_price
-            max_profit = max(max_profit, profit)
+for x in range(1, len(l)+1):
+    print(l[-x])
 
-    return max_profit
-
-print(max_profit(Input))
+a = "12"
+print(int(a))

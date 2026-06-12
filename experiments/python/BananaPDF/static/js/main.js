@@ -480,12 +480,6 @@ class PDFViewer {
         // Render drawing and signature annotations
         annotations.forEach(annotation => {
             if (annotation.type === 'drawing' || annotation.type === 'signature') {
-                if (!annotation.imageData) return;
-                
-                const img = document.createElement('img');
-                img.src = annotation.imageData;
-                img.style.position = 'absolute';
-                
                 let displayX = annotation.x;
                 let displayY = annotation.y;
                 let displayWidth = annotation.width;
@@ -499,16 +493,95 @@ class PDFViewer {
                     displayWidth = annotation.width * scaleX;
                     displayHeight = annotation.height * scaleY;
                 }
-                
-                img.style.left = (displayX * scale) + 'px';
-                img.style.top = (displayY * scale) + 'px';
-                img.style.width = (displayWidth * scale) + 'px';
-                img.style.height = (displayHeight * scale) + 'px';
+
+                const left = (displayX * scale) + 'px';
+                const top = (displayY * scale) + 'px';
+                const width = (displayWidth * scale) + 'px';
+                const height = (displayHeight * scale) + 'px';
+
+                // Prefer vector rendering for drawings when stroke data is available.
+                // This keeps lines crisp at different zoom levels, closer to PDF ink rendering.
+                const hasStrokeData = annotation.type === 'drawing' &&
+                    Array.isArray(annotation.strokes) &&
+                    annotation.strokes.length > 0;
+
+                if (hasStrokeData) {
+                    const svgNS = 'http://www.w3.org/2000/svg';
+                    const svg = document.createElementNS(svgNS, 'svg');
+                    svg.setAttribute('viewBox', `0 0 ${annotation.width} ${annotation.height}`);
+                    svg.style.position = 'absolute';
+                    svg.style.left = left;
+                    svg.style.top = top;
+                    svg.style.width = width;
+                    svg.style.height = height;
+                    svg.style.pointerEvents = 'none';
+                    svg.style.shapeRendering = 'geometricPrecision';
+
+                    const strokeColor = annotation.color || '#000000';
+                    const strokeWidth = Number(annotation.strokeWidth) || 2;
+
+                    annotation.strokes.forEach(stroke => {
+                        if (!Array.isArray(stroke) || stroke.length < 2) return;
+
+                        const path = document.createElementNS(svgNS, 'path');
+                        const d = this.buildSmoothSvgPath(stroke, annotation.x, annotation.y);
+
+                        if (!d) return;
+
+                        path.setAttribute('d', d);
+                        path.setAttribute('fill', 'none');
+                        path.setAttribute('stroke', strokeColor);
+                        path.setAttribute('stroke-width', String(strokeWidth));
+                        path.setAttribute('stroke-linecap', 'round');
+                        path.setAttribute('stroke-linejoin', 'round');
+                        svg.appendChild(path);
+                    });
+
+                    this.annotationLayer.appendChild(svg);
+                    return;
+                }
+
+                if (!annotation.imageData) return;
+
+                const img = document.createElement('img');
+                img.src = annotation.imageData;
+                img.style.position = 'absolute';
+                img.style.left = left;
+                img.style.top = top;
+                img.style.width = width;
+                img.style.height = height;
                 img.style.pointerEvents = 'none';
-                
+
                 this.annotationLayer.appendChild(img);
             }
         });
+    }
+
+    buildSmoothSvgPath(stroke, offsetX = 0, offsetY = 0) {
+        const points = stroke
+            .filter(point => Array.isArray(point) && point.length >= 2)
+            .map(point => [point[0] - offsetX, point[1] - offsetY]);
+
+        if (points.length < 2) return '';
+        if (points.length === 2) {
+            return `M ${points[0][0]} ${points[0][1]} L ${points[1][0]} ${points[1][1]}`;
+        }
+
+        let d = `M ${points[0][0]} ${points[0][1]}`;
+
+        for (let i = 1; i < points.length - 1; i++) {
+            const current = points[i];
+            const next = points[i + 1];
+            const midX = (current[0] + next[0]) / 2;
+            const midY = (current[1] + next[1]) / 2;
+            d += ` Q ${current[0]} ${current[1]} ${midX} ${midY}`;
+        }
+
+        const penultimate = points[points.length - 2];
+        const last = points[points.length - 1];
+        d += ` Q ${penultimate[0]} ${penultimate[1]} ${last[0]} ${last[1]}`;
+
+        return d;
     }
     
     setZoom(level) {
@@ -1183,6 +1256,8 @@ class UIController {
         const ctx = this.drawingOverlay.getContext('2d');
         ctx.beginPath();
         ctx.moveTo(this.drawingStartX, this.drawingStartY);
+        this.lastOverlayPoint = [this.drawingStartX, this.drawingStartY];
+        this.lastRawOverlayPoint = [this.drawingStartX, this.drawingStartY];
     }
     
     continueOverlayDrawing(e) {
@@ -1197,9 +1272,31 @@ class UIController {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.strokeStyle = this.currentBrushColor;
-        ctx.lineTo(x, y);
+
+        const prevRaw = this.lastRawOverlayPoint || [this.drawingStartX, this.drawingStartY];
+        const rawDx = x - prevRaw[0];
+        const rawDy = y - prevRaw[1];
+        const rawDist = Math.hypot(rawDx, rawDy);
+        if (rawDist < 1.2) return;
+
+        // Low-pass filter to remove hand jitter and mouse event noise.
+        const prev = this.lastOverlayPoint || [this.drawingStartX, this.drawingStartY];
+        const smoothing = 0.45;
+        const smoothX = prev[0] + (x - prev[0]) * smoothing;
+        const smoothY = prev[1] + (y - prev[1]) * smoothing;
+
+        const dx = smoothX - prev[0];
+        const dy = smoothY - prev[1];
+        const dist = Math.hypot(dx, dy);
+        if (dist < 0.9) return;
+
+        const midX = (prev[0] + smoothX) / 2;
+        const midY = (prev[1] + smoothY) / 2;
+        ctx.quadraticCurveTo(prev[0], prev[1], midX, midY);
         ctx.stroke();
-        this.currentStrokePoints.push([x, y]);
+        this.lastRawOverlayPoint = [x, y];
+        this.lastOverlayPoint = [smoothX, smoothY];
+        this.currentStrokePoints.push([smoothX, smoothY]);
     }
     
     stopOverlayDrawing(e) {
@@ -1207,6 +1304,8 @@ class UIController {
         this.isDrawing = false;
         const ctx = this.drawingOverlay.getContext('2d');
         ctx.closePath();
+        this.lastOverlayPoint = null;
+        this.lastRawOverlayPoint = null;
 
         if (this.currentStrokePoints.length > 1) {
             this.currentDrawingStrokes.push(this.currentStrokePoints.slice());
@@ -1237,28 +1336,33 @@ class UIController {
             return;
         }
         
-        // Get the drawing as base64
-        const imageData64 = this.drawingOverlay.toDataURL('image/png');
-
         const overlayWidth = this.drawingOverlay.width;
         const overlayHeight = this.drawingOverlay.height;
         const scaleX = this.pdfViewer.pdfPageWidth / overlayWidth;
         const scaleY = this.pdfViewer.pdfPageHeight / overlayHeight;
 
         const drawingStrokes = this.currentDrawingStrokes.map(stroke =>
-            stroke.map(([x, y]) => [x * scaleX, y * scaleY])
+            this.smoothStrokePoints(stroke).map(([x, y]) => [x * scaleX, y * scaleY])
         );
-        
+
+        if (!drawingStrokes.length) {
+            this.setStatus('No drawing to save');
+            return;
+        }
+
+        // Keep a PNG fallback for compatibility with older rendering paths.
+        const imageData64 = this.drawingOverlay.toDataURL('image/png');
+
         // Save undo/redo state BEFORE making changes
         this.undoRedoManager.saveState('Add Drawing', this.pageManager, this.annotationManager);
-        
+
         // Drawing covers the entire visible page area
         // Map overlay space directly to visible PDF space
         const pdfX = 0;  // Drawing starts at page origin
         const pdfY = 0;
         const pdfWidth = this.pdfViewer.pdfPageWidth;
         const pdfHeight = this.pdfViewer.pdfPageHeight;
-        
+
         // Add drawing to client-side annotation manager ONLY (not to PDF backend yet)
         // Drawing will be embedded in PDF only when user clicks Save
         const drawingAnnotation = {
@@ -1274,29 +1378,85 @@ class UIController {
             strokeWidth: this.currentBrushWidth * scaleX,
             strokes: drawingStrokes
         };
-        
+
         this.annotationManager.addAnnotation(drawingAnnotation);
-        
+
         this.setStatus('✓ Drawing added (click Save to embed in PDF)');
-        
+
         // Render drawing immediately on canvas
         this.pdfViewer.renderAnnotations();
-        
+
         // Clear overlay completely
         if (this.drawingOverlayContext) {
             this.drawingOverlayContext.clearRect(0, 0, this.drawingOverlay.width, this.drawingOverlay.height);
         }
         this.currentStrokePoints = [];
         this.currentDrawingStrokes = [];
-        
+        this.lastOverlayPoint = null;
+
         // Hide drawing overlay completely
         this.drawingOverlay.style.display = 'none';
-        
+
         // Note: Tool will be deselected naturally when user selects another tool
         // Do NOT call selectTool() here as it creates a recursive loop
-        
+
         this.enableSaveButton();
         this.updateUndoRedoButtons();
+    }
+
+    smoothStrokePoints(stroke) {
+        if (!Array.isArray(stroke) || stroke.length < 3) {
+            return Array.isArray(stroke) ? stroke : [];
+        }
+
+        let points = this.simplifyStrokePoints(stroke, 1.4);
+        if (points.length < 3) {
+            return points;
+        }
+
+        // Chaikin corner-cutting gives smoother, pen-like curves.
+        const iterations = 2;
+        for (let iter = 0; iter < iterations; iter++) {
+            if (points.length < 3) break;
+
+            const next = [points[0]];
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[i];
+                const p1 = points[i + 1];
+                const q = [0.75 * p0[0] + 0.25 * p1[0], 0.75 * p0[1] + 0.25 * p1[1]];
+                const r = [0.25 * p0[0] + 0.75 * p1[0], 0.25 * p0[1] + 0.75 * p1[1]];
+                next.push(q, r);
+            }
+            next.push(points[points.length - 1]);
+            points = next;
+        }
+
+        return points;
+    }
+
+    simplifyStrokePoints(stroke, minDistance = 1.2) {
+        if (!Array.isArray(stroke) || !stroke.length) return [];
+
+        const simplified = [stroke[0]];
+        let last = stroke[0];
+
+        for (let i = 1; i < stroke.length; i++) {
+            const point = stroke[i];
+            const dx = point[0] - last[0];
+            const dy = point[1] - last[1];
+            if (Math.hypot(dx, dy) >= minDistance) {
+                simplified.push(point);
+                last = point;
+            }
+        }
+
+        const finalPoint = stroke[stroke.length - 1];
+        const tail = simplified[simplified.length - 1];
+        if (tail[0] !== finalPoint[0] || tail[1] !== finalPoint[1]) {
+            simplified.push(finalPoint);
+        }
+
+        return simplified.map(point => [point[0], point[1]]);
     }
 
     drawingOverlayHasContent() {
