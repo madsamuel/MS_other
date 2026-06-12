@@ -585,7 +585,7 @@ class PDFViewer {
     }
     
     setZoom(level) {
-        this.zoomLevel = Math.max(25, Math.min(300, level));
+        this.zoomLevel = Math.max(25, Math.min(400, level));
         this.eventBus.emit('zoomChanged', { zoomLevel: this.zoomLevel });
     }
     
@@ -1987,7 +1987,17 @@ class UIController {
     }
     
     updateZoomUI(zoomLevel) {
-        this.zoomLevelSelect.value = zoomLevel;
+        const normalized = String(Math.round(zoomLevel));
+
+        // Ensure dropdown can represent the current zoom even for non-preset values.
+        if (this.zoomLevelSelect && !Array.from(this.zoomLevelSelect.options).some(opt => opt.value === normalized)) {
+            const customOption = document.createElement('option');
+            customOption.value = normalized;
+            customOption.textContent = `${normalized}%`;
+            this.zoomLevelSelect.appendChild(customOption);
+        }
+
+        this.zoomLevelSelect.value = normalized;
         this.pdfViewer.renderPage(this.pdfViewer.currentPage, this.pdfDoc);
     }
     
