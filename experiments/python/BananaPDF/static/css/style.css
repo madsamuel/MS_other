@@ -395,10 +395,40 @@ body {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     background-color: white;
     position: relative;
+    z-index: 1;
 }
 
 .drawing-overlay {
     background-color: transparent !important;
+}
+
+.text-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+    opacity: 0.96;
+    line-height: 1;
+    text-align: initial;
+    transform-origin: 0 0;
+    z-index: 2;
+}
+
+.text-layer span,
+.text-layer br {
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+}
+
+.text-layer span {
+    color: rgba(17, 24, 39, 0.88);
+    mix-blend-mode: multiply;
+}
+
+.text-layer ::selection {
+    background: rgba(37, 99, 235, 0.28);
 }
 
 .annotation-layer {
@@ -407,6 +437,7 @@ body {
     left: 0;
     pointer-events: none;
     background-color: transparent;
+    z-index: 3;
 }
 
 .annotation {

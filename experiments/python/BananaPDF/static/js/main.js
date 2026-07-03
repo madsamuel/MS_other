@@ -221,6 +221,7 @@ class PDFViewer {
         
         this.canvas = document.getElementById('pdfCanvas');
         this.ctx = this.canvas.getContext('2d');
+        this.textLayer = document.getElementById('textLayer');
         this.annotationLayer = document.getElementById('annotationLayer');
         this.thumbnailsContainer = document.getElementById('thumbnailsContainer');
     }
@@ -234,8 +235,14 @@ class PDFViewer {
         const scale = this.zoomLevel / 100;
         
         const viewport = page.getViewport({ scale, rotation });
-        this.canvas.width = viewport.width;
-        this.canvas.height = viewport.height;
+        const outputScale = window.devicePixelRatio || 1;
+
+        this.displayWidth = viewport.width;
+        this.displayHeight = viewport.height;
+        this.canvas.width = Math.floor(viewport.width * outputScale);
+        this.canvas.height = Math.floor(viewport.height * outputScale);
+        this.canvas.style.width = viewport.width + 'px';
+        this.canvas.style.height = viewport.height + 'px';
         
         // Store page dimensions for coordinate conversion (needed for proper annotation positioning)
         const unzoomedViewport = page.getViewport({ scale: 1, rotation });
@@ -265,16 +272,43 @@ class PDFViewer {
         }
         
         // Explicitly clear the canvas
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         const renderContext = {
             canvasContext: this.ctx,
-            viewport: viewport
+            viewport: viewport,
+            transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
         };
         
         await page.render(renderContext).promise;
+        await this.renderTextLayer(page, viewport);
         this.renderAnnotations();
         this.eventBus.emit('pageRendered', { pageNum });
+    }
+
+    async renderTextLayer(page, viewport) {
+        if (!this.textLayer || !pdfjsLib.renderTextLayer) return;
+
+        this.textLayer.innerHTML = '';
+
+        const canvasRect = this.canvas.getBoundingClientRect();
+        const containerRect = this.textLayer.parentElement.getBoundingClientRect();
+        this.textLayer.style.width = (this.displayWidth || canvasRect.width) + 'px';
+        this.textLayer.style.height = (this.displayHeight || canvasRect.height) + 'px';
+        this.textLayer.style.top = (canvasRect.top - containerRect.top) + 'px';
+        this.textLayer.style.left = (canvasRect.left - containerRect.left) + 'px';
+        this.textLayer.style.setProperty('--scale-factor', viewport.scale);
+
+        const textContent = await page.getTextContent();
+        const textLayerTask = pdfjsLib.renderTextLayer({
+            textContentSource: textContent,
+            container: this.textLayer,
+            viewport: viewport.clone({ dontFlip: true }),
+            textDivs: []
+        });
+
+        await textLayerTask.promise;
     }
     
     async generateThumbnails(pdfDoc) {
@@ -302,15 +336,17 @@ class PDFViewer {
                 const page = await pdfDoc.getPage(i);
                 const scale = 0.15;
                 const viewport = page.getViewport({ scale });
+                const outputScale = window.devicePixelRatio || 1;
                 
                 const canvas = document.createElement('canvas');
-                canvas.width = viewport.width;
-                canvas.height = viewport.height;
+                canvas.width = Math.floor(viewport.width * outputScale);
+                canvas.height = Math.floor(viewport.height * outputScale);
                 
                 const ctx = canvas.getContext('2d');
                 const renderContext = {
                     canvasContext: ctx,
-                    viewport: viewport
+                    viewport: viewport,
+                    transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null
                 };
                 
                 await page.render(renderContext).promise;
@@ -346,8 +382,8 @@ class PDFViewer {
         const canvasRect = this.canvas.getBoundingClientRect();
         const containerRect = this.annotationLayer.parentElement.getBoundingClientRect();
         
-        this.annotationLayer.style.width = this.canvas.width + 'px';
-        this.annotationLayer.style.height = this.canvas.height + 'px';
+        this.annotationLayer.style.width = (this.displayWidth || canvasRect.width) + 'px';
+        this.annotationLayer.style.height = (this.displayHeight || canvasRect.height) + 'px';
         this.annotationLayer.style.top = (canvasRect.top - containerRect.top) + 'px';
         this.annotationLayer.style.left = (canvasRect.left - containerRect.left) + 'px';
         
@@ -844,6 +880,12 @@ class UIController {
             this.pdfViewer.canvas.addEventListener('mousedown', (e) => this.startHighlightDrag(e));
             this.pdfViewer.canvas.addEventListener('mouseup', (e) => this.endHighlightDrag(e));
         }
+
+        if (this.pdfViewer.textLayer) {
+            this.pdfViewer.textLayer.addEventListener('click', (e) => this.handleTextLayerClick(e));
+            this.pdfViewer.textLayer.addEventListener('mousedown', (e) => this.handleTextLayerMouseDown(e));
+            this.pdfViewer.textLayer.addEventListener('mouseup', (e) => this.handleTextLayerMouseUp(e));
+        }
         
         // Drag and drop
         document.addEventListener('dragover', (e) => e.preventDefault());
@@ -884,6 +926,24 @@ class UIController {
                 this.setStatus('Drawing cleared');
             }
         });
+    }
+
+    handleTextLayerClick(event) {
+        if (!this.currentTool) return;
+        event.preventDefault();
+        this.handleCanvasClick(event);
+    }
+
+    handleTextLayerMouseDown(event) {
+        if (this.currentTool !== 'highlight') return;
+        event.preventDefault();
+        this.startHighlightDrag(event);
+    }
+
+    handleTextLayerMouseUp(event) {
+        if (this.currentTool !== 'highlight') return;
+        event.preventDefault();
+        this.endHighlightDrag(event);
     }
     
     attachEventBusListeners() {
@@ -1153,13 +1213,16 @@ class UIController {
         const pdfCanvas = this.pdfViewer.canvas;
         if (!pdfCanvas) return;
         
-        // Set canvas pixel size (not CSS size)
-        this.drawingOverlay.width = pdfCanvas.width;
-        this.drawingOverlay.height = pdfCanvas.height;
+        const overlayWidth = this.pdfViewer.displayWidth || pdfCanvas.getBoundingClientRect().width || pdfCanvas.width;
+        const overlayHeight = this.pdfViewer.displayHeight || pdfCanvas.getBoundingClientRect().height || pdfCanvas.height;
+        
+        // Keep drawing coordinates in displayed page space, not high-DPI backing-buffer space.
+        this.drawingOverlay.width = overlayWidth;
+        this.drawingOverlay.height = overlayHeight;
         
         // Set CSS size to match
-        this.drawingOverlay.style.width = pdfCanvas.width + 'px';
-        this.drawingOverlay.style.height = pdfCanvas.height + 'px';
+        this.drawingOverlay.style.width = overlayWidth + 'px';
+        this.drawingOverlay.style.height = overlayHeight + 'px';
         
         // Position overlay to match PDF canvas position
         const rect = pdfCanvas.getBoundingClientRect();

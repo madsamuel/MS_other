@@ -99,6 +99,7 @@
                 
                 <div class="pdf-viewer-container">
                     <canvas id="pdfCanvas" class="pdf-canvas"></canvas>
+                    <div id="textLayer" class="text-layer" aria-hidden="true"></div>
                     <canvas id="drawingOverlay" class="drawing-overlay" style="display: none; position: absolute; top: 0; left: 0; cursor: crosshair; z-index: 100;"></canvas>
                     <div id="annotationLayer" class="annotation-layer"></div>
                 </div>
@@ -187,6 +188,6 @@
     
     <!-- PDF.js library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js', v='20260531b') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js', v='20260702c') }}"></script>
 </body>
 </html>
