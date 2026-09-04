@@ -49,7 +49,8 @@ import com.seattledevcamp.rainmaker.ui.generator.components.SnackbarHost
 fun GeneratorScreen(
     state: GeneratorState,
     onIntent: (GeneratorIntent) -> Unit,
-    onLibrary: () -> Unit
+    onLibrary: () -> Unit,
+    onStudySession: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -61,6 +62,9 @@ fun GeneratorScreen(
         TopAppBar(
             title = { Text("Rainmaker") },
             actions = {
+                TextButton(onClick = onStudySession) {
+                    Text("Learn")
+                }
                 TextButton(onClick = onLibrary) {
                     Text("Library")
                 }

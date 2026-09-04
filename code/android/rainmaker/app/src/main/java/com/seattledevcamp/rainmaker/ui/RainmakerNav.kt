@@ -11,11 +11,14 @@ import com.seattledevcamp.rainmaker.ui.generator.GeneratorScreen
 import com.seattledevcamp.rainmaker.ui.generator.GeneratorViewModel
 import com.seattledevcamp.rainmaker.ui.library.LibraryScreen
 import com.seattledevcamp.rainmaker.ui.library.LibraryViewModel
+import com.seattledevcamp.rainmaker.ui.study.StudySessionScreen
+import com.seattledevcamp.rainmaker.ui.study.StudySessionViewModel
 import org.koin.androidx.compose.koinViewModel
 
 sealed class RainmakerDestination(val route: String) {
     data object Generator : RainmakerDestination("generator")
     data object Library : RainmakerDestination("library")
+    data object StudySession : RainmakerDestination("study_session")
 }
 
 @Composable
@@ -31,13 +34,23 @@ fun RainmakerNavHost(modifier: Modifier = Modifier, navController: NavHostContro
             GeneratorScreen(
                 state = uiState.value,
                 onIntent = viewModel::onIntent,
-                onLibrary = { navController.navigate(RainmakerDestination.Library.route) }
+                onLibrary = { navController.navigate(RainmakerDestination.Library.route) },
+                onStudySession = { navController.navigate(RainmakerDestination.StudySession.route) }
             )
         }
         composable(RainmakerDestination.Library.route) {
             val viewModel: LibraryViewModel = koinViewModel()
             val uiState = viewModel.uiState.collectAsStateWithLifecycle()
             LibraryScreen(
+                state = uiState.value,
+                onIntent = viewModel::onIntent,
+                onBack = { navController.popBackStack() }
+            )
+        }
+        composable(RainmakerDestination.StudySession.route) {
+            val viewModel: StudySessionViewModel = koinViewModel()
+            val uiState = viewModel.uiState.collectAsStateWithLifecycle()
+            StudySessionScreen(
                 state = uiState.value,
                 onIntent = viewModel::onIntent,
                 onBack = { navController.popBackStack() }

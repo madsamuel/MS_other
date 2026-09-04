@@ -15,6 +15,7 @@ import com.seattledevcamp.rainmaker.domain.GenerateRainSoundUseCase
 import com.seattledevcamp.rainmaker.domain.ObserveRecordingsUseCase
 import com.seattledevcamp.rainmaker.ui.library.LibraryViewModel
 import com.seattledevcamp.rainmaker.ui.library.RainPlayer
+import com.seattledevcamp.rainmaker.ui.study.StudySessionViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
@@ -48,4 +49,5 @@ val appModule = module {
     // Provide GeneratorViewModel (AndroidViewModel in root package) with injected Application and RainAudioEngine
     viewModel { GeneratorViewModel(get<Application>(), get()) }
     viewModel { LibraryViewModel(get(), get(), get()) }
+    viewModel { StudySessionViewModel() }
 }
