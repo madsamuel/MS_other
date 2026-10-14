@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">YouTube 3x</string>
+    <string name="home">YouTube</string>
+    <string name="reload">Reload</string>
+    <string name="normal_speed">1x</string>
+    <string name="triple_speed">3x</string>
+    <string name="address_hint">Search YouTube or paste a YouTube link</string>
+    <string name="go">Go</string>
+    <string name="waiting">Select a video to play at %1$sx</string>
+    <string name="speed_status">Playback speed: %1$sx</string>
+    <string name="speed_unavailable">Requested %1$sx; player is at %2$sx (may be live or restricted)</string>
+    <string name="speed_error">Could not set speed: %1$s</string>
+    <string name="script_unavailable">Player script unavailable</string>
+    <string name="page_error">Could not load YouTube. Check your connection and tap Reload.</string>
+    <string name="invalid_link">Enter a YouTube link or a search term.</string>
+    <string name="no_browser">No browser is available to open this link.</string>
+    <string name="external_page">Open a YouTube video to use the speed controls.</string>
+</resources>
