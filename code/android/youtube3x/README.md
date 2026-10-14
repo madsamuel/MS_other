@@ -28,12 +28,20 @@ resets the playback rate. The status shows the actual rate, not just the request
 YouTube's fullscreen control is supported; Back exits fullscreen or goes back.
 Playback pauses when the app leaves the foreground.
 
+Ad blocking is always enabled: known advertising domains and YouTube ad
+endpoints are blocked, recognized display-ad elements are hidden, and detected
+player ads are skipped using a visible Skip button or seeking to the end of a
+finite ad. Normal video streams are not blocked. If seeking fails, the app
+reports it in the status line.
+
 ## Limitations
 
 This is an unofficial browser-based player, not the official YouTube app.
 3x relies on YouTube exposing an HTML video element in Android WebView; live
-streams, restricted videos, and future website changes may prevent it. Ads are
-not skipped or speed-adjusted. Internet access and an up-to-date Android System
+streams, restricted videos, and future website changes may prevent it.
+Ad blocking is best-effort, not a guarantee: server-inserted ads sharing a video
+stream, unrecognized ad formats, and YouTube anti-adblock measures may still
+show ads or prevent playback. Internet access and an up-to-date Android System
 WebView are required. Google sign-in inside embedded browsers may be blocked;
 signed-out browsing is the intended starting experience. Non-YouTube HTTPS links
 that you tap open externally. No background playback or downloads are provided.

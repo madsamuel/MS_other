@@ -10,6 +10,7 @@
     <string name="speed_status">Playback speed: %1$sx</string>
     <string name="speed_unavailable">Requested %1$sx; player is at %2$sx (may be live or restricted)</string>
     <string name="speed_error">Could not set speed: %1$s</string>
+    <string name="ad_block_error">Could not skip this ad: %1$s</string>
     <string name="script_unavailable">Player script unavailable</string>
     <string name="page_error">Could not load YouTube. Check your connection and tap Reload.</string>
     <string name="invalid_link">Enter a YouTube link or a search term.</string>

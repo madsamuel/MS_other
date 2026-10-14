@@ -33,6 +33,7 @@
                 return JSON.stringify({
                     found: Boolean(active) && !isAd(),
                     actual: active ? active.playbackRate : null,
+                    adError: window.youtube3xAdBlocker ? window.youtube3xAdBlocker.error : null,
                     error: error
                 });
             }

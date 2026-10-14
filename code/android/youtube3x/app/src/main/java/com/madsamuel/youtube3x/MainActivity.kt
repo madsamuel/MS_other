@@ -36,6 +36,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import org.json.JSONObject
 import org.json.JSONTokener
+import java.io.ByteArrayInputStream
 
 class MainActivity : ComponentActivity() {
     private lateinit var webView: WebView
@@ -44,6 +45,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var fullscreen: FrameLayout
     private lateinit var browserContent: View
     private lateinit var speedScript: String
+    private lateinit var adBlockScript: String
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
     private var requestedRate = 3
     private var pageFailed = false
@@ -74,6 +76,7 @@ class MainActivity : ComponentActivity() {
         fullscreen = findViewById(R.id.fullscreen_container)
         browserContent = findViewById(R.id.browser_content)
         speedScript = assets.open("playback-speed.js").bufferedReader().use { it.readText() }
+        adBlockScript = assets.open("ad-block.js").bufferedReader().use { it.readText() }
         val preferences = getSharedPreferences("playback", MODE_PRIVATE)
         requestedRate = if (preferences.getInt("speed", 3) == 1) 1 else 3
         updateSpeedButtons()
@@ -90,6 +93,19 @@ class MainActivity : ComponentActivity() {
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false)
         webView.webViewClient = object : WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: WebView, request: WebResourceRequest
+            ): WebResourceResponse? {
+                if (!request.isForMainFrame && AdBlockRules.shouldBlock(request.url.toString())) {
+                    return WebResourceResponse(
+                        "text/plain", "UTF-8", 200, "OK",
+                        mapOf("Cache-Control" to "no-store"),
+                        ByteArrayInputStream(ByteArray(0))
+                    )
+                }
+                return super.shouldInterceptRequest(view, request)
+            }
+
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val url = request.url.toString()
                 if (YouTubeNavigation.isYouTubeUrl(url) || isConsentPage(url)) return false
@@ -246,7 +262,8 @@ class MainActivity : ComponentActivity() {
             return
         }
         val rate = requestedRate
-        webView.evaluateJavascript(speedScript.replace("__REQUESTED_RATE__", rate.toString())) { result ->
+        val script = adBlockScript + "\n" + speedScript.replace("__REQUESTED_RATE__", rate.toString())
+        webView.evaluateJavascript(script) { result ->
             if (!resumed || pageFailed || webView.url != url || requestedRate != rate) return@evaluateJavascript
             val json = JSONTokener(result).nextValue()
             if (json !is String) {
@@ -255,6 +272,8 @@ class MainActivity : ComponentActivity() {
             }
             val playback = JSONObject(json)
             when {
+                !playback.isNull("adError") ->
+                    status.text = getString(R.string.ad_block_error, playback.getString("adError"))
                 !playback.isNull("error") ->
                     status.text = getString(R.string.speed_error, playback.getString("error"))
                 !playback.getBoolean("found") -> showWaiting()
