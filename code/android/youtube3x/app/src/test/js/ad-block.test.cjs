@@ -11,6 +11,7 @@ const speedScript = fs.readFileSync(path.join(assets, "playback-speed.js"), "utf
 function page({ ad = false, skip = false, duration = 30, seekFails = false } = {}) {
     let clicks = 0;
     let observerCallback;
+    let observing = false;
     const styles = [];
     let currentTime = 0;
     const video = {
@@ -34,7 +35,12 @@ function page({ ad = false, skip = false, duration = 30, seekFails = false } = {
     const document = {
         documentElement: { appendChild: style => styles.push(style) },
         getElementById: id => styles.find(style => style.id === id),
-        createElement: () => ({}),
+        createElement: () => ({
+            remove() {
+                const index = styles.indexOf(this);
+                if (index >= 0) styles.splice(index, 1);
+            }
+        }),
         querySelectorAll: selector => selector === "video" ? [video] : ad ? [player] : [],
         querySelector: () => ad ? player : null
     };
@@ -42,14 +48,17 @@ function page({ ad = false, skip = false, duration = 30, seekFails = false } = {
         window: {}, document,
         MutationObserver: class {
             constructor(callback) { observerCallback = callback; }
-            observe() {}
+            observe() { observing = true; }
+            disconnect() { observing = false; }
         }
     });
     return {
         video, styles, context,
         clicks: () => clicks,
-        setAd: value => { ad = value; observerCallback(); },
-        run: () => vm.runInContext(adScript, context),
+        setAd: value => { ad = value; if (observing) observerCallback(); },
+        setEnabled: value => context.window.youtube3xAdBlocker.setEnabled(value),
+        run: (enabled = true) =>
+            vm.runInContext(adScript.replace("__AD_BLOCK_ENABLED__", String(enabled)), context),
         speed: () => JSON.parse(vm.runInContext(speedScript.replace("__REQUESTED_RATE__", "3"), context))
     };
 }
@@ -101,4 +110,16 @@ test("handles ads introduced after initial page load", () => {
     fixture.run();
     fixture.setAd(true);
     assert.equal(fixture.video.currentTime, 30);
+});
+
+test("can disable and re-enable cosmetic and player ad handling", () => {
+    const fixture = page({ ad: true });
+    fixture.run(false);
+    assert.equal(fixture.video.currentTime, 0);
+    assert.equal(fixture.styles.length, 0);
+    fixture.setEnabled(true);
+    assert.equal(fixture.video.currentTime, 30);
+    assert.equal(fixture.styles.length, 1);
+    fixture.setEnabled(false);
+    assert.equal(fixture.styles.length, 0);
 });

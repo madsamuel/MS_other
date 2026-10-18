@@ -34,4 +34,8 @@ class AdBlockRulesTest {
             "https://["
         ).forEach { assertFalse(it, AdBlockRules.shouldBlock(it)) }
     }
+
+    @Test fun canDisableNetworkRequestBlocking() {
+        assertFalse(AdBlockRules.shouldBlock("https://doubleclick.net/ad", enabled = false))
+    }
 }

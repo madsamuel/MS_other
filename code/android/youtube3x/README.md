@@ -14,6 +14,7 @@ From PowerShell, with `JAVA_HOME` and the SDK configured:
 
 ```powershell
 .\gradlew.bat :app:assembleDebug :app:testDebugUnitTest
+node --test app\src\test\js\*.test.cjs
 ```
 
 The installable debug APK is `app\build\outputs\apk\debug\app-debug.apk`.
@@ -26,9 +27,21 @@ Start the video yourself; the app defaults to 3x. Use **1x** or **3x** to switch
 speeds. The choice is remembered, and reapplied as YouTube changes videos or
 resets the playback rate. The status shows the actual rate, not just the request.
 YouTube's fullscreen control is supported; Back exits fullscreen or goes back.
-Playback pauses when the app leaves the foreground.
+The top bar also provides Back and Forward navigation, and the current page title
+is shown above the player. The media notification and lock screen show the video
+title and playback position. The playback notification and foreground service
+are active only while media is playing.
+Playback continues when you switch apps, press Home or Back at the root page,
+or lock the screen. The player is owned by a media foreground service rather
+than the activity. Use the media notification or lock-screen controls to
+play/pause; **Stop** ends the session and closes the app. Removing the app from
+Recents also stops playback. Another app taking audio focus pauses playback;
+resume manually afterwards. Allow notifications when prompted for easy access
+to controls (Android can still show media controls if that permission is denied).
+The service holds a partial wake lock only while media is playing.
 
-Ad blocking is always enabled: known advertising domains and YouTube ad
+Ad blocking is enabled by default and can be toggled with **Ads: On/Off**. When
+enabled, known advertising domains and YouTube ad
 endpoints are blocked, recognized display-ad elements are hidden, and detected
 player ads are skipped using a visible Skip button or seeking to the end of a
 finite ad. Normal video streams are not blocked. If seeking fails, the app
@@ -44,4 +57,30 @@ stream, unrecognized ad formats, and YouTube anti-adblock measures may still
 show ads or prevent playback. Internet access and an up-to-date Android System
 WebView are required. Google sign-in inside embedded browsers may be blocked;
 signed-out browsing is the intended starting experience. Non-YouTube HTTPS links
-that you tap open externally. No background playback or downloads are provided.
+that you tap open externally. Downloads are not provided.
+
+Background playback depends on Android System WebView and YouTube's player.
+Keep WebView updated: document-start script support improves protection against
+YouTube pausing on visibility changes. Manufacturer battery restrictions,
+force-stopping the app, or Android reclaiming its process can stop playback;
+the app does not restart playback automatically after being killed. Keeping the
+web player alive uses more battery than a dedicated audio-only player.
+
+## Device smoke checks
+
+Before release, repeat these checks on each supported Android major version with
+the latest Android System WebView:
+
+1. Open a standard YouTube video, verify audio/video playback and both 1x and 3x
+   rates; navigate to another video and confirm the selected rate is reapplied.
+2. Verify fullscreen entry/exit, Back/Forward history, shared video links, and
+   that tapping a non-YouTube HTTPS link opens the external browser.
+3. While playing, switch apps and lock the screen; confirm playback continues,
+   the notification/lock screen show the video title and position, and Play,
+   Pause, and Stop work. Pause playback and confirm the ongoing notification is
+   removed.
+4. Toggle ad blocking off and on, navigate/reload, and confirm the choice
+   persists. Check that a normal video still plays in both modes.
+5. Repeat with a live stream and a restricted video, with notification
+   permission denied, and after a network interruption. Confirm the status is
+   understandable and Reload recovers from a failed page load.

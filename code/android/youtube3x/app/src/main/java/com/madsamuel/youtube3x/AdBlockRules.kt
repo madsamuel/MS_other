@@ -12,7 +12,8 @@ object AdBlockRules {
     )
     private val youtubeAdPaths = listOf("/pagead/", "/api/stats/ads", "/ptracking")
 
-    fun shouldBlock(url: String): Boolean {
+    fun shouldBlock(url: String, enabled: Boolean = true): Boolean {
+        if (!enabled) return false
         val uri = try {
             URI(url)
         } catch (_: URISyntaxException) {

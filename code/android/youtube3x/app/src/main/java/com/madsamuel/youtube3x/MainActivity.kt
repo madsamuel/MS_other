@@ -1,27 +1,23 @@
 package com.madsamuel.youtube3x
 
-import android.annotation.SuppressLint
+import android.Manifest
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
-import android.graphics.Bitmap
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.net.Uri
-import android.net.http.SslError
+import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
+import android.os.IBinder
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.webkit.CookieManager
-import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
-import android.webkit.WebSettings
 import android.webkit.WebView
-import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -34,126 +30,120 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import org.json.JSONObject
-import org.json.JSONTokener
-import java.io.ByteArrayInputStream
 
-class MainActivity : ComponentActivity() {
-    private lateinit var webView: WebView
+class MainActivity : ComponentActivity(), PlaybackService.Listener {
     private lateinit var status: TextView
+    private lateinit var pageTitle: TextView
     private lateinit var address: EditText
     private lateinit var fullscreen: FrameLayout
     private lateinit var browserContent: View
-    private lateinit var speedScript: String
-    private lateinit var adBlockScript: String
+    private lateinit var browserParent: ViewGroup
+    private var service: PlaybackService? = null
+    private var bound = false
+    private var savedBrowserState: Bundle? = null
     private var customViewCallback: WebChromeClient.CustomViewCallback? = null
-    private var requestedRate = 3
-    private var pageFailed = false
-    private var resumed = false
-    private val handler = Handler(Looper.getMainLooper())
-    private val poll = object : Runnable {
-        override fun run() {
-            updatePlaybackSpeed()
-            handler.postDelayed(this, 1000)
+    private val connection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName, binder: IBinder) {
+            val playback = (binder as PlaybackService.LocalBinder).service
+            service = playback
+            playback.listener = this@MainActivity
+            playback.webContext.baseContext = this@MainActivity
+            val webView = playback.webView
+            (webView.parent as? ViewGroup)?.removeView(webView)
+            browserParent.addView(webView, ViewGroup.LayoutParams.MATCH_PARENT, 0)
+            (webView.layoutParams as android.widget.LinearLayout.LayoutParams).weight = 1f
+            installChromeClient(webView)
+            updateSpeedButtons()
+            updateNavigationButtons()
+            updateAdBlockButton()
+            onStatus(playback.statusText)
+            onTitle(playback.titleText)
+            onLocation(webView.url.orEmpty())
+            if (webView.url == null) {
+                if (savedBrowserState == null || webView.restoreState(savedBrowserState!!) == null) {
+                    webView.loadUrl(sharedVideo(intent) ?: YouTubeNavigation.HOME)
+                }
+            } else if (intent.action == Intent.ACTION_SEND) {
+                sharedVideo(intent)?.let { webView.loadUrl(it) }
+                intent.action = Intent.ACTION_MAIN
+            }
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            service = null
+            finish()
         }
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        savedBrowserState = savedInstanceState
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root)) { view, insets ->
-            val bars = insets.getInsets(
-                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime()
-            )
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime())
             view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
-        webView = findViewById(R.id.web_view)
         status = findViewById(R.id.status)
+        pageTitle = findViewById(R.id.page_title)
         address = findViewById(R.id.address)
         fullscreen = findViewById(R.id.fullscreen_container)
         browserContent = findViewById(R.id.browser_content)
-        speedScript = assets.open("playback-speed.js").bufferedReader().use { it.readText() }
-        adBlockScript = assets.open("ad-block.js").bufferedReader().use { it.readText() }
-        val preferences = getSharedPreferences("playback", MODE_PRIVATE)
-        requestedRate = if (preferences.getInt("speed", 3) == 1) 1 else 3
+        val placeholder = findViewById<WebView>(R.id.web_view)
+        browserParent = placeholder.parent as ViewGroup
+        browserParent.removeView(placeholder)
+        placeholder.destroy()
+        findViewById<Button>(R.id.home).setOnClickListener { service?.webView?.loadUrl(YouTubeNavigation.HOME) }
+        findViewById<Button>(R.id.back).setOnClickListener { service?.webView?.goBack() }
+        findViewById<Button>(R.id.forward).setOnClickListener { service?.webView?.goForward() }
+        findViewById<Button>(R.id.reload).setOnClickListener { service?.webView?.reload() }
+        findViewById<Button>(R.id.normal_speed).setOnClickListener { selectSpeed(1) }
+        findViewById<Button>(R.id.triple_speed).setOnClickListener { selectSpeed(3) }
+        findViewById<Button>(R.id.go).setOnClickListener { navigate() }
+        findViewById<Button>(R.id.ad_block).setOnClickListener {
+            service?.let {
+                it.setAdBlockingEnabled(!it.adBlockingEnabled)
+                updateAdBlockButton()
+            }
+        }
         updateSpeedButtons()
-        showWaiting()
-
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            mediaPlaybackRequiresUserGesture = true
-            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            allowFileAccess = false
-            allowContentAccess = false
+        updateNavigationButtons()
+        updateAdBlockButton()
+        address.setOnEditorActionListener { _, action, _ ->
+            if (action == EditorInfo.IME_ACTION_GO) {
+                navigate()
+                true
+            } else false
         }
-        CookieManager.getInstance().setAcceptCookie(true)
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, false)
-        webView.webViewClient = object : WebViewClient() {
-            override fun shouldInterceptRequest(
-                view: WebView, request: WebResourceRequest
-            ): WebResourceResponse? {
-                if (!request.isForMainFrame && AdBlockRules.shouldBlock(request.url.toString())) {
-                    return WebResourceResponse(
-                        "text/plain", "UTF-8", 200, "OK",
-                        mapOf("Cache-Control" to "no-store"),
-                        ByteArrayInputStream(ByteArray(0))
-                    )
-                }
-                return super.shouldInterceptRequest(view, request)
-            }
-
-            override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
-                val url = request.url.toString()
-                if (YouTubeNavigation.isYouTubeUrl(url) || isConsentPage(url)) return false
-                if (request.isForMainFrame && request.hasGesture() &&
-                    request.url.scheme == "https"
-                ) openExternal(request.url)
-                return true
-            }
-
-            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
-                pageFailed = false
-                showWaiting()
-            }
-
-            override fun onPageFinished(view: WebView, url: String?) {
-                if (resumed) updatePlaybackSpeed()
-            }
-
-            override fun onReceivedError(
-                view: WebView, request: WebResourceRequest, error: WebResourceError
-            ) {
-                if (request.isForMainFrame) {
-                    pageFailed = true
-                    status.setText(R.string.page_error)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val webView = service?.webView
+                when {
+                    customViewCallback != null -> exitFullscreen()
+                    webView?.canGoBack() == true -> webView.goBack()
+                    else -> moveTaskToBack(true)
                 }
             }
-
-            override fun onReceivedHttpError(
-                view: WebView, request: WebResourceRequest, response: WebResourceResponse
-            ) {
-                if (request.isForMainFrame) {
-                    pageFailed = true
-                    status.setText(R.string.page_error)
-                }
-            }
-
-            override fun onReceivedSslError(view: WebView, handler: SslErrorHandler, error: SslError) {
-                handler.cancel()
-                pageFailed = true
-                status.setText(R.string.page_error)
-            }
+        })
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
         }
-        val progress = findViewById<ProgressBar>(R.id.progress)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (!bound) {
+            val intent = Intent(this, PlaybackService::class.java)
+            startService(intent)
+            bound = bindService(intent, connection, BIND_AUTO_CREATE)
+        }
+    }
+
+    private fun installChromeClient(webView: WebView) {
         webView.webChromeClient = object : WebChromeClient() {
-            override fun onProgressChanged(view: WebView, newProgress: Int) {
-                progress.progress = newProgress
-                progress.visibility = if (newProgress == 100) View.GONE else View.VISIBLE
-            }
+            override fun onProgressChanged(view: WebView, newProgress: Int) = onProgress(newProgress)
 
             override fun onShowCustomView(view: View, callback: CustomViewCallback) {
                 if (customViewCallback != null) {
@@ -173,57 +163,53 @@ class MainActivity : ComponentActivity() {
 
             override fun onHideCustomView() = exitFullscreen()
         }
-        findViewById<Button>(R.id.home).setOnClickListener { webView.loadUrl(YouTubeNavigation.HOME) }
-        findViewById<Button>(R.id.reload).setOnClickListener { webView.reload() }
-        findViewById<Button>(R.id.normal_speed).setOnClickListener { selectSpeed(1) }
-        findViewById<Button>(R.id.triple_speed).setOnClickListener { selectSpeed(3) }
-        findViewById<Button>(R.id.go).setOnClickListener { navigate() }
-        address.setOnEditorActionListener { _, action, _ ->
-            if (action == EditorInfo.IME_ACTION_GO) {
-                navigate()
-                true
-            } else false
-        }
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                when {
-                    customViewCallback != null -> exitFullscreen()
-                    webView.canGoBack() -> webView.goBack()
-                    else -> {
-                        isEnabled = false
-                        onBackPressedDispatcher.onBackPressed()
-                        isEnabled = true
-                    }
-                }
-            }
-        })
-        if (savedInstanceState == null || webView.restoreState(savedInstanceState) == null) {
-            webView.loadUrl(sharedVideo(intent) ?: YouTubeNavigation.HOME)
-        }
-    }
-
-    private fun isConsentPage(url: String): Boolean {
-        val uri = Uri.parse(url)
-        return uri.scheme == "https" && uri.host == "consent.youtube.com" &&
-            uri.userInfo == null && (uri.port == -1 || uri.port == 443)
     }
 
     private fun sharedVideo(intent: Intent): String? {
         if (intent.action != Intent.ACTION_SEND || intent.type != "text/plain") return null
-        val text = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
-        val url = Regex("https://[^\\s]+").findAll(text)
+        val url = Regex("https://[^\\s]+").findAll(intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty())
             .map { it.value }.firstOrNull { YouTubeNavigation.isYouTubeUrl(it) }
         if (url == null) Toast.makeText(this, R.string.invalid_link, Toast.LENGTH_LONG).show()
         return url
     }
 
-    private fun openExternal(uri: Uri) {
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val playback = service ?: return
+        sharedVideo(intent)?.let { playback.webView.loadUrl(it) }
+        intent.action = Intent.ACTION_MAIN
+    }
+
+    override fun onExternalLink(uri: Uri) {
         try {
             startActivity(Intent(Intent.ACTION_VIEW, uri).addCategory(Intent.CATEGORY_BROWSABLE))
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(this, R.string.no_browser, Toast.LENGTH_LONG).show()
         }
     }
+
+    override fun onStatus(text: String) {
+        status.text = text
+    }
+
+    override fun onTitle(title: String) {
+        pageTitle.text = title.ifBlank { getString(R.string.app_name) }
+    }
+
+    override fun onLocation(url: String) {
+        if (url.isNotBlank()) address.setText(url)
+        updateNavigationButtons()
+    }
+
+    override fun onProgress(progress: Int) {
+        findViewById<ProgressBar>(R.id.progress).apply {
+            this.progress = progress
+            visibility = if (progress == 100) View.GONE else View.VISIBLE
+        }
+    }
+
+    override fun onStopped() = finish()
 
     private fun navigate() {
         val destination = YouTubeNavigation.destination(address.text.toString())
@@ -232,57 +218,38 @@ class MainActivity : ComponentActivity() {
             return
         }
         address.error = null
-        webView.loadUrl(destination)
+        service?.webView?.loadUrl(destination)
         address.clearFocus()
         (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
             .hideSoftInputFromWindow(address.windowToken, 0)
     }
 
     private fun selectSpeed(rate: Int) {
-        requestedRate = rate
-        getSharedPreferences("playback", MODE_PRIVATE).edit().putInt("speed", rate).apply()
+        service?.selectSpeed(rate)
         updateSpeedButtons()
-        updatePlaybackSpeed()
     }
 
     private fun updateSpeedButtons() {
-        findViewById<Button>(R.id.normal_speed).isEnabled = requestedRate != 1
-        findViewById<Button>(R.id.triple_speed).isEnabled = requestedRate != 3
+        findViewById<Button>(R.id.normal_speed).isEnabled = service?.requestedRate?.let { it != 1 } ?: false
+        findViewById<Button>(R.id.triple_speed).isEnabled = service?.requestedRate?.let { it != 3 } ?: false
+        findViewById<Button>(R.id.go).isEnabled = service != null
+        findViewById<Button>(R.id.home).isEnabled = service != null
+        findViewById<Button>(R.id.reload).isEnabled = service != null
+        updateNavigationButtons()
+        updateAdBlockButton()
     }
 
-    private fun showWaiting() {
-        status.text = getString(R.string.waiting, requestedRate.toString())
+    private fun updateNavigationButtons() {
+        val webView = service?.webView
+        findViewById<Button>(R.id.back).isEnabled = webView?.canGoBack() == true
+        findViewById<Button>(R.id.forward).isEnabled = webView?.canGoForward() == true
     }
 
-    private fun updatePlaybackSpeed() {
-        if (pageFailed) return
-        val url = webView.url ?: return
-        if (!YouTubeNavigation.isYouTubeUrl(url)) {
-            status.setText(R.string.external_page)
-            return
-        }
-        val rate = requestedRate
-        val script = adBlockScript + "\n" + speedScript.replace("__REQUESTED_RATE__", rate.toString())
-        webView.evaluateJavascript(script) { result ->
-            if (!resumed || pageFailed || webView.url != url || requestedRate != rate) return@evaluateJavascript
-            val json = JSONTokener(result).nextValue()
-            if (json !is String) {
-                status.text = getString(R.string.speed_error, getString(R.string.script_unavailable))
-                return@evaluateJavascript
-            }
-            val playback = JSONObject(json)
-            when {
-                !playback.isNull("adError") ->
-                    status.text = getString(R.string.ad_block_error, playback.getString("adError"))
-                !playback.isNull("error") ->
-                    status.text = getString(R.string.speed_error, playback.getString("error"))
-                !playback.getBoolean("found") -> showWaiting()
-                playback.getDouble("actual") == rate.toDouble() ->
-                    status.text = getString(R.string.speed_status, rate.toString())
-                else -> status.text = getString(
-                    R.string.speed_unavailable, rate.toString(), playback.get("actual").toString()
-                )
-            }
+    private fun updateAdBlockButton() {
+        val enabled = service?.adBlockingEnabled
+        findViewById<Button>(R.id.ad_block).apply {
+            isEnabled = enabled != null
+            text = getString(if (enabled == true) R.string.ad_block_on else R.string.ad_block_off)
         }
     }
 
@@ -297,34 +264,29 @@ class MainActivity : ComponentActivity() {
         callback.onCustomViewHidden()
     }
 
-    override fun onResume() {
-        super.onResume()
-        resumed = true
-        webView.onResume()
-        handler.post(poll)
-    }
-
     override fun onPause() {
-        resumed = false
-        handler.removeCallbacks(poll)
-        webView.evaluateJavascript(
-            "document.querySelectorAll('video').forEach(function(video) { video.pause(); });", null
-        )
-        webView.onPause()
         CookieManager.getInstance().flush()
         super.onPause()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        webView.saveState(outState)
+        service?.webView?.saveState(outState)
         super.onSaveInstanceState(outState)
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(poll)
         exitFullscreen()
-        (webView.parent as? android.view.ViewGroup)?.removeView(webView)
-        webView.destroy()
+        service?.let { playback ->
+            if (playback.listener === this) {
+                playback.listener = null
+                playback.resetChromeClient()
+                (playback.webView.parent as? ViewGroup)?.removeView(playback.webView)
+                playback.webContext.baseContext = applicationContext
+            }
+        }
+        service = null
+        if (bound) unbindService(connection)
+        bound = false
         super.onDestroy()
     }
 }

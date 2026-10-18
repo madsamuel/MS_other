@@ -1,9 +1,10 @@
-(function () {
+(function (initiallyEnabled) {
     "use strict";
     if (window.youtube3xAdBlocker) {
-        window.youtube3xAdBlocker.update();
+        window.youtube3xAdBlocker.setEnabled(initiallyEnabled);
         return;
     }
+    let enabled = Boolean(initiallyEnabled);
     let error = null;
     const adSelector = ".ad-showing, .ad-interrupting";
     const skipSelector = ".ytp-ad-skip-button, .ytp-ad-skip-button-modern, .ytp-skip-ad-button";
@@ -16,6 +17,11 @@
     ].join(", ");
 
     function update() {
+        if (!enabled) {
+            document.getElementById("youtube3x-ad-style")?.remove();
+            error = null;
+            return;
+        }
         if (!document.getElementById("youtube3x-ad-style") && document.documentElement) {
             const style = document.createElement("style");
             style.id = "youtube3x-ad-style";
@@ -42,12 +48,21 @@
             }
         });
     }
+    const observer = new MutationObserver(() => update());
     window.youtube3xAdBlocker = {
         update,
+        setEnabled(value) {
+            enabled = Boolean(value);
+            if (enabled) {
+                observer.observe(document, { childList: true, subtree: true, attributes: true,
+                    attributeFilter: ["class", "disabled"] });
+            } else {
+                observer.disconnect();
+            }
+            update();
+        },
+        get enabled() { return enabled; },
         get error() { return error; }
     };
-    const observer = new MutationObserver(update);
-    observer.observe(document, { childList: true, subtree: true, attributes: true,
-        attributeFilter: ["class", "disabled"] });
-    update();
-})();
+    window.youtube3xAdBlocker.setEnabled(enabled);
+})(__AD_BLOCK_ENABLED__);

@@ -32,7 +32,12 @@
                     videos.find(video => video.readyState > 0);
                 return JSON.stringify({
                     found: Boolean(active) && !isAd(),
+                    playing: videos.some(video => !video.paused && !video.ended && video.readyState > 0),
                     actual: active ? active.playbackRate : null,
+                    title: document.title,
+                    duration: active && Number.isFinite(active.duration) ? active.duration : 0,
+                    position: active ? active.currentTime : 0,
+                    commandError: videos.some(video => !video.paused) ? null : window.youtube3xPlayError || null,
                     adError: window.youtube3xAdBlocker ? window.youtube3xAdBlocker.error : null,
                     error: error
                 });

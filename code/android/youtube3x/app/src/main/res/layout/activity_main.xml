@@ -10,9 +10,17 @@
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:gravity="center_vertical" android:orientation="horizontal">
             <Button android:id="@+id/home" android:layout_width="0dp"
-                android:layout_height="48dp" android:layout_weight="1" android:text="@string/home" />
+                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
+                android:text="@string/home" />
+            <Button android:id="@+id/back" android:layout_width="0dp"
+                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
+                android:text="@string/back" />
+            <Button android:id="@+id/forward" android:layout_width="0dp"
+                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
+                android:text="@string/forward" />
             <Button android:id="@+id/reload" android:layout_width="0dp"
-                android:layout_height="48dp" android:layout_weight="1" android:text="@string/reload" />
+                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
+                android:text="@string/reload" />
             <Button android:id="@+id/normal_speed" android:layout_width="64dp"
                 android:layout_height="48dp" android:minWidth="0dp" android:text="@string/normal_speed" />
             <Button android:id="@+id/triple_speed" android:layout_width="64dp"
@@ -29,7 +37,13 @@
                 android:paddingStart="12dp" android:paddingEnd="4dp" android:textSize="14sp" />
             <Button android:id="@+id/go" android:layout_width="64dp"
                 android:layout_height="48dp" android:minWidth="0dp" android:text="@string/go" />
+            <Button android:id="@+id/ad_block" android:layout_width="76dp"
+                android:layout_height="48dp" android:minWidth="0dp" android:text="@string/ad_block_on" />
         </LinearLayout>
+        <TextView android:id="@+id/page_title" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
+            android:paddingHorizontal="12dp" android:paddingTop="4dp" android:textSize="14sp"
+            android:textStyle="bold" />
         <TextView android:id="@+id/status" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:paddingHorizontal="12dp"
             android:paddingVertical="6dp" android:textSize="12sp"

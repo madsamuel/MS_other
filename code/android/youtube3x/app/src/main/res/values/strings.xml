@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">YouTube 3x</string>
     <string name="home">YouTube</string>
+    <string name="back">Back</string>
+    <string name="forward">Forward</string>
     <string name="reload">Reload</string>
     <string name="normal_speed">1x</string>
     <string name="triple_speed">3x</string>
@@ -16,4 +18,13 @@
     <string name="invalid_link">Enter a YouTube link or a search term.</string>
     <string name="no_browser">No browser is available to open this link.</string>
     <string name="external_page">Open a YouTube video to use the speed controls.</string>
+    <string name="playback_channel">Background playback</string>
+    <string name="playback_notification">YouTube playback stays active when you switch apps or lock the screen.</string>
+    <string name="playing_at_speed">Playing at %1$sx</string>
+    <string name="ad_block_on">Ads: On</string>
+    <string name="ad_block_off">Ads: Off</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+    <string name="playback_command_error">Could not change playback: %1$s</string>
 </resources>
