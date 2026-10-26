@@ -1,15 +1,13 @@
 package com.madsamuel.youtube3x
 
-import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.os.Parcel
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -77,7 +75,7 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        savedBrowserState = savedInstanceState
+        savedBrowserState = savedInstanceState?.getBundle(BROWSER_STATE)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.root)) { view, insets ->
@@ -94,13 +92,13 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
         browserParent = placeholder.parent as ViewGroup
         browserParent.removeView(placeholder)
         placeholder.destroy()
-        findViewById<Button>(R.id.home).setOnClickListener { service?.webView?.loadUrl(YouTubeNavigation.HOME) }
-        findViewById<Button>(R.id.back).setOnClickListener { service?.webView?.goBack() }
-        findViewById<Button>(R.id.forward).setOnClickListener { service?.webView?.goForward() }
-        findViewById<Button>(R.id.reload).setOnClickListener { service?.webView?.reload() }
+        findViewById<View>(R.id.home).setOnClickListener { service?.webView?.loadUrl(YouTubeNavigation.HOME) }
+        findViewById<View>(R.id.back).setOnClickListener { service?.webView?.goBack() }
+        findViewById<View>(R.id.forward).setOnClickListener { service?.webView?.goForward() }
+        findViewById<View>(R.id.reload).setOnClickListener { service?.webView?.reload() }
         findViewById<Button>(R.id.normal_speed).setOnClickListener { selectSpeed(1) }
         findViewById<Button>(R.id.triple_speed).setOnClickListener { selectSpeed(3) }
-        findViewById<Button>(R.id.go).setOnClickListener { navigate() }
+        findViewById<View>(R.id.go).setOnClickListener { navigate() }
         findViewById<Button>(R.id.ad_block).setOnClickListener {
             service?.let {
                 it.setAdBlockingEnabled(!it.adBlockingEnabled)
@@ -126,10 +124,6 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
                 }
             }
         })
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
-        }
     }
 
     override fun onStart() {
@@ -230,25 +224,32 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
     }
 
     private fun updateSpeedButtons() {
-        findViewById<Button>(R.id.normal_speed).isEnabled = service?.requestedRate?.let { it != 1 } ?: false
-        findViewById<Button>(R.id.triple_speed).isEnabled = service?.requestedRate?.let { it != 3 } ?: false
-        findViewById<Button>(R.id.go).isEnabled = service != null
-        findViewById<Button>(R.id.home).isEnabled = service != null
-        findViewById<Button>(R.id.reload).isEnabled = service != null
+        findViewById<Button>(R.id.normal_speed).apply {
+            isEnabled = service != null
+            isSelected = service?.requestedRate == 1
+        }
+        findViewById<Button>(R.id.triple_speed).apply {
+            isEnabled = service != null
+            isSelected = service?.requestedRate == 3
+        }
+        findViewById<View>(R.id.go).isEnabled = service != null
+        findViewById<View>(R.id.home).isEnabled = service != null
+        findViewById<View>(R.id.reload).isEnabled = service != null
         updateNavigationButtons()
         updateAdBlockButton()
     }
 
     private fun updateNavigationButtons() {
         val webView = service?.webView
-        findViewById<Button>(R.id.back).isEnabled = webView?.canGoBack() == true
-        findViewById<Button>(R.id.forward).isEnabled = webView?.canGoForward() == true
+        findViewById<View>(R.id.back).isEnabled = webView?.canGoBack() == true
+        findViewById<View>(R.id.forward).isEnabled = webView?.canGoForward() == true
     }
 
     private fun updateAdBlockButton() {
         val enabled = service?.adBlockingEnabled
         findViewById<Button>(R.id.ad_block).apply {
             isEnabled = enabled != null
+            isSelected = enabled == true
             text = getString(if (enabled == true) R.string.ad_block_on else R.string.ad_block_off)
         }
     }
@@ -270,7 +271,18 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
-        service?.webView?.saveState(outState)
+        val browserState = Bundle()
+        if (service?.webView?.saveState(browserState) != null) {
+            val parcel = Parcel.obtain()
+            try {
+                parcel.writeBundle(browserState)
+                if (parcel.dataSize() <= MAX_BROWSER_STATE_BYTES) {
+                    outState.putBundle(BROWSER_STATE, browserState)
+                }
+            } finally {
+                parcel.recycle()
+            }
+        }
         super.onSaveInstanceState(outState)
     }
 
@@ -288,5 +300,10 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
         if (bound) unbindService(connection)
         bound = false
         super.onDestroy()
+    }
+
+    companion object {
+        private const val BROWSER_STATE = "browser_state"
+        private const val MAX_BROWSER_STATE_BYTES = 512 * 1024
     }
 }

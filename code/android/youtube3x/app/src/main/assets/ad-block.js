@@ -1,7 +1,11 @@
 (function (initiallyEnabled) {
     "use strict";
     if (window.youtube3xAdBlocker) {
-        window.youtube3xAdBlocker.setEnabled(initiallyEnabled);
+        if (window.youtube3xAdBlocker.enabled !== Boolean(initiallyEnabled)) {
+            window.youtube3xAdBlocker.setEnabled(initiallyEnabled);
+        } else {
+            window.youtube3xAdBlocker.update();
+        }
         return;
     }
     let enabled = Boolean(initiallyEnabled);

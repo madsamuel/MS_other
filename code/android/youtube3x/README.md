@@ -33,14 +33,18 @@ title and playback position. The playback notification and foreground service
 are active only while media is playing.
 Playback continues when you switch apps, press Home or Back at the root page,
 or lock the screen. The player is owned by a media foreground service rather
-than the activity. Use the media notification or lock-screen controls to
-play/pause; **Stop** ends the session and closes the app. Removing the app from
-Recents also stops playback. Another app taking audio focus pauses playback;
-resume manually afterwards. Allow notifications when prompted for easy access
-to controls (Android can still show media controls if that permission is denied).
-The service holds a partial wake lock only while media is playing.
+than the activity. While media is playing, the notification and lock screen show
+the video title and playback position, with **Pause** and **Stop** controls.
+Pausing removes the ongoing notification; reopen the app to resume. **Stop** ends
+the session and closes the app. Removing the app from Recents also stops
+playback. Another app taking audio focus pauses playback; resume manually
+afterwards. Media playback controls do not require notification permission. The
+service and partial wake lock are active only while media is playing.
 
-Ad blocking is enabled by default and can be toggled with **Ads: On/Off**. When
+The toolbar uses labeled navigation icons and highlights the selected playback
+speed. The search field accepts search terms or YouTube links.
+
+Ad blocking is enabled by default and can be toggled with **Ad block on/off**. When
 enabled, known advertising domains and YouTube ad
 endpoints are blocked, recognized display-ad elements are hidden, and detected
 player ads are skipped using a visible Skip button or seeking to the end of a
@@ -76,11 +80,11 @@ the latest Android System WebView:
 2. Verify fullscreen entry/exit, Back/Forward history, shared video links, and
    that tapping a non-YouTube HTTPS link opens the external browser.
 3. While playing, switch apps and lock the screen; confirm playback continues,
-   the notification/lock screen show the video title and position, and Play,
-   Pause, and Stop work. Pause playback and confirm the ongoing notification is
-   removed.
+   the notification/lock screen show the video title and position, and Pause
+   and Stop work. Pause playback and confirm the ongoing notification is removed;
+   reopen the app to resume.
 4. Toggle ad blocking off and on, navigate/reload, and confirm the choice
    persists. Check that a normal video still plays in both modes.
-5. Repeat with a live stream and a restricted video, with notification
-   permission denied, and after a network interruption. Confirm the status is
+5. Repeat with a live stream and a restricted video, and after a network
+   interruption. Confirm the status is
    understandable and Reload recovers from a failed page load.

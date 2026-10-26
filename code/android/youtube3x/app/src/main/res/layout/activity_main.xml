@@ -8,46 +8,61 @@
         android:orientation="vertical">
         <LinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:paddingHorizontal="8dp" android:paddingVertical="4dp"
             android:gravity="center_vertical" android:orientation="horizontal">
-            <Button android:id="@+id/home" android:layout_width="0dp"
-                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
-                android:text="@string/home" />
-            <Button android:id="@+id/back" android:layout_width="0dp"
-                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
-                android:text="@string/back" />
-            <Button android:id="@+id/forward" android:layout_width="0dp"
-                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
-                android:text="@string/forward" />
-            <Button android:id="@+id/reload" android:layout_width="0dp"
-                android:layout_height="48dp" android:layout_weight="1" android:minWidth="0dp"
-                android:text="@string/reload" />
-            <Button android:id="@+id/normal_speed" android:layout_width="64dp"
-                android:layout_height="48dp" android:minWidth="0dp" android:text="@string/normal_speed" />
-            <Button android:id="@+id/triple_speed" android:layout_width="64dp"
-                android:layout_height="48dp" android:minWidth="0dp" android:text="@string/triple_speed" />
+            <ImageButton android:id="@+id/home" style="@style/ToolbarIcon"
+                android:src="@drawable/ic_home" android:contentDescription="@string/home"
+                android:tooltipText="@string/home" />
+            <ImageButton android:id="@+id/back" style="@style/ToolbarIcon"
+                android:src="@drawable/ic_back" android:contentDescription="@string/back"
+                android:tooltipText="@string/back" />
+            <ImageButton android:id="@+id/forward" style="@style/ToolbarIcon"
+                android:src="@drawable/ic_forward" android:contentDescription="@string/forward"
+                android:tooltipText="@string/forward" />
+            <ImageButton android:id="@+id/reload" style="@style/ToolbarIcon"
+                android:src="@drawable/ic_reload" android:contentDescription="@string/reload"
+                android:tooltipText="@string/reload" />
+            <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+            <Button android:id="@+id/normal_speed" style="@style/ToolbarChip"
+                android:layout_width="48dp" android:text="@string/normal_speed"
+                android:contentDescription="@string/normal_speed_description" />
+            <Button android:id="@+id/triple_speed" style="@style/ToolbarChip"
+                android:layout_width="48dp" android:layout_marginStart="4dp"
+                android:text="@string/triple_speed"
+                android:contentDescription="@string/triple_speed_description" />
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:background="@drawable/search_background"
             android:gravity="center_vertical" android:orientation="horizontal">
             <EditText android:id="@+id/address" android:layout_width="0dp"
                 android:layout_height="48dp" android:layout_weight="1"
                 android:hint="@string/address_hint" android:inputType="text"
                 android:importantForAutofill="no"
                 android:imeOptions="actionGo" android:maxLines="1" android:singleLine="true"
-                android:paddingStart="12dp" android:paddingEnd="4dp" android:textSize="14sp" />
-            <Button android:id="@+id/go" android:layout_width="64dp"
-                android:layout_height="48dp" android:minWidth="0dp" android:text="@string/go" />
-            <Button android:id="@+id/ad_block" android:layout_width="76dp"
-                android:layout_height="48dp" android:minWidth="0dp" android:text="@string/ad_block_on" />
+                android:background="@null" android:textColor="#F4F4F5" android:textColorHint="#A4A4AF"
+                android:paddingStart="14dp" android:paddingEnd="4dp" android:textSize="14sp" />
+            <ImageButton android:id="@+id/go" style="@style/ToolbarIcon"
+                android:src="@drawable/ic_forward" android:contentDescription="@string/go"
+                android:tooltipText="@string/go" />
         </LinearLayout>
-        <TextView android:id="@+id/page_title" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
-            android:paddingHorizontal="12dp" android:paddingTop="4dp" android:textSize="14sp"
-            android:textStyle="bold" />
-        <TextView android:id="@+id/status" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:paddingHorizontal="12dp"
-            android:paddingVertical="6dp" android:textSize="12sp"
-            android:accessibilityLiveRegion="polite" />
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:gravity="center_vertical"
+            android:paddingHorizontal="12dp" android:paddingVertical="8dp">
+            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+                android:layout_weight="1" android:orientation="vertical" android:paddingEnd="12dp">
+                <TextView android:id="@+id/page_title" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
+                    android:textColor="#F4F4F5" android:textSize="14sp" android:textStyle="bold" />
+                <TextView android:id="@+id/status" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:paddingTop="3dp"
+                    android:textColor="#A4A4AF" android:textSize="12sp"
+                    android:accessibilityLiveRegion="polite" />
+            </LinearLayout>
+            <Button android:id="@+id/ad_block" style="@style/ToolbarChip"
+                android:layout_width="wrap_content" android:text="@string/ad_block_on" />
+        </LinearLayout>
         <ProgressBar android:id="@+id/progress" style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent" android:layout_height="3dp" />
         <WebView android:id="@+id/web_view" android:layout_width="match_parent"

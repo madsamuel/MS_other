@@ -6,4 +6,23 @@
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowBackground">#121212</item>
     </style>
+    <style name="ToolbarIcon" parent="android:style/Widget.Material.ImageButton">
+        <item name="android:layout_width">48dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+        <item name="android:padding">12dp</item>
+        <item name="android:tint">@color/control_text</item>
+    </style>
+    <style name="ToolbarChip" parent="android:style/Widget.Material.Button">
+        <item name="android:layout_height">48dp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingHorizontal">12dp</item>
+        <item name="android:background">@drawable/control_background</item>
+        <item name="android:textColor">@color/control_text</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:singleLine">true</item>
+    </style>
 </resources>

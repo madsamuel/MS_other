@@ -6,6 +6,10 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.util.Base64
+import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -36,14 +40,25 @@ class BackgroundPlaybackTest {
         val bound = context.bindService(Intent(context, PlaybackService::class.java), connection, Context.BIND_AUTO_CREATE)
         try {
             assertTrue(connected.await(10, TimeUnit.SECONDS))
-            val html = "<video id='video' autoplay src='data:audio/wav;base64,${wave()}'></video>" +
+            val html = "<video id='video'></video>" +
                 "<script>document.addEventListener('visibilitychange',()=>video.pause());</script>"
             instrumentation.runOnMainSync {
                 playback.webView.stopLoading()
                 playback.webView.settings.mediaPlaybackRequiresUserGesture = false
                 playback.selectSpeed(3)
-                playback.webView.loadDataWithBaseURL(YouTubeNavigation.HOME, html, "text/html", "UTF-8", null)
+                playback.webView.webViewClient = object : WebViewClient() {
+                    override fun shouldInterceptRequest(
+                        view: WebView,
+                        request: WebResourceRequest
+                    ): WebResourceResponse? = if (request.isForMainFrame &&
+                        request.url.host == "m.youtube.com") {
+                        WebResourceResponse("text/html", "UTF-8", html.byteInputStream())
+                    } else null
+                }
+                playback.webView.loadUrl(YouTubeNavigation.HOME)
             }
+            await { evaluate(playback, "Boolean(document.querySelector('video'))") == "true" }
+            evaluate(playback, """video.src = "data:audio/wav;base64,${wave()}"; video.play(); "started"""")
             await(diagnostics = {
                 evaluate(playback, """
                     JSON.stringify({
@@ -55,7 +70,7 @@ class BackgroundPlaybackTest {
                         rate: document.querySelector('video')?.playbackRate,
                         error: document.querySelector('video')?.error?.message
                     })
-                """.trimIndent()) + " Status: " + playback.statusText
+                """.trimIndent()) + " " + webViewUrls(playback) + " Status: " + playback.statusText
             }) {
                 evaluate(playback, "Boolean(document.querySelector('video') && !video.paused && video.playbackRate === 3)") == "true"
             }
@@ -113,6 +128,14 @@ class BackgroundPlaybackTest {
         }
         assertTrue("JavaScript did not respond", done.await(5, TimeUnit.SECONDS))
         return result
+    }
+
+    private fun webViewUrls(service: PlaybackService): String {
+        var urls = ""
+        instrumentation.runOnMainSync {
+            urls = "Native URL: ${service.webView.url}; original URL: ${service.webView.originalUrl}"
+        }
+        return urls
     }
 
     private fun await(diagnostics: () -> String = { "" }, condition: () -> Boolean) {
