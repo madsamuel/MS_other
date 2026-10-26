@@ -38,6 +38,7 @@
                     duration: active && Number.isFinite(active.duration) ? active.duration : 0,
                     position: active ? active.currentTime : 0,
                     commandError: videos.some(video => !video.paused) ? null : window.youtube3xPlayError || null,
+                    fullscreenError: window.youtube3xFullscreenError || null,
                     adError: window.youtube3xAdBlocker ? window.youtube3xAdBlocker.error : null,
                     error: error
                 });

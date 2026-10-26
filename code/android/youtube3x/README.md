@@ -25,10 +25,10 @@ Browse YouTube, search from the app's search field, or paste a YouTube URL.
 You can also share a YouTube link from another app to **YouTube 3x**.
 Start the video yourself; the app defaults to 3x. Use **1x** or **3x** to switch
 speeds. The choice is remembered, and reapplied as YouTube changes videos or
-resets the playback rate. The status shows the actual rate, not just the request.
-YouTube's fullscreen control is supported; Back exits fullscreen or goes back.
-The top bar also provides Back and Forward navigation, and the current page title
-is shown above the player. The media notification and lock screen show the video
+resets the playback rate. A warning appears if the actual rate differs from the request.
+Use the fullscreen icon beside the ad blocker to show only the selected video.
+YouTube's fullscreen control is also supported; Back exits fullscreen or goes back.
+The top bar also provides Back and Forward navigation. The media notification and lock screen show the video
 title and playback position. The playback notification and foreground service
 are active only while media is playing.
 Playback continues when you switch apps, press Home or Back at the root page,
@@ -42,9 +42,16 @@ afterwards. Media playback controls do not require notification permission. The
 service and partial wake lock are active only while media is playing.
 
 The toolbar uses labeled navigation icons and highlights the selected playback
-speed. The search field accepts search terms or YouTube links.
+speed. A shield toggle beside the speed buttons controls ad blocking; its
+highlight indicates blocking is on. Long-press icons for labels. The toolbar
+scrolls horizontally on narrow screens. The search field accepts search terms
+or YouTube links. The title and routine playback status are not repeated above
+the player; warnings and errors appear only when needed.
+The address bar hides while a video is playing to leave more room for the
+player, and returns when playback pauses or stops. Navigation and speed
+controls remain available.
 
-Ad blocking is enabled by default and can be toggled with **Ad block on/off**. When
+Ad blocking is enabled by default and can be toggled with the **shield**. When
 enabled, known advertising domains and YouTube ad
 endpoints are blocked, recognized display-ad elements are hidden, and detected
 player ads are skipped using a visible Skip button or seeking to the end of a

@@ -6,6 +6,9 @@
         android:id="@+id/browser_content"
         android:layout_width="match_parent" android:layout_height="match_parent"
         android:orientation="vertical">
+        <HorizontalScrollView
+            android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:fillViewport="true" android:scrollbars="none">
         <LinearLayout
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:paddingHorizontal="8dp" android:paddingVertical="4dp"
@@ -23,6 +26,13 @@
                 android:src="@drawable/ic_reload" android:contentDescription="@string/reload"
                 android:tooltipText="@string/reload" />
             <Space android:layout_width="0dp" android:layout_height="1dp" android:layout_weight="1" />
+            <ImageButton android:id="@+id/video_fullscreen" style="@style/ToolbarIcon"
+                android:src="@drawable/ic_fullscreen" android:contentDescription="@string/video_fullscreen"
+                android:tooltipText="@string/video_fullscreen" />
+            <ImageButton android:id="@+id/ad_block" style="@style/ToolbarIcon"
+                android:layout_marginEnd="4dp" android:background="@drawable/control_background"
+                android:src="@drawable/ic_shield" android:contentDescription="@string/ad_block_on"
+                android:tooltipText="@string/ad_block_on" />
             <Button android:id="@+id/normal_speed" style="@style/ToolbarChip"
                 android:layout_width="48dp" android:text="@string/normal_speed"
                 android:contentDescription="@string/normal_speed_description" />
@@ -31,9 +41,12 @@
                 android:text="@string/triple_speed"
                 android:contentDescription="@string/triple_speed_description" />
         </LinearLayout>
+        </HorizontalScrollView>
         <LinearLayout
+            android:id="@+id/address_bar"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="8dp"
             android:background="@drawable/search_background"
             android:gravity="center_vertical" android:orientation="horizontal">
             <EditText android:id="@+id/address" android:layout_width="0dp"
@@ -47,22 +60,11 @@
                 android:src="@drawable/ic_forward" android:contentDescription="@string/go"
                 android:tooltipText="@string/go" />
         </LinearLayout>
-        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:orientation="horizontal" android:gravity="center_vertical"
-            android:paddingHorizontal="12dp" android:paddingVertical="8dp">
-            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
-                android:layout_weight="1" android:orientation="vertical" android:paddingEnd="12dp">
-                <TextView android:id="@+id/page_title" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="1"
-                    android:textColor="#F4F4F5" android:textSize="14sp" android:textStyle="bold" />
-                <TextView android:id="@+id/status" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:paddingTop="3dp"
-                    android:textColor="#A4A4AF" android:textSize="12sp"
-                    android:accessibilityLiveRegion="polite" />
-            </LinearLayout>
-            <Button android:id="@+id/ad_block" style="@style/ToolbarChip"
-                android:layout_width="wrap_content" android:text="@string/ad_block_on" />
-        </LinearLayout>
+        <TextView android:id="@+id/status" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:paddingHorizontal="12dp"
+            android:paddingBottom="8dp" android:visibility="gone"
+            android:textColor="#A4A4AF" android:textSize="12sp"
+            android:accessibilityLiveRegion="polite" />
         <ProgressBar android:id="@+id/progress" style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent" android:layout_height="3dp" />
         <WebView android:id="@+id/web_view" android:layout_width="match_parent"

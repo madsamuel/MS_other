@@ -10,6 +10,9 @@
     <string name="triple_speed_description">Triple playback speed</string>
     <string name="address_hint">Search YouTube or paste a YouTube link</string>
     <string name="go">Go</string>
+    <string name="video_fullscreen">Fullscreen video</string>
+    <string name="fullscreen_error">Could not enter fullscreen: %1$s</string>
+    <string name="fullscreen_no_video">Start a video first.</string>
     <string name="waiting">Select a video to play at %1$sx</string>
     <string name="speed_status">Playback speed: %1$sx</string>
     <string name="speed_unavailable">Requested %1$sx; player is at %2$sx (may be live or restricted)</string>

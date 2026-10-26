@@ -31,7 +31,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 
 class MainActivity : ComponentActivity(), PlaybackService.Listener {
     private lateinit var status: TextView
-    private lateinit var pageTitle: TextView
     private lateinit var address: EditText
     private lateinit var fullscreen: FrameLayout
     private lateinit var browserContent: View
@@ -54,9 +53,10 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
             updateSpeedButtons()
             updateNavigationButtons()
             updateAdBlockButton()
-            onStatus(playback.statusText)
+            onStatus(playback.statusText, playback.statusIsWarning)
             onTitle(playback.titleText)
             onLocation(webView.url.orEmpty())
+            onPlaybackChanged(playback.playing)
             if (webView.url == null) {
                 if (savedBrowserState == null || webView.restoreState(savedBrowserState!!) == null) {
                     webView.loadUrl(sharedVideo(intent) ?: YouTubeNavigation.HOME)
@@ -84,7 +84,6 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
             insets
         }
         status = findViewById(R.id.status)
-        pageTitle = findViewById(R.id.page_title)
         address = findViewById(R.id.address)
         fullscreen = findViewById(R.id.fullscreen_container)
         browserContent = findViewById(R.id.browser_content)
@@ -99,7 +98,8 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
         findViewById<Button>(R.id.normal_speed).setOnClickListener { selectSpeed(1) }
         findViewById<Button>(R.id.triple_speed).setOnClickListener { selectSpeed(3) }
         findViewById<View>(R.id.go).setOnClickListener { navigate() }
-        findViewById<Button>(R.id.ad_block).setOnClickListener {
+        findViewById<View>(R.id.video_fullscreen).setOnClickListener { service?.enterVideoFullscreen() }
+        findViewById<View>(R.id.ad_block).setOnClickListener {
             service?.let {
                 it.setAdBlockingEnabled(!it.adBlockingEnabled)
                 updateAdBlockButton()
@@ -183,12 +183,13 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
         }
     }
 
-    override fun onStatus(text: String) {
+    override fun onStatus(text: String, isWarning: Boolean) {
         status.text = text
+        status.visibility = if (isWarning && text.isNotBlank()) View.VISIBLE else View.GONE
     }
 
     override fun onTitle(title: String) {
-        pageTitle.text = title.ifBlank { getString(R.string.app_name) }
+        this.title = title.ifBlank { getString(R.string.app_name) }
     }
 
     override fun onLocation(url: String) {
@@ -201,6 +202,15 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
             this.progress = progress
             visibility = if (progress == 100) View.GONE else View.VISIBLE
         }
+    }
+
+    override fun onPlaybackChanged(playing: Boolean) {
+        if (playing && address.hasFocus()) {
+            address.clearFocus()
+            (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                .hideSoftInputFromWindow(address.windowToken, 0)
+        }
+        findViewById<View>(R.id.address_bar).visibility = if (playing) View.GONE else View.VISIBLE
     }
 
     override fun onStopped() = finish()
@@ -235,6 +245,7 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
         findViewById<View>(R.id.go).isEnabled = service != null
         findViewById<View>(R.id.home).isEnabled = service != null
         findViewById<View>(R.id.reload).isEnabled = service != null
+        findViewById<View>(R.id.video_fullscreen).isEnabled = service != null
         updateNavigationButtons()
         updateAdBlockButton()
     }
@@ -247,10 +258,11 @@ class MainActivity : ComponentActivity(), PlaybackService.Listener {
 
     private fun updateAdBlockButton() {
         val enabled = service?.adBlockingEnabled
-        findViewById<Button>(R.id.ad_block).apply {
+        findViewById<View>(R.id.ad_block).apply {
             isEnabled = enabled != null
             isSelected = enabled == true
-            text = getString(if (enabled == true) R.string.ad_block_on else R.string.ad_block_off)
+            contentDescription = getString(if (enabled == true) R.string.ad_block_on else R.string.ad_block_off)
+            tooltipText = contentDescription
         }
     }
 

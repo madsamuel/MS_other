@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.util.Base64
+import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -58,6 +59,12 @@ class BackgroundPlaybackTest {
                 playback.webView.loadUrl(YouTubeNavigation.HOME)
             }
             await { evaluate(playback, "Boolean(document.querySelector('video'))") == "true" }
+            assertAddressBarVisibility(scenario, View.VISIBLE)
+            scenario.onActivity { it.findViewById<View>(R.id.video_fullscreen).performClick() }
+            val noVideoError = context.getString(
+                R.string.fullscreen_error, context.getString(R.string.fullscreen_no_video)
+            )
+            await { playback.statusText == noVideoError }
             evaluate(playback, """video.src = "data:audio/wav;base64,${wave()}"; video.play(); "started"""")
             await(diagnostics = {
                 evaluate(playback, """
@@ -74,6 +81,29 @@ class BackgroundPlaybackTest {
             }) {
                 evaluate(playback, "Boolean(document.querySelector('video') && !video.paused && video.playbackRate === 3)") == "true"
             }
+            assertAddressBarVisibility(scenario, View.GONE)
+            instrumentation.runOnMainSync {
+                playback.webView.settings.mediaPlaybackRequiresUserGesture = true
+            }
+            scenario.onActivity { it.findViewById<View>(R.id.video_fullscreen).performClick() }
+            await(diagnostics = { "Fullscreen failed: ${playback.statusText}" }) {
+                var shown = false
+                scenario.onActivity { shown = it.findViewById<View>(R.id.fullscreen_container).visibility == View.VISIBLE }
+                shown
+            }
+            assertEquals("true", evaluate(playback, "document.fullscreenElement === video"))
+            scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            await {
+                var hidden = false
+                scenario.onActivity { hidden = it.findViewById<View>(R.id.fullscreen_container).visibility == View.GONE }
+                hidden
+            }
+            await { evaluate(playback, "document.fullscreenElement === null") == "true" }
+            assertAdvancing(playback)
+            evaluate(playback, "video.pause()")
+            assertAddressBarVisibility(scenario, View.VISIBLE)
+            evaluate(playback, "video.play(); 'started'")
+            assertAddressBarVisibility(scenario, View.GONE)
             scenario.onActivity { it.moveTaskToBack(true) }
             assertAdvancing(playback)
             shell("input keyevent 223")
@@ -86,14 +116,17 @@ class BackgroundPlaybackTest {
             val reopened = ActivityScenario.launch(MainActivity::class.java)
             try {
                 assertAdvancing(playback)
+                assertAddressBarVisibility(reopened, View.GONE)
                 context.startService(Intent(context, PlaybackService::class.java).setAction("pause"))
                 await { evaluate(playback, "video.paused") == "true" }
+                assertAddressBarVisibility(reopened, View.VISIBLE)
                 val pausedAt = evaluate(playback, "video.currentTime").toDouble()
                 Thread.sleep(700)
                 assertEquals(pausedAt, evaluate(playback, "video.currentTime").toDouble(), 0.1)
                 context.startService(Intent(context, PlaybackService::class.java).setAction("play"))
                 await { evaluate(playback, "!video.paused") == "true" }
                 assertAdvancing(playback)
+                assertAddressBarVisibility(reopened, View.GONE)
                 context.startService(Intent(context, PlaybackService::class.java).setAction("stop"))
                 await { evaluate(playback, "video.paused") == "true" }
             } finally {
@@ -104,6 +137,16 @@ class BackgroundPlaybackTest {
             scenario.close()
             if (bound) context.unbindService(connection)
             context.stopService(Intent(context, PlaybackService::class.java))
+        }
+    }
+
+    private fun assertAddressBarVisibility(scenario: ActivityScenario<MainActivity>, visibility: Int) {
+        await {
+            var matches = false
+            scenario.onActivity {
+                matches = it.findViewById<View>(R.id.address_bar).visibility == visibility
+            }
+            matches
         }
     }
 

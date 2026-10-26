@@ -38,10 +38,11 @@ import java.io.ByteArrayInputStream
 
 class PlaybackService : Service() {
     interface Listener {
-        fun onStatus(text: String)
+        fun onStatus(text: String, isWarning: Boolean)
         fun onProgress(progress: Int)
         fun onTitle(title: String)
         fun onLocation(url: String)
+        fun onPlaybackChanged(playing: Boolean)
         fun onExternalLink(uri: Uri)
         fun onStopped()
     }
@@ -64,10 +65,13 @@ class PlaybackService : Service() {
         private set
     var statusText = ""
         private set
+    var statusIsWarning = false
+        private set
     private lateinit var script: String
     private lateinit var mediaSession: MediaSession
     private lateinit var wakeLock: PowerManager.WakeLock
-    private var playing = false
+    var playing = false
+        private set
     private var pageFailed = false
     private var stopped = false
     private var commandPending = false
@@ -142,7 +146,7 @@ class PlaybackService : Service() {
                 mediaSession.setMetadata(null)
                 listener?.onTitle("")
                 listener?.onLocation(url.orEmpty())
-                report(getString(R.string.waiting, requestedRate.toString()))
+                report(getString(R.string.waiting, requestedRate.toString()), isWarning = false)
             }
 
             override fun onPageFinished(view: WebView, url: String?) {
@@ -220,10 +224,11 @@ class PlaybackService : Service() {
         report(getString(R.string.page_error))
     }
 
-    private fun report(text: String) {
-        if (statusText == text) return
+    private fun report(text: String, isWarning: Boolean = true) {
+        if (statusText == text && statusIsWarning == isWarning) return
         statusText = text
-        listener?.onStatus(text)
+        statusIsWarning = isWarning
+        listener?.onStatus(text, isWarning)
     }
 
     private fun updatePlayback() {
@@ -272,14 +277,39 @@ class PlaybackService : Service() {
             when {
                 !playback.isNull("commandError") ->
                     report(getString(R.string.playback_command_error, playback.getString("commandError")))
+                !playback.isNull("fullscreenError") ->
+                    report(getString(R.string.fullscreen_error, playback.getString("fullscreenError")))
                 !playback.isNull("adError") -> report(getString(R.string.ad_block_error, playback.getString("adError")))
                 !playback.isNull("error") -> report(getString(R.string.speed_error, playback.getString("error")))
-                !playback.getBoolean("found") -> report(getString(R.string.waiting, rate.toString()))
+                !playback.getBoolean("found") -> report(getString(R.string.waiting, rate.toString()), isWarning = false)
                 playback.getDouble("actual") == rate.toDouble() ->
-                    report(getString(R.string.speed_status, rate.toString()))
+                    report(getString(R.string.speed_status, rate.toString()), isWarning = false)
                 else -> report(getString(R.string.speed_unavailable, rate.toString(), playback.get("actual").toString()))
             }
         }
+    }
+
+    fun enterVideoFullscreen() {
+        // loadUrl preserves the native button's user gesture for the fullscreen request.
+        webView.loadUrl("javascript:" + """
+            (function() {
+                window.youtube3xFullscreenError = null;
+                const videos = Array.from(document.querySelectorAll('video'));
+                const video = videos.find(v => !v.paused && v.readyState > 0) ||
+                    videos.find(v => v.readyState > 0);
+                if (!video) {
+                    window.youtube3xFullscreenError = ${JSONObject.quote(getString(R.string.fullscreen_no_video))};
+                    return;
+                }
+                try {
+                    video.requestFullscreen().catch(error => {
+                        window.youtube3xFullscreenError = error.message || String(error);
+                    });
+                } catch (error) {
+                    window.youtube3xFullscreenError = error.message || String(error);
+                }
+            })();
+        """.trimIndent())
     }
 
     private fun setPlaying(value: Boolean) {
@@ -296,6 +326,7 @@ class PlaybackService : Service() {
         }
         if (playing == value) return
         playing = value
+        listener?.onPlaybackChanged(playing)
         publishState()
         if (playing) {
             getSystemService(NotificationManager::class.java).notify(NOTIFICATION, notification())
