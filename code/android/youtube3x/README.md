@@ -7,7 +7,9 @@ No API key, video downloading, or stream extraction is needed.
 ## Run
 
 Open this directory in Android Studio, let Gradle sync, and run `app` on a device
-or emulator. Use Android Studio's bundled JDK (17 or newer) and Android SDK 36.
+or emulator. Use Android SDK 36. Gradle's daemon JVM configuration selects
+JetBrains JDK 21; allow Gradle to provision it or provide a matching local JDK.
+The app's Java and Kotlin compilation target is Java 17.
 Android Studio creates the untracked `local.properties` SDK path.
 
 From PowerShell, with `JAVA_HOME` and the SDK configured:
@@ -28,9 +30,7 @@ speeds. The choice is remembered, and reapplied as YouTube changes videos or
 resets the playback rate. A warning appears if the actual rate differs from the request.
 Use the fullscreen icon beside the ad blocker to show only the selected video.
 YouTube's fullscreen control is also supported; Back exits fullscreen or goes back.
-The top bar also provides Back and Forward navigation. The media notification and lock screen show the video
-title and playback position. The playback notification and foreground service
-are active only while media is playing.
+The top bar also provides Back and Forward navigation.
 Playback continues when you switch apps, press Home or Back at the root page,
 or lock the screen. The player is owned by a media foreground service rather
 than the activity. While media is playing, the notification and lock screen show
@@ -39,7 +39,9 @@ Pausing removes the ongoing notification; reopen the app to resume. **Stop** end
 the session and closes the app. Removing the app from Recents also stops
 playback. Another app taking audio focus pauses playback; resume manually
 afterwards. Media playback controls do not require notification permission. The
-service and partial wake lock are active only while media is playing.
+service runs in foreground mode and holds a partial wake lock only while media
+is playing. The service starts when the app opens and can remain alive while
+playback is paused.
 
 The toolbar uses labeled navigation icons and highlights the selected playback
 speed. A shield toggle beside the speed buttons controls ad blocking; its
