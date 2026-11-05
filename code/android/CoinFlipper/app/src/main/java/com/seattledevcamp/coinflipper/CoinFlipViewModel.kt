@@ -13,6 +13,9 @@ class CoinFlipViewModel : ViewModel() {
     var isFlipping by mutableStateOf(false)
         private set
 
+    var landingSide by mutableStateOf(CoinSide.HEADS)
+        private set
+
     var flipCount by mutableStateOf(0)
         private set
 
@@ -24,14 +27,13 @@ class CoinFlipViewModel : ViewModel() {
 
     fun flipCoin() {
         if (!isFlipping) {
+            landingSide = if (Random.nextBoolean()) CoinSide.HEADS else CoinSide.TAILS
             isFlipping = true
-            // The actual result will be set after the animation completes
         }
     }
 
     fun onFlipAnimationEnd() {
-        // Determine the result
-        coinSide = if (Random.nextBoolean()) CoinSide.HEADS else CoinSide.TAILS
+        coinSide = landingSide
         isFlipping = false
         flipCount++
 

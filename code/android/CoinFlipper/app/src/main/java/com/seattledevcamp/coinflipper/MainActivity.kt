@@ -2,6 +2,7 @@ package com.seattledevcamp.coinflipper
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
 
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             CoinFlipTheme {
                 Surface(
@@ -29,4 +31,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

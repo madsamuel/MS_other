@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">Coin Flipper</string>
+    <string name="chance_label">LEAVE IT TO CHANCE</string>
+    <string name="screen_headline">A little chance.\nA clear decision.</string>
+    <string name="flip_coin">Flip coin</string>
+    <string name="flipping">Flipping...</string>
+    <string name="in_the_air">It\'s in the air...</string>
+    <string name="ready_to_flip">Ready to flip?</string>
+    <string name="heads">Heads</string>
+    <string name="tails">Tails</string>
+    <string name="chance_working">Let chance do its thing.</string>
+    <string name="coin_hint">One coin. Two possibilities.</string>
+    <string name="this_session">This session</string>
+    <string name="reset_stats">Reset stats</string>
+    <string name="total_flips">Total flips</string>
+    <string name="fair_chance">50 / 50. Every flip. A fresh start.</string>
+    <string name="coin_inscription">THE CHOICE IS YOURS</string>
 </resources>

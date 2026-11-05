@@ -1,192 +1,258 @@
 package com.seattledevcamp.coinflipper
 
-import androidx.compose.foundation.Image
+import android.media.MediaPlayer
+import android.util.Log
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.FastOutSlowInEasing
-import android.media.MediaPlayer
-import androidx.compose.ui.platform.LocalContext
+import kotlin.math.PI
+import kotlin.math.sin
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CoinFlipScreen(viewModel: CoinFlipViewModel) {
-    Scaffold { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+    val colors = MaterialTheme.colorScheme
+    Scaffold(containerColor = colors.background) { padding ->
+        BoxWithConstraints(
+            Modifier.fillMaxSize().padding(padding)
         ) {
-            // Stats section
-            StatsSection(viewModel)
-
-            // Coin section
-            CoinSection(viewModel)
-
-            // Buttons section
-            ButtonsSection(viewModel)
+            val coinSize = (maxHeight - 600.dp).coerceIn(160.dp, 264.dp)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    GoldCoin(CoinSide.HEADS, Modifier.size(32.dp))
+                    Text(
+                        stringResource(R.string.app_name),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.chance_label),
+                        color = colors.primary,
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 2.sp
+                    )
+                    Text(
+                        stringResource(R.string.screen_headline),
+                        style = MaterialTheme.typography.headlineLarge
+                    )
+                }
+                CoinSection(viewModel, coinSize)
+                Button(
+                    onClick = viewModel::flipCoin,
+                    enabled = !viewModel.isFlipping,
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
+                    contentPadding = PaddingValues(18.dp)
+                ) {
+                    Text(
+                        stringResource(
+                            if (viewModel.isFlipping) R.string.flipping else R.string.flip_coin
+                        ),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                StatsSection(viewModel)
+                Text(
+                    stringResource(R.string.fair_chance),
+                    color = colors.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium
+                )
+            }
         }
     }
 }
 
 @Composable
-fun StatsSection(viewModel: CoinFlipViewModel) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-    ) {
-        Column(
+private fun CoinSection(viewModel: CoinFlipViewModel, coinSize: Dp) {
+    val progress = remember { Animatable(0f) }
+    var startingSide by remember { mutableStateOf(viewModel.coinSide) }
+    val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
+    val player = remember(context) {
+        MediaPlayer.create(context, R.raw.coin_flip).also {
+            if (it == null) Log.w("CoinFlipScreen", "Coin flip audio could not be loaded")
+        }
+    }
+    DisposableEffect(player) {
+        onDispose { player?.release() }
+    }
+    LaunchedEffect(viewModel.isFlipping) {
+        if (viewModel.isFlipping) {
+            startingSide = viewModel.coinSide
+            progress.snapTo(0f)
+            player?.seekTo(0)
+            player?.start()
+            progress.animateTo(1f, tween(1400, easing = FastOutSlowInEasing))
+            viewModel.onFlipAnimationEnd()
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+        }
+    }
+    val turns = if (startingSide == viewModel.landingSide) 1800f else 1980f
+    val rotation = progress.value * turns
+    val backVisible = (rotation % 360f) in 90f..270f
+    val visibleSide = if (!viewModel.isFlipping) viewModel.coinSide
+        else if (backVisible) {
+            if (startingSide == CoinSide.HEADS) CoinSide.TAILS else CoinSide.HEADS
+        } else startingSide
+    val lift = if (viewModel.isFlipping) sin(progress.value * PI).toFloat() else 0f
+    val shadowColor = MaterialTheme.colorScheme.onBackground
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
             modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxWidth()
+                .height(coinSize + 48.dp)
+                .drawBehind {
+                    val width = size.width * (0.46f - lift * 0.12f)
+                    drawOval(
+                        brush = Brush.radialGradient(
+                            listOf(shadowColor.copy(alpha = 0.18f - lift * 0.08f), Color.Transparent),
+                            center = Offset(size.width / 2, size.height - 16.dp.toPx()),
+                            radius = width / 2
+                        ),
+                        topLeft = Offset((size.width - width) / 2, size.height - 28.dp.toPx()),
+                        size = Size(width, 24.dp.toPx())
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            GoldCoin(
+                side = visibleSide,
+                modifier = Modifier
+                    .size(coinSize)
+                    .graphicsLayer {
+                        translationY = -lift * 28.dp.toPx()
+                        rotationX = if (viewModel.isFlipping) rotation else 0f
+                        if (viewModel.isFlipping && backVisible) rotationX += 180f
+                        rotationZ = if (viewModel.isFlipping) lift * -12f else -8f
+                        scaleX = 1f + lift * 0.06f
+                        scaleY = 1f + lift * 0.06f
+                        cameraDistance = 14 * density
+                    }
+            )
+        }
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
         ) {
             Text(
-                text = "Statistics",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
+                text = stringResource(
+                    when {
+                        viewModel.isFlipping -> R.string.in_the_air
+                        viewModel.flipCount == 0 -> R.string.ready_to_flip
+                        viewModel.coinSide == CoinSide.HEADS -> R.string.heads
+                        else -> R.string.tails
+                    }
+                ),
+                style = MaterialTheme.typography.headlineMedium
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                stringResource(
+                    if (viewModel.isFlipping) R.string.chance_working else R.string.coin_hint
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun StatsSection(viewModel: CoinFlipViewModel) {
+    val colors = MaterialTheme.colorScheme
+    Card(
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatItem("Flips", viewModel.flipCount.toString())
-                StatItem("Heads", viewModel.headsCount.toString())
-                StatItem("Tails", viewModel.tailsCount.toString())
-            }
-        }
-    }
-}
-
-@Composable
-fun StatItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = label, fontSize = 14.sp)
-        Text(text = value, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-fun CoinSection(viewModel: CoinFlipViewModel) {
-    val isFlipping = viewModel.isFlipping
-
-    // Animation values
-    val rotation = remember { Animatable(0f) }
-    val scale = remember { Animatable(1f) }
-
-    val context = LocalContext.current
-    val mediaPlayer = remember { MediaPlayer.create(context, R.raw.coin_flip) }
-
-    LaunchedEffect(isFlipping) {
-        if (isFlipping) {
-            mediaPlayer.start()
-
-            // Reset rotation to 0 before starting
-            rotation.snapTo(0f)
-
-            // Animate the coin flip
-            launch {
-                // Scale up slightly
-                scale.animateTo(
-                    targetValue = 1.2f,
-                    animationSpec = tween(durationMillis = 200)
+                Text(
+                    stringResource(R.string.this_session),
+                    style = MaterialTheme.typography.titleSmall
                 )
-
-                // Flip the coin (rotate it multiple times)
-                rotation.animateTo(
-                    targetValue = 1800f, // Multiple full rotations
-                    animationSpec = tween(
-                        durationMillis = 1000,
-                        easing = FastOutSlowInEasing
-                    )
-                )
-
-                // Scale back to normal
-                scale.animateTo(
-                    targetValue = 1f,
-                    animationSpec = tween(durationMillis = 200)
-                )
-
-                // Notify the ViewModel that the animation is complete
-                viewModel.onFlipAnimationEnd()
-            }
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .size(200.dp)
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Image(
-            painter = painterResource(
-                id = if (viewModel.coinSide == CoinSide.HEADS)
-                    R.drawable.heads
-                else
-                    R.drawable.tails
-            ),
-            contentDescription = "Coin",
-            modifier = Modifier
-                .fillMaxSize()
-                .scale(scale.value)
-                .graphicsLayer {
-                    rotationY = rotation.value
-                    cameraDistance = 8 * density
+                TextButton(
+                    onClick = viewModel::resetStats,
+                    enabled = !viewModel.isFlipping && viewModel.flipCount > 0,
+                    contentPadding = PaddingValues(horizontal = 12.dp)
+                ) {
+                    Text(stringResource(R.string.reset_stats))
                 }
-        )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                StatItem(stringResource(R.string.total_flips), viewModel.flipCount)
+                StatItem(stringResource(R.string.heads), viewModel.headsCount)
+                StatItem(stringResource(R.string.tails), viewModel.tailsCount)
+            }
+            val headsFraction = if (viewModel.flipCount == 0) 0.5f
+                else viewModel.headsCount.toFloat() / viewModel.flipCount
+            BoxWithConstraints(
+                Modifier.fillMaxWidth().height(5.dp)
+                    .background(colors.surfaceVariant, RoundedCornerShape(3.dp))
+            ) {
+                Box(
+                    Modifier.width(maxWidth * headsFraction).fillMaxHeight()
+                        .background(colors.primary, RoundedCornerShape(3.dp))
+                )
+            }
+        }
     }
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    Text(
-        text = if (isFlipping) "Flipping..." else viewModel.coinSide.name,
-        fontSize = 24.sp,
-        fontWeight = FontWeight.Bold
-    )
 }
 
 @Composable
-fun ButtonsSection(viewModel: CoinFlipViewModel) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        Button(
-            onClick = { viewModel.flipCoin() },
-            enabled = !viewModel.isFlipping,
-            modifier = Modifier.weight(1f)
-        ) {
-            Text("Flip Coin")
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Button(
-            onClick = { viewModel.resetStats() },
-            enabled = !viewModel.isFlipping,
-            modifier = Modifier.weight(1f)
-        ) {
-            Text("Reset Stats")
-        }
+private fun StatItem(label: String, value: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(value.toString(), style = MaterialTheme.typography.headlineMedium)
+        Text(
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

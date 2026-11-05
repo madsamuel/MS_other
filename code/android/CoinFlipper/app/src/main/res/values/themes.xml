@@ -5,6 +5,7 @@
 
     <!-- Splash Screen Theme -->
     <style name="Theme.CoinFlipper.Splash" parent="Theme.SplashScreen">
+        <item name="postSplashScreenTheme">@style/Theme.CoinFlipper</item>
         <!-- Configure your splash screen resources -->
         <!-- Background color -->
         <item name="android:windowSplashScreenBackground">@color/white</item>
